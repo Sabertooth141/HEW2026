@@ -8,18 +8,18 @@
 GameObject::GameObject(const MaterialData& matData, const ModelReader& modelReader, GameContext& context,
                        const std::wstring& vsPath, const std::wstring& psPath)
 {
-	this->context = &context;
-	scriptSystem = &context.scriptSys;
-	animationSystem = &context.animationSys;
-	renderSystem = &context.renderSys;
-	renderer = &context.renderer;
-	physicsSystem = &context.physicsSys;
-	TransformComponent& transformComp = AddComponent<TransformComponent>();
-	AddComponent<MaterialComponent>(*renderer, matData, vsPath, psPath);
-	for (auto& meshData : modelReader.GetMeshes())
-	{
-		meshes.push_back(std::make_unique<MeshComponent>(*renderer, meshData, transformComp));
-	}
+	//this->context = &context;
+	//scriptSystem = &context.scriptSys;
+	//animationSystem = &context.animationSys;
+	//renderSystem = &context.renderSys;
+	//renderer = &context.renderer;
+	//physicsSystem = &context.physicsSys;
+	//TransformComponent& transformComp = AddComponent<TransformComponent>();
+	//AddComponent<MaterialComponent>(*renderer, matData, vsPath, psPath);
+	//for (auto& meshData : modelReader.GetMeshes())
+	//{
+	//	meshes.push_back(std::make_unique<MeshComponent>(*renderer, meshData, transformComp));
+	//}
 }
 
 GameObject::GameObject(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, GameContext& context,

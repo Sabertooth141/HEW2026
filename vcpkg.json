@@ -2,7 +2,7 @@
   "name": "hew2026",
   "version": "0.1.0",
   "dependencies": [
-    "assimp"
+  
   ],
   "builtin-baseline": "9849e070ad4c3383890fb1c80ae0c54325e2484a"
 }
