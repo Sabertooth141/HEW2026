@@ -27,6 +27,7 @@ App::App(const std::string& cmdLine) : cmdLine(cmdLine),
 
 App::~App()
 {
+
 }
 
 int App::Run()
@@ -39,7 +40,7 @@ int App::Run()
 	{
 		if (const auto exitCode = Window::ProcessMessages())
 		{
-			return *exitCode;
+			return 0;
 		}
 
 		const float deltaTime = timer.Mark();
