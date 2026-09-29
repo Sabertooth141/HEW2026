@@ -1,3 +1,1 @@
-Test
-aaaaaaaa
-test merge
+test branch ruleset
