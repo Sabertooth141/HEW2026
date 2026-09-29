@@ -1,7 +1,2 @@
-<<<<<<< Updated upstream
 Test
 aaaaaaaa
-=======
-test merge
-
->>>>>>> Stashed changes
