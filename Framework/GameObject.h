@@ -34,8 +34,8 @@ public:
 	GameObject(const MaterialData& matData, const ModelReader& modelReader, GameContext& context,
 	           const std::wstring& vsPath = L"VertexShader.cso", const std::wstring& psPath = L"PixelShader.cso");
 	// for 2d
-	GameObject(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, GameContext& context,
-	           const std::wstring& vsPath = L"SpriteVertexShader.cso", const std::wstring& psPath = L"SpritePixelShader.cso");
+	//GameObject(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, GameContext& context,
+	//           const std::wstring& vsPath = L"SpriteVertexShader.cso", const std::wstring& psPath = L"SpritePixelShader.cso");
 	GameObject(Renderer& renderer);
 
 	void Update(float deltaTime);
