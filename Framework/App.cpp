@@ -73,6 +73,7 @@ void App::Update(float deltaTime)
 	if (scene && !sceneManager.IsTransitioning())
 	{
 		scene->Update(deltaTime);
+		scene->OnUpdate(deltaTime);
 		scriptSystem.Update(deltaTime);
 		physicsSystem.Update(deltaTime);
 		scriptSystem.LateUpdate(deltaTime);

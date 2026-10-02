@@ -6,7 +6,7 @@ class ResultScene : public Scene
 public:
 	using Scene::Scene;
 
-	void Update(float deltaTime) override;
+	void OnUpdate(float deltaTime) override;
 	void OnDrawUI(TextRenderer& text) override;
 
 private:

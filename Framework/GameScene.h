@@ -7,7 +7,7 @@ public:
 	using Scene::Scene;
 
 	void OnEnter() override;
-	void Update(float deltaTime) override;
+	void OnUpdate(float deltaTime) override;
 	void OnDrawUI(TextRenderer& text) override;
 
 private:

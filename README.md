@@ -54,7 +54,7 @@
 
 ```
 WinMain → App::Run()
-            ├─ Init()            … プレハブ登録・コリジョンテスト登録・初期オブジェクト生成
+            ├─ Init()            … プレハブ・コリジョンテスト・シーンの登録、最初のシーンへ遷移
             └─ ループ
                  ├─ Window::ProcessMessages()
                  ├─ Update(deltaTime)
@@ -65,12 +65,27 @@ WinMain → App::Run()
 ### `App::Update` の順序
 
 ```
-scene.Update(dt)            // 各 GameObject の全コンポーネントの Update
-scriptSystem.Update(dt)     // Start（初回のみ）→ Update
-physicsSystem.Update(dt)    // 積分 → 衝突判定 → 拘束解決 → イベント通知
-scriptSystem.LateUpdate(dt) // LateUpdate（カメラ追従など）
-animationSystem.Update(dt)  // アニメーション更新
-scene.FlushPending()        // 生成・破棄の反映（最後にまとめて）
+// 遷移中（フェード中）はここをスキップ
+scene->Update(dt)            // 各 GameObject の Update
+scene->Update(dt)          // シーン固有の処理（タイマー・遷移判定など）
+scriptSystem.Update(dt)      // Start（初回のみ）→ Update
+physicsSystem.Update(dt)     // 積分 → 衝突判定 → 拘束解決 → イベント通知
+scriptSystem.LateUpdate(dt)  // LateUpdate（カメラ追従など）
+animationSystem.Update(dt)   // アニメーション更新
+scene->FlushPending()        // 生成・破棄の反映
+
+sceneManager.Update(dt)      // シーン切り替えはここで実行（常に最後）
+```
+
+### `App::Draw` の順序
+
+```
+renderSystem.Render()        // スプライト
+DebugRender / DebugTextRender
+scene->OnDrawUI(text)        // シーンの HUD・画面テキスト
+debugRenderer.Flush()
+textRenderer.Flush()
+フェード                       // 最前面
 ```
 
 ### システム一覧
@@ -82,7 +97,7 @@ scene.FlushPending()        // 生成・破棄の反映（最後にまとめて�
 | `AnimationSystem` | `AnimatorComponent` の更新 |
 | `RenderSystem` | 2D スプライトの描画（レイヤー → ソート順で並べ替え） |
 
-これらは `GameContext` 構造体にまとめられ、`GameObject` から `GetContext()` で参照できます。
+これらと `Keyboard` / `Mouse`、`SceneManager` は `GameContext` 構造体にまとめられ、`GameObject` から `GetContext()` で参照できます。
 
 ---
 
@@ -98,11 +113,11 @@ scene.FlushPending()        // 生成・破棄の反映（最後にまとめて�
 
 ## 4. クイックスタート
 
-`App::Init()` 内で、画像付きの落下する箱を作る例です。
+シーンの `OnEnter()` 内で、画像付きの落下する箱を作る例です（`scene.` は不要で、シーンのメンバー関数として呼べます）。
 
 ```cpp
 // 1. オブジェクトを生成（2D 用のクアッドメッシュ付き）
-GameObject* obj = scene.Add2DObject();
+GameObject* obj = Add2DObject();
 obj->GetTransform()->SetPosition({0.f, 100.f, 1.f});
 
 // 2. スプライト
@@ -139,6 +154,133 @@ obj->AddComponent<PhysicsTest>();
 | `void Update(float dt)` | 全オブジェクトを更新 |
 | `void FlushPending()` | 生成・破棄の反映。破棄時は物理・スクリプト・アニメーション・描画の各システムから登録解除 |
 | `GetObjects()` | 現在のオブジェクト一覧を取得 |
+
+| `void Clear()` | 全オブジェクトを各システムから登録解除して破棄（シーン切り替え時に `SceneManager` が呼ぶ） |
+
+#### シーンのフック（override して使う）
+
+| 関数 | 呼ばれるタイミング |
+|---|---|
+| `OnEnter()` | シーン開始時。**オブジェクトの生成はここで行う** |
+| `OnExit()` | シーン終了時（`Clear()` の直前） |
+| `OnUpdate(float dt)` | 毎フレーム（遷移中は呼ばれない）。タイマーや遷移判定など |
+| `OnDrawUI(TextRenderer& text)` | 毎フレームの描画。HUD・画面テキスト |
+
+シーンのメンバーとして `context`（`GameContext&`）が使えます。
+
+### シーンの作成
+
+```cpp
+// StageScene.h
+#pragma once
+#include "Scene.h"
+
+class StageScene : public Scene
+{
+public:
+    using Scene::Scene;
+
+    void OnEnter() override;
+    void OnUpdate(float dt) override;
+    void OnDrawUI(TextRenderer& text) override;
+};
+```
+
+```cpp
+// StageScene.cpp
+void StageScene::OnEnter()
+{
+    GameObject* player = Add2DObject();
+    // ...
+}
+
+void StageScene::OnUpdate(float dt)
+{
+    if (/* クリア条件 */)
+        context.sceneManager->RequestChange("Result");
+}
+```
+
+### SceneManager（シーン管理）
+
+シーンは**文字列名**で登録し、名前で切り替えます。シーンは同時に 1 つだけ存在し、切り替えるたびに新しく生成されます。
+
+#### 登録（`App::Init`）
+
+```cpp
+sceneManager.Register<TitleScene>("Title");
+sceneManager.Register<StageScene>("Stage");
+sceneManager.Register<ResultScene>("Result");
+
+sceneManager.RequestChange("Title");   // 最初のシーン
+```
+
+`Register<T>(name)` は `T` を生成する関数（ファクトリ）を登録するだけで、シーン自体はまだ作られません。コンストラクタに追加の引数が必要な場合はラムダで登録します。
+
+```cpp
+sceneManager.Register("Stage2", [](GameContext& c) {
+    return std::make_unique<StageScene>(c /*, 追加の引数 */);
+});
+```
+
+#### 関数一覧
+
+| 関数 | 説明 |
+|---|---|
+| `Register<T>(name)` / `Register(name, factory)` | シーンを名前で登録 |
+| `IsRegistered(name)` | 登録済みか |
+| `RequestChange(name, fadeTime = 0.4f)` | 遷移を**予約**（即座には切り替わらない）。遷移中の呼び出しは無視。未登録の名前は `assert` |
+| `Update(dt)` | フェードを進め、切り替えを実行（`App::Update` の最後で呼ばれる） |
+| `GetCurrScene()` / `GetCurrSceneName()` | 現在のシーン・名前 |
+| `IsTransitioning()` | 遷移（フェード）中か |
+| `GetFadeAlpha()` | フェードの不透明度（0 = 透明、1 = 真っ黒） |
+
+#### 遷移の流れ
+
+```
+RequestChange("Result")
+  → フェードアウト（ゲーム処理は停止）
+  → 現シーンの OnExit() → Clear() → 破棄
+  → カメラ位置を (0, 0) にリセット
+  → 新シーン生成 → context.gameScene を更新 → OnEnter()
+  → フェードイン（ゲーム処理は停止）
+  → 通常更新に戻る
+```
+
+#### 呼び出し方
+
+```cpp
+// シーンから
+context.sceneManager->RequestChange("Result");
+
+// MonoBehavior から
+ChangeScene("Result");
+ChangeScene("Result", 1.0f);   // フェード時間を指定
+```
+
+#### シーン間のデータ受け渡し
+
+シーン内のものは切り替え時にすべて破棄されます。次のシーンに渡したい値は `GameContext::shared`（`SharedGameData`）に入れてください。
+
+```cpp
+// GameContext.h
+struct GlobalContext
+{
+    int score = 0;
+};
+
+// StageScene
+context.globalContext.score = currentScore;
+context.sceneManager->RequestChange("Result");
+
+// ResultScene::OnDrawUI
+text.DrawScreen(std::format("スコア: {}", context.shared.score), ...);
+```
+
+#### 起動シーンの指定（デバッグ用）
+
+コマンドライン引数に登録済みのシーン名を渡すと、そのシーンから起動します（例：`Stage`）。
+Visual Studio の「プロジェクトのプロパティ → デバッグ → コマンド引数」で設定できます。未登録の名前や空の場合は `Title` から起動します。
 
 ### GameObject
 
@@ -203,7 +345,7 @@ auto& anim = obj->AddComponent<AnimatorComponent>(obj->GetRenderer());
 | `SetFlipX(bool)` / `SetFlipY(bool)` | 反転 |
 | `SetEnabled(bool)` / `IsEnabled()` | 有効／無効 |
 
-#### アニメーション使用例（`App::Init` より）
+#### アニメーション使用例（デモの `GameScene::OnEnter` より）
 
 ```cpp
 auto* anim = playerObj->GetComponent<AnimatorComponent>();
@@ -339,6 +481,7 @@ public:
 | `Destroy(GameObject*)` / `DestroySelf()` | 破棄予約 |
 | `SetEnabled(bool)` / `IsEnabled()` | 有効／無効（無効だと Update されない） |
 | `IsStarted()` | Start 済みか |
+| `ChangeScene(name, fadeTime = 0.4f)` | シーン遷移を予約（`SceneManager::RequestChange` の呼び出し） |
 
 ### 例：スペースキーでブロックを落とす（`PlayerController` より）
 
@@ -405,11 +548,12 @@ Instantiate("block", pos);                         // MonoBehavior 内から
 Camera2D camera;
 camera.SetPosition({0.f, 300.f});
 DirectX::XMFLOAT2 p = camera.GetPosition();
-renderer.SetView(camera.GetView());   // App::DebugRender で毎フレーム設定
+renderer.SetView(camera.GetView());   // App::Draw で毎フレーム設定
 ```
 
 - `GameContext::camera` から `owner->GetContext().camera` で取得できます。
 - サンプルの `CameraController`（`MonoBehavior`）は、積み上がったブロックの最上部を検出して、上昇は速く・下降は遅延付きでスムーズに追従します。
+- シーン切り替え時にカメラ位置は `(0, 0)` にリセットされます。
 
 ---
 
@@ -596,14 +740,24 @@ CollisionDispatch::GetInstance().Register(ColliderType::Box, ColliderType::Box,
 1. `.hlsl` を追加し、`.vcxproj` の `FxCompile` に `ShaderType`（Vertex / Pixel）を設定。
 2. `MaterialComponent(renderer, matData, L"XXVertexShader.cso", L"XXPixelShader.cso")` のように、パスを指定して使う（同じ組み合わせはキャッシュされます）。
 
+### 新しいシーンを追加する
+
+1. `Scene` を継承したクラスを作り、`OnEnter()` でオブジェクトを生成する（「5. シーンの作成」参照）。
+2. `App::Init()` で `sceneManager.Register<MyScene>("名前")` を追加する。
+3. `RequestChange("名前")` / `ChangeScene("名前")` で遷移する。
+
+ステージ違いなど、配置だけが異なるシーンはクラスを増やさず、1 つのクラスを `SharedGameData` の値（ステージ番号など）で切り替えるのがおすすめです。
+
 ---
 
 ## 17. 注意点
 
-- **二重更新の可能性**：`Scene::Update` は全コンポーネントの `Update` を呼び、さらに `ScriptSystem` / `AnimationSystem` も同じ `MonoBehavior` / `AnimatorComponent` の `Update` を呼びます。そのため、これらの `Update` は現在 1 フレームに 2 回呼ばれる構造になっています。時間に依存する処理（タイマー・アニメーション速度など）を書くときは注意してください。
 - **Rigidbody + Collider が必須**：どちらか一方だけのオブジェクトは物理の対象になりません。
 - **AddComponent の順序**：`Awake` 内で他コンポーネントを取得する場合、先に追加しておくこと。
 - **`SetScale(float)` は乗算**：`SetStatic` / `AddAnimation` の後に使うこと。
 - **プレハブ生成は遅延反映**：`Instantiate` したオブジェクトが `GetObjects()` に現れるのは `FlushPending()` 後です。
 - **アセットのパス**：実行時のカレントディレクトリが変わるとテクスチャや `.cso` が見つからず、`assert` や `nullptr` 参照の原因になります。
-- **ゲームループ**：`App` には制限時間（`playTime` = 25 秒）があり、0 になると `gameRunning = false` でゲームオーバー画面に切り替わります。
+- **シーン切り替えは遅延反映**：`RequestChange` は予約のみで、実際の切り替えはフレーム末の `sceneManager.Update()` で行われます。スクリプトの `Update` 中に呼んでも安全です。
+- **遷移中はゲームが止まる**：フェード中は `OnUpdate` / スクリプト / 物理 / アニメーションが更新されません。
+- **切り替えでシーン内はすべて破棄**：`GameObject*` などシーン内オブジェクトへのポインタを、シーンをまたいで保持しないこと。残したい値は `GameContext::shared` へ。
+- **`Clear()` 中の生成は無効**：シーン破棄中（`OnDestroy` 内など）の `Instantiate` / `Add2DObject` は `nullptr` を返します。

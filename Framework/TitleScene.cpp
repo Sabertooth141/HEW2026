@@ -10,10 +10,8 @@ void TitleScene::OnEnter()
 	Scene::OnEnter();
 }
 
-void TitleScene::Update(float deltaTime)
+void TitleScene::OnUpdate(float deltaTime)
 {
-	Scene::Update(deltaTime);
-
 	if (context.keyboard.KeyIsTriggered(VK_RETURN))
 	{
 		context.sceneManager->RequestChange("Game");

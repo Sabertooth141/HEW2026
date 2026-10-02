@@ -27,15 +27,19 @@ public:
 	{
 	}
 
+	virtual void OnUpdate(float deltaTime)
+	{
+	}
+
 	virtual void OnExit()
 	{
 	}
 
-	virtual void Update(float deltaTime);
-
 	virtual void OnDrawUI(TextRenderer& text)
 	{
 	}
+
+	void Update(float deltaTime);
 
 	void Clear();
 

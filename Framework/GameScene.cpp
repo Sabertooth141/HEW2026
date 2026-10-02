@@ -69,10 +69,8 @@ void GameScene::OnEnter()
 	//block->GetComponent<Rigidbody2DComponent>()->SetFreezeRotation(true);
 }
 
-void GameScene::Update(float deltaTime)
+void GameScene::OnUpdate(float deltaTime)
 {
-	Scene::Update(deltaTime);
-
 	if (finished)
 	{
 		return;

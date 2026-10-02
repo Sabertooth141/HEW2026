@@ -7,10 +7,8 @@
 #include "TextRenderer.h"
 #include "WindowSettings.h"
 
-void ResultScene::Update(float deltaTime)
+void ResultScene::OnUpdate(float deltaTime)
 {
-	Scene::Update(deltaTime);
-
 	elapsed += deltaTime;
 	if (elapsed < inputDelay)
 	{
