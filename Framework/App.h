@@ -12,6 +12,7 @@
 #include "ScriptSystem.h"
 #include "Timer.h"
 #include "GameContext.h"
+#include "SceneManager.h"
 #include "TextRenderer.h"
 
 class GameObject;
@@ -30,8 +31,8 @@ private:
 	void Update(float deltaTime);
 	void HandleInput(float deltaTime);
 	void Draw(float deltaTime);
-	void DebugRender(float deltaTime);
-	void DebugTextRender(float deltaTime);
+	void DebugRender(Scene& scene);
+	void DebugTextRender(Scene& scene, float deltaTime);
 
 private:
 	DirectX::XMFLOAT3 rotation = {};
@@ -51,17 +52,10 @@ private:
 	Camera2D camera;
 
 	GameContext gameContext;
-	Scene scene;
+	SceneManager sceneManager;
 
 	std::unique_ptr<LightCBuffer> lightCBuffer;
 
-	bool gameRunning = true;
-
 	float sensitivity = 0.004f;
-
-	float playTime = 25.f;
-	float playTimer = playTime;
-
-	GameObject* playerObj = nullptr;
 };
 

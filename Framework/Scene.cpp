@@ -5,6 +5,11 @@
 
 GameObject* Scene::Instantiate(const std::string& prefab, const DirectX::XMFLOAT3& pos)
 {
+	if (isClearing)
+	{
+		return nullptr;
+	}
+
 	const PrefabFn* prefabFunction = PrefabRegistry::Instance().Find(prefab);
 	if (!prefabFunction)
 	{
@@ -26,6 +31,11 @@ GameObject* Scene::Instantiate(const std::string& prefab, const DirectX::XMFLOAT
 
 GameObject* Scene::Add2DObject()
 {
+	if (isClearing)
+	{
+		return nullptr;
+	}
+
 	MeshData quad = MakeSpriteQuad();
 	auto object = std::make_unique<GameObject>(quad.vertices, quad.indices, context);
 	objects.push_back(std::move(object));
@@ -54,19 +64,29 @@ void Scene::Update(float deltaTime)
 		object->Update(deltaTime);
 }
 
+void Scene::Clear()
+{
+	isClearing = true;
+	for (auto& obj : objects)
+	{
+		UnregisterFromSys(obj.get());
+	}
+
+	for (auto& obj : pendingSpawn)
+	{
+		UnregisterFromSys(obj.get());
+	}
+	objects.clear();
+	pendingSpawn.clear();
+	pendingDestroy.clear();
+	isClearing = false;
+}
+
 void Scene::FlushPending()
 {
 	for (GameObject* object : pendingDestroy)
 	{
-		context.physicsSys.Unregister(object);
-		context.scriptSys.Unregister(object);
-
-		if (auto* anim = object->GetComponent<AnimatorComponent>())
-		{
-			context.animationSys.Unregister(anim);
-		}
-
-		context.renderSys.Unregister(object);
+		UnregisterFromSys(object);
 	}
 
 	std::erase_if(objects, [this](const std::unique_ptr<GameObject>& p)
@@ -81,4 +101,17 @@ void Scene::FlushPending()
 		objects.push_back(std::move(object));
 	}
 	pendingSpawn.clear();
+}
+
+void Scene::UnregisterFromSys(GameObject* object)
+{
+	context.physicsSys.Unregister(object);
+	context.scriptSys.Unregister(object);
+
+	if (auto* anim = object->GetComponent<AnimatorComponent>())
+	{
+		context.animationSys.Unregister(anim);
+	}
+
+	context.renderSys.Unregister(object);
 }
