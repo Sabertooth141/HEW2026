@@ -2,6 +2,12 @@
 
 #include "GameObject.h"
 #include "Scene.h"
+#include "SceneManager.h"
+
+void MonoBehavior::ChangeScene(const std::string& sceneName, float fadeTime) const
+{
+	owner->GetContext().sceneManager->RequestChange(sceneName, fadeTime);
+}
 
 void MonoBehavior::SetInput(Keyboard& inKeyboard, Mouse& inMouse)
 {

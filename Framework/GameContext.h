@@ -7,6 +7,14 @@ class ScriptSystem;
 class AnimationSystem;
 class RenderSystem;
 class Scene;
+class Keyboard;
+class Mosue;
+class SceneManager;
+
+struct GlobalContext
+{
+    float towerHeight = 0.f;
+};
 
 struct GameContext
 {
@@ -16,6 +24,10 @@ struct GameContext
     AnimationSystem& animationSys;
     RenderSystem& renderSys;
     Camera2D& camera;
+    Keyboard& keyboard;
+    Mouse& mouse;
 
     Scene* gameScene = nullptr;
+    SceneManager* sceneManager = nullptr;
+    GlobalContext globalContext;
 };

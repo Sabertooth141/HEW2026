@@ -97,6 +97,18 @@
     <Filter Include="Source Files\Text">
       <UniqueIdentifier>{a129a3be-a6f0-4f1c-9c38-a0f25031396d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Scene">
+      <UniqueIdentifier>{c2f3888e-63c6-4ed7-b959-19b8629be2c4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Scene\GameScenes">
+      <UniqueIdentifier>{fb2696de-d8f9-481d-97e0-80424e826e17}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Scene">
+      <UniqueIdentifier>{fc3485a8-1185-4496-bec0-4e5d6860d8a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Scene\GameScenes">
+      <UniqueIdentifier>{6de6b70d-d8d3-48ba-9814-670e20335154}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Image Include="small.ico">
@@ -212,9 +224,6 @@
     <ClCompile Include="PrefabRegistry.cpp">
       <Filter>Source Files\GameObject</Filter>
     </ClCompile>
-    <ClCompile Include="Scene.cpp">
-      <Filter>Source Files\World</Filter>
-    </ClCompile>
     <ClCompile Include="CameraController.cpp">
       <Filter>Source Files\Scripts</Filter>
     </ClCompile>
@@ -223,6 +232,21 @@
     </ClCompile>
     <ClCompile Include="BitmapFont.cpp">
       <Filter>Source Files\Text</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene.cpp">
+      <Filter>Source Files\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneManager.cpp">
+      <Filter>Source Files\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="TitleScene.cpp">
+      <Filter>Source Files\Scene\GameScenes</Filter>
+    </ClCompile>
+    <ClCompile Include="GameScene.cpp">
+      <Filter>Source Files\Scene\GameScenes</Filter>
+    </ClCompile>
+    <ClCompile Include="ResultScene.cpp">
+      <Filter>Source Files\Scene\GameScenes</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -394,9 +418,6 @@
     <ClInclude Include="PrefabRegistry.h">
       <Filter>Header Files\GameObject</Filter>
     </ClInclude>
-    <ClInclude Include="Scene.h">
-      <Filter>Header Files\World</Filter>
-    </ClInclude>
     <ClInclude Include="GameContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -411,6 +432,21 @@
     </ClInclude>
     <ClInclude Include="BitmapFont.h">
       <Filter>Header Files\Text</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene.h">
+      <Filter>Header Files\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneManager.h">
+      <Filter>Header Files\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="TitleScene.h">
+      <Filter>Header Files\Scene\GameScenes</Filter>
+    </ClInclude>
+    <ClInclude Include="GameScene.h">
+      <Filter>Header Files\Scene\GameScenes</Filter>
+    </ClInclude>
+    <ClInclude Include="ResultScene.h">
+      <Filter>Header Files\Scene\GameScenes</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
