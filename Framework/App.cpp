@@ -107,11 +107,6 @@ void App::Draw(float deltaTime)
 	debugRenderer.Flush(renderer);
 	textRenderer.Flush(renderer);
 
-	// TODO: fade 実装
-	if (const float alpha = sceneManager.GetFadeAlpha(); alpha > 0.f)
-	{
-	}
-
 	renderer.EndFrame();
 }
 

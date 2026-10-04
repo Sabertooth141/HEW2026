@@ -1,4 +1,4 @@
-# DXPractice
+# HEW2026
 
 コンポーネント指向（COP）で作った DirectX 11 の 2D ゲームフレームワークです。
 `GameObject` に `Component` を追加して機能を組み立てる Unity ライクな構造になっています。
@@ -65,16 +65,16 @@ WinMain → App::Run()
 ### `App::Update` の順序
 
 ```
-// 遷移中（フェード中）はここをスキップ
+// 遷移中（EXITING / ENTERING）はここをスキップ
 scene->Update(dt)            // 各 GameObject の Update
-scene->Update(dt)          // シーン固有の処理（タイマー・遷移判定など）
+scene->OnUpdate(dt)          // シーン固有の処理（タイマー・遷移判定など）
 scriptSystem.Update(dt)      // Start（初回のみ）→ Update
 physicsSystem.Update(dt)     // 積分 → 衝突判定 → 拘束解決 → イベント通知
 scriptSystem.LateUpdate(dt)  // LateUpdate（カメラ追従など）
 animationSystem.Update(dt)   // アニメーション更新
 scene->FlushPending()        // 生成・破棄の反映
 
-sceneManager.Update(dt)      // シーン切り替えはここで実行（常に最後）
+sceneManager.Update(dt)      // 遷移の進行・シーン切り替え（常に最後）
 ```
 
 ### `App::Draw` の順序
@@ -85,7 +85,6 @@ DebugRender / DebugTextRender
 scene->OnDrawUI(text)        // シーンの HUD・画面テキスト
 debugRenderer.Flush()
 textRenderer.Flush()
-フェード                       // 最前面
 ```
 
 ### システム一覧
@@ -154,7 +153,6 @@ obj->AddComponent<PhysicsTest>();
 | `void Update(float dt)` | 全オブジェクトを更新 |
 | `void FlushPending()` | 生成・破棄の反映。破棄時は物理・スクリプト・アニメーション・描画の各システムから登録解除 |
 | `GetObjects()` | 現在のオブジェクト一覧を取得 |
-
 | `void Clear()` | 全オブジェクトを各システムから登録解除して破棄（シーン切り替え時に `SceneManager` が呼ぶ） |
 
 #### シーンのフック（override して使う）
@@ -227,35 +225,66 @@ sceneManager.Register("Stage2", [](GameContext& c) {
 
 | 関数 | 説明 |
 |---|---|
-| `Register<T>(name)` / `Register(name, factory)` | シーンを名前で登録 |
+| `Register(name)` / `Register(name, factory)` | シーンを名前で登録 |
 | `IsRegistered(name)` | 登録済みか |
-| `RequestChange(name, fadeTime = 0.4f)` | 遷移を**予約**（即座には切り替わらない）。遷移中の呼び出しは無視。未登録の名前は `assert` |
-| `Update(dt)` | フェードを進め、切り替えを実行（`App::Update` の最後で呼ばれる） |
+| `RequestChange(name, exitTime = 0, enterTime = 0)` | 遷移を**予約**（即座には切り替わらない）。遷移中の呼び出しは無視。未登録の名前は `assert` |
+| `Update(dt)` | 遷移を進め、切り替えを実行（`App::Update` の最後で呼ばれる） |
 | `GetCurrScene()` / `GetCurrSceneName()` | 現在のシーン・名前 |
-| `IsTransitioning()` | 遷移（フェード）中か |
-| `GetFadeAlpha()` | フェードの不透明度（0 = 透明、1 = 真っ黒） |
+| `GetNextSceneName()` | 遷移先のシーン名 |
+| `GetTransitionState()` | 遷移の状態（下表） |
+| `IsTransitioning()` | 遷移中か（`NONE` 以外） |
+| `GetTransitionProgress()` | 現在のフェーズの進行度（0 → 1）。遷移していないときは 0 |
+
+#### 遷移の状態（`SceneManager::TransitionState`）
+
+| 状態 | 意味 |
+|---|---|
+| `NONE` | 通常状態 |
+| `EXITING` | 旧シーンが残っている状態。`exitTime` 秒後に切り替わる |
+| `ENTERING` | 新シーンの読み込み後。`enterTime` 秒後に `NONE` に戻る |
+
+`exitTime` / `enterTime` が 0 のフェーズはスキップされます。両方 0（デフォルト）なら、`RequestChange` を呼んだフレームの最後で即座に切り替わります。
 
 #### 遷移の流れ
 
 ```
-RequestChange("Result")
-  → フェードアウト（ゲーム処理は停止）
+RequestChange("Result", exitTime, enterTime)
+  → EXITING（exitTime 秒。ゲーム処理は停止）
   → 現シーンの OnExit() → Clear() → 破棄
   → カメラ位置を (0, 0) にリセット
   → 新シーン生成 → context.gameScene を更新 → OnEnter()
-  → フェードイン（ゲーム処理は停止）
-  → 通常更新に戻る
+  → ENTERING（enterTime 秒。ゲーム処理は停止）
+  → NONE（通常更新に戻る）
 ```
+
+最初のシーン（`App::Init` での `RequestChange`）は `EXITING` を経由せず、すぐに読み込まれます。
+
+#### 遷移演出（フェードなど）の実装
+
+`SceneManager` 自体は描画を行いません。フェードやワイプなどの演出は、状態と進行度を参照して別途描画してください。
+
+```cpp
+using TS = SceneManager::TransitionState;
+
+const float t = sceneManager.GetTransitionProgress();
+float alpha = 0.f;
+if (sceneManager.GetTransitionState() == TS::EXITING)  alpha = t;        // 0 → 1
+if (sceneManager.GetTransitionState() == TS::ENTERING) alpha = 1.f - t;  // 1 → 0
+// alpha で画面全体を覆う矩形を描画
+```
+
+> 演出はシーンの**外**（`App` など）に置いてください。シーン内のオブジェクトは遷移の途中で破棄されます。
 
 #### 呼び出し方
 
 ```cpp
 // シーンから
-context.sceneManager->RequestChange("Result");
+context.sceneManager->RequestChange("Result");             // 即座に切り替え
+context.sceneManager->RequestChange("Result", 0.5f, 0.5f); // 0.5 秒ずつ EXITING / ENTERING
 
 // MonoBehavior から
 ChangeScene("Result");
-ChangeScene("Result", 1.0f);   // フェード時間を指定
+ChangeScene("Result", 0.5f, 0.5f);
 ```
 
 #### シーン間のデータ受け渡し
@@ -286,8 +315,8 @@ Visual Studio の「プロジェクトのプロパティ → デバッグ → �
 
 | 関数 | 説明 |
 |---|---|
-| `T& AddComponent<T>(args...)` | コンポーネントを追加。型に応じて自動でシステムに登録される（下表） |
-| `T* GetComponent<T>()` | コンポーネント取得。なければ `nullptr` |
+| `T& AddComponent(args...)` | コンポーネントを追加。型に応じて自動でシステムに登録される（下表） |
+| `T* GetComponent()` | コンポーネント取得。なければ `nullptr` |
 | `TransformComponent* GetTransform()` | Transform 取得 |
 | `GetMeshes()` | メッシュ一覧 |
 | `GetRenderer()` / `GetContext()` | Renderer / GameContext の参照 |
@@ -303,6 +332,7 @@ Visual Studio の「プロジェクトのプロパティ → デバッグ → �
 | `Collider2D` 派生（`BoxCollider2D`） | `PhysicsSystem` |
 
 > **ポイント**
+> 
 > - `GetComponent<T>()` は **型を完全一致**で検索します。基底クラス（例：`MonoBehavior`）で派生を探すことはできません。
 > - 同じ型のコンポーネントは 1 つのみ（後から追加すると上書き）。
 > - `Awake` は `AddComponent` の**その場**で呼ばれるため、`Awake` 内で `GetComponent` したい相手は**先に追加**しておいてください（例：`PlayerController::Awake` は `Rigidbody2DComponent` を取得するので、先に Rigidbody を追加）。
@@ -416,6 +446,7 @@ Rigidbody2DComponent(TransformComponent& transform, float mass, bool isStatic = 
 | `Wake()` / `IsSleeping()` | スリープ制御 |
 
 補足：
+
 - 摩擦係数は 0.4、線形・角度ダンピングは 0.1 で固定です（`GetFriction()` で取得）。
 - 速度が小さく、下から支えられた状態が 0.5 秒続くとスリープし、積み木のような積み上げが安定します。他の動くオブジェクトが触れると自動で起きます。
 
@@ -481,7 +512,7 @@ public:
 | `Destroy(GameObject*)` / `DestroySelf()` | 破棄予約 |
 | `SetEnabled(bool)` / `IsEnabled()` | 有効／無効（無効だと Update されない） |
 | `IsStarted()` | Start 済みか |
-| `ChangeScene(name, fadeTime = 0.4f)` | シーン遷移を予約（`SceneManager::RequestChange` の呼び出し） |
+| `ChangeScene(name, exitTime = 0, enterTime = 0)` | シーン遷移を予約（`SceneManager::RequestChange` の呼び出し） |
 
 ### 例：スペースキーでブロックを落とす（`PlayerController` より）
 
@@ -649,6 +680,7 @@ textRenderer.DrawWorld("Player", {pos.x, pos.y + 80.f});
 ```
 
 > 注意
+> 
 > - 改行 `\n` とタブ `\t` に対応しています。
 > - `BitmapFont` のアトラスは既定 1024x1024 です。文字種が非常に多い場合は満杯になり、それ以降の未登録文字は空白になります（`atlasSize` を上げてください）。
 > - 現在の `App` は `L"Consolas"` を指定しています。日本語を確実に表示したい場合は `L"MS Gothic"` などに変更してください。
@@ -758,6 +790,7 @@ CollisionDispatch::GetInstance().Register(ColliderType::Box, ColliderType::Box,
 - **プレハブ生成は遅延反映**：`Instantiate` したオブジェクトが `GetObjects()` に現れるのは `FlushPending()` 後です。
 - **アセットのパス**：実行時のカレントディレクトリが変わるとテクスチャや `.cso` が見つからず、`assert` や `nullptr` 参照の原因になります。
 - **シーン切り替えは遅延反映**：`RequestChange` は予約のみで、実際の切り替えはフレーム末の `sceneManager.Update()` で行われます。スクリプトの `Update` 中に呼んでも安全です。
-- **遷移中はゲームが止まる**：フェード中は `OnUpdate` / スクリプト / 物理 / アニメーションが更新されません。
+- **遷移中はゲームが止まる**：`EXITING` / `ENTERING` の間は `OnUpdate` / スクリプト / 物理 / アニメーションが更新されません（時間 0 なら停止フレームはありません）。
 - **切り替えでシーン内はすべて破棄**：`GameObject*` などシーン内オブジェクトへのポインタを、シーンをまたいで保持しないこと。残したい値は `GameContext::shared` へ。
 - **`Clear()` 中の生成は無効**：シーン破棄中（`OnDestroy` 内など）の `Instantiate` / `Add2DObject` は `nullptr` を返します。
+

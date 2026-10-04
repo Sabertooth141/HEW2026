@@ -7,6 +7,13 @@
 class SceneManager
 {
 public:
+	enum class TransitionState
+	{
+		NONE,
+		EXITING,
+		ENTERING
+	};
+
 	using Factory = std::function<std::unique_ptr<Scene>(GameContext&)>;
 
 	explicit SceneManager(GameContext& inContext) : context(inContext)
@@ -30,10 +37,10 @@ public:
 		return factories.contains(name);
 	}
 
-	void RequestChange(const std::string& name, float inFadeTime = 0.4f);
+	void RequestChange(const std::string& name, float exitTime = 0.f, float enterTime = 0.f);
 
 	void Update(float deltaTime);
-	
+
 	Scene* GetCurrScene() const
 	{
 		return currScene.get();
@@ -44,26 +51,32 @@ public:
 		return currName;
 	}
 
+	const std::string& GetNextSceneName() const
+	{
+		return nextSceneName;
+	}
+
+	TransitionState GetTransitionState() const
+	{
+		return transState;
+	}
+
 	bool IsTransitioning() const
 	{
 		return transState != TransitionState::NONE;
 	}
 
-	// 0 = clear; 1 = fully black
-	float GetFadeAlpha() const;
+	// 0 -> 1 
+	float GetTransitionProgress() const;
 
 private:
 	void SwitchToScene(const std::string& inSceneName);
+	void AdvancePhase();
+	float GetPhaseDuration() const;
 
 private:
-	enum class TransitionState
-	{
-		NONE,
-		FADE_OUT,
-		FADE_IN
-	};
-
 	GameContext& context;
+	// シーンネーム　と　シーンコンストラクタ
 	std::unordered_map<std::string, Factory> factories;
 
 	std::unique_ptr<Scene> currScene;
@@ -71,6 +84,7 @@ private:
 
 	TransitionState transState = TransitionState::NONE;
 	std::string nextSceneName;
-	float fadeTime = 0.f;
-	float fadeTimer = 0.f;
+	float exitTime = 0.f;
+	float enterTime = 0.f;
+	float phaseTimer = 0.f;
 };
