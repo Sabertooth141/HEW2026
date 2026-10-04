@@ -7,8 +7,21 @@
 #include "EnemySpawnPosition.h"
 #include "Scene.h"
 #include "WindowSettings.h"
+#include "GameObject.h"
 
-void EnemySpawner::Update(float deltaTime, Scene& scene, const Camera2D& camera)
+void EnemySpawner::LateUpdate(float deltaTime)
+{
+	auto& context = owner->GetContext();
+
+	if (!context.gameScene)
+	{
+		return;
+	}
+
+	SpawnEnemies(deltaTime, *context.gameScene, context.camera);
+}
+
+void EnemySpawner::SpawnEnemies(float deltaTime,Scene& scene,const Camera2D& camera)
 {
 	if (deltaTime <= 0.f || !std::isfinite(deltaTime))
 	{
@@ -20,6 +33,7 @@ void EnemySpawner::Update(float deltaTime, Scene& scene, const Camera2D& camera)
 	{
 		return object->GetTag() == ObjectTag::Player;
 	});
+
 	if (!hasPlayer)
 	{
 		spawnTimer = 0.f;
@@ -27,11 +41,14 @@ void EnemySpawner::Update(float deltaTime, Scene& scene, const Camera2D& camera)
 	}
 
 	spawnTimer += deltaTime;
+
 	const float interval = std::fmax(0.05f, spawnInterval);
+
 	if (spawnTimer < interval)
 	{
 		return;
 	}
+
 	// Avoid a burst of enemies after a long frame or after reaching the limit.
 	spawnTimer = std::fmod(spawnTimer, interval);
 
@@ -39,6 +56,7 @@ void EnemySpawner::Update(float deltaTime, Scene& scene, const Camera2D& camera)
 	{
 		return object->GetTag() == ObjectTag::Enemy;
 	});
+
 	if (static_cast<std::size_t>(count) >= maxEnemies)
 	{
 		return;
@@ -48,8 +66,9 @@ void EnemySpawner::Update(float deltaTime, Scene& scene, const Camera2D& camera)
 	{
 		const auto scale = enemy->GetTransform()->GetScale();
 		const auto position = RandomEnemySpawnPosition(camera.GetPosition(),
-			{ static_cast<float>(WIN_WIDTH), static_cast<float>(WIN_HEIGHT) },
-			{ scale.x, scale.y }, spawnMargin, spawnDepth, random);
+							{ static_cast<float>(WIN_WIDTH), static_cast<float>(WIN_HEIGHT) },
+							{ scale.x, scale.y }, spawnMargin, spawnDepth, random);
+
 		enemy->GetTransform()->SetPosition({ position.x, position.y, 1.f });
 	}
 }

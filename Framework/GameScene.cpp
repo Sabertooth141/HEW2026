@@ -8,6 +8,7 @@
 #include "SceneManager.h"
 #include "SpriteVertex.h"
 #include "TextRenderer.h"
+#include "EnemySpawner.h"
 
 void GameScene::OnEnter()
 {
@@ -68,6 +69,12 @@ void GameScene::OnEnter()
 	playerObj->GetComponent<CameraController>()->SetGroundTop(groundObj->GetTransform()->GetPosition().y);
 
 	//block->GetComponent<Rigidbody2DComponent>()->SetFreezeRotation(true);
+
+	GameObject* spawnerObject = Add2DObject();
+	auto& spawner = spawnerObject->AddComponent<EnemySpawner>();
+
+	spawner.spawnInterval = 1.f;
+	spawner.maxEnemies = 30;
 }
 
 void GameScene::OnUpdate(float deltaTime)
