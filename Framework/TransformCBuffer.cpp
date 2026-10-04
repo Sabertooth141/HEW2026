@@ -10,8 +10,19 @@ void TransformCBuffer::Bind(Renderer& renderer)
 {
 	Transforms transforms;
 
+	DirectX::XMMATRIX viewMatrix;
+
+	if (renderer.IsScreenSpaceEnabled())
+	{
+		viewMatrix = DirectX::XMMatrixIdentity();
+	}
+	else
+	{
+		viewMatrix = renderer.GetView();
+	}
+
 	transforms.model = DirectX::XMMatrixTranspose(transformComp.GetMatrix());
-	transforms.view = DirectX::XMMatrixTranspose(renderer.GetView());
+	transforms.view = DirectX::XMMatrixTranspose(viewMatrix);
 	transforms.projection = DirectX::XMMatrixTranspose(renderer.GetProj());
 
 	vCBuffer.Update(renderer, transforms);

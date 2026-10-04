@@ -57,6 +57,16 @@ public:
 	void Set3DMode();
 	void Set2DMode();
 
+	void SetEnableScreenSpace(const bool enabled)
+	{
+		isDrawInScreen = enabled;
+	}
+
+	bool IsScreenSpaceEnabled() const
+	{
+		return isDrawInScreen;
+	}
+
 private:
 	Microsoft::WRL::ComPtr<ID3D11Device> pDevice;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> pContext;
@@ -82,4 +92,6 @@ private:
 	DirectX::XMMATRIX orthoMatrix;
 
 	DirectX::XMMATRIX activeProj = {};
+
+	bool isDrawInScreen = false;
 };

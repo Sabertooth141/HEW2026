@@ -66,7 +66,16 @@ void GameScene::OnEnter()
 
 	playerObj->GetComponent<CameraController>()->SetGroundTop(groundObj->GetTransform()->GetPosition().y);
 
-	//block->GetComponent<Rigidbody2DComponent>()->SetFreezeRotation(true);
+	// UI test
+	GameObject* icon = Add2DObject();
+	icon->GetTransform()->SetPosition({ 200.f, 150.f, 1.f });
+
+	auto& anim = icon->AddComponent<AnimatorComponent>(context.renderer);
+	anim.SetRenderLayer(RenderLayer::UI);
+	anim.SetEnableScreenSpace(true);
+	anim.SetStatic(L"../../assets/jinx.jpg");
+
+	icon->GetTransform()->SetScale(0.05f);
 }
 
 void GameScene::OnUpdate(float deltaTime)

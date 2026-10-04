@@ -107,6 +107,7 @@ textRenderer.Flush()
 - スプライトの Z は `1` にしておきます（カメラは Z = -5 から +Z 方向を見ています）。
 - 回転は **ラジアン**。2D では `rotation.z` を使います。
 - `TextRenderer::DrawScreen` だけは例外で、**左上原点・+Y が下**のピクセル座標です。
+- **スクリーン空間のスプライト**（`SetEnableScreenSpace(true)`）はカメラの影響を受けず、画面に固定されます。座標系はワールドと同じく**画面中央原点・+Y が上**のピクセル座標です（`TextRenderer::DrawScreen` とは異なるので注意）。
 
 ---
 
@@ -225,7 +226,7 @@ sceneManager.Register("Stage2", [](GameContext& c) {
 
 | 関数 | 説明 |
 |---|---|
-| `Register(name)` / `Register(name, factory)` | シーンを名前で登録 |
+| `Register<T>(name)` / `Register(name, factory)` | シーンを名前で登録 |
 | `IsRegistered(name)` | 登録済みか |
 | `RequestChange(name, exitTime = 0, enterTime = 0)` | 遷移を**予約**（即座には切り替わらない）。遷移中の呼び出しは無視。未登録の名前は `assert` |
 | `Update(dt)` | 遷移を進め、切り替えを実行（`App::Update` の最後で呼ばれる） |
@@ -289,7 +290,7 @@ ChangeScene("Result", 0.5f, 0.5f);
 
 #### シーン間のデータ受け渡し
 
-シーン内のものは切り替え時にすべて破棄されます。次のシーンに渡したい値は `GameContext::shared`（`SharedGameData`）に入れてください。
+シーン内のものは切り替え時にすべて破棄されます。次のシーンに渡したい値は `GameContext::globalContext`（`GlobalContext`）に入れてください。
 
 ```cpp
 // GameContext.h
@@ -303,7 +304,7 @@ context.globalContext.score = currentScore;
 context.sceneManager->RequestChange("Result");
 
 // ResultScene::OnDrawUI
-text.DrawScreen(std::format("スコア: {}", context.shared.score), ...);
+text.DrawScreen(std::format("スコア: {}", context.globalContext.score), ...);
 ```
 
 #### 起動シーンの指定（デバッグ用）
@@ -313,14 +314,14 @@ Visual Studio の「プロジェクトのプロパティ → デバッグ → �
 
 ### GameObject
 
-| 関数 | 説明 |
-|---|---|
-| `T& AddComponent(args...)` | コンポーネントを追加。型に応じて自動でシステムに登録される（下表） |
-| `T* GetComponent()` | コンポーネント取得。なければ `nullptr` |
+| 関数                                   | 説明 |
+|--------------------------------------|---|
+| `T& AddComponent<T>(args...)`        | コンポーネントを追加。型に応じて自動でシステムに登録される（下表） |
+| `T* GetComponent<T>()`               | コンポーネント取得。なければ `nullptr` |
 | `TransformComponent* GetTransform()` | Transform 取得 |
-| `GetMeshes()` | メッシュ一覧 |
-| `GetRenderer()` / `GetContext()` | Renderer / GameContext の参照 |
-| `GetTag()` / `SetTag(ObjectTag)` | タグ（`Default / Enemy / Player / Block / Ground`） |
+| `GetMeshes()`                        | メッシュ一覧 |
+| `GetRenderer()` / `GetContext()`     | Renderer / GameContext の参照 |
+| `GetTag()` / `SetTag(ObjectTag)`     | タグ（`Default / Enemy / Player / Block / Ground`） |
 
 #### `AddComponent` の自動登録
 
@@ -374,6 +375,8 @@ auto& anim = obj->AddComponent<AnimatorComponent>(obj->GetRenderer());
 | `SetSortOrder(int)` | 同一レイヤー内の描画順（小さいほど奥） |
 | `SetFlipX(bool)` / `SetFlipY(bool)` | 反転 |
 | `SetEnabled(bool)` / `IsEnabled()` | 有効／無効 |
+| `SetEnableScreenSpace(bool)` | スクリーン空間で描画する（カメラに追従せず画面に固定）。UI 向け |
+| `IsScreenSpaceEnabled()` | スクリーン空間で描画しているか |
 
 #### アニメーション使用例（デモの `GameScene::OnEnter` より）
 
@@ -394,6 +397,29 @@ Aseprite の書き出し（Array 形式）を想定した簡易パーサです�
 - `"frames"` 配下の各 `"frame": {x, y, w, h}` と `"duration"`（ミリ秒）
 - `"meta"` 内の `"size": {w, h}`（シート全体サイズ）
 - 任意で `"Loop"` タグの `"from"` / `"to"`（ループ範囲）
+
+### スクリーン空間描画（UI）
+
+`SetEnableScreenSpace(true)` にすると、そのスプライトはカメラの影響を受けず画面に固定されます。HUD・アイコン・UI パネルなどに使います。
+
+```cpp
+GameObject* icon = Add2DObject();
+icon->GetTransform()->SetPosition({0.f, 0.f, 1.f});   // 画面中央が原点・+Y が上
+
+auto& anim = icon->AddComponent<AnimatorComponent>(context.renderer);
+anim.SetRenderLayer(RenderLayer::UI);   // 最前面に描画
+anim.SetEnableScreenSpace(true);
+anim.SetStatic(L"../../assets/icon.png");
+```
+
+- 設定は `SetStatic` / `AddAnimation` の前後どちらでも反映されます（後から追加したアニメーションにも引き継がれます）。
+- UI オブジェクトも通常の GameObject なので、シーン切り替え時に自動で破棄されます。
+- スプライトシェーダーの仕様上、アルファ 0.1 以下のピクセルは破棄されるため、半透明のフェードや薄いパネルには向きません。
+- 単色の矩形が必要な場合は `TextureCache::LoadSolid` で 1x1 テクスチャを作り、スケールで大きさを指定します。
+
+#### 仕組み
+
+`SpriteRendererComponent::Render` が描画の直前に `Renderer::SetEnableScreenSpace(true)` を設定し、`TransformCBuffer` がこのフラグを見てビュー行列を単位行列に置き換えます（＝カメラ移動が適用されない）。描画後はフラグを `false` に戻します。
 
 ### RenderLayer
 
@@ -730,6 +756,7 @@ debugRenderer.Flush(renderer);
 | `SetView(XMMATRIX)` / `GetView()` / `GetProj()` | ビュー・射影行列 |
 | `SetSpriteFlip(flipX, flipY)` | スプライト反転フラグ |
 | `GetDevice()` / `GetContext()` | D3D11 デバイス / コンテキスト |
+| `SetEnableScreenSpace(bool)` / `IsScreenSpaceEnabled()` | `true` の間、`TransformCBuffer` がビュー行列の代わりに単位行列を使う（スクリーン空間描画） |
 
 ---
 
@@ -778,7 +805,7 @@ CollisionDispatch::GetInstance().Register(ColliderType::Box, ColliderType::Box,
 2. `App::Init()` で `sceneManager.Register<MyScene>("名前")` を追加する。
 3. `RequestChange("名前")` / `ChangeScene("名前")` で遷移する。
 
-ステージ違いなど、配置だけが異なるシーンはクラスを増やさず、1 つのクラスを `SharedGameData` の値（ステージ番号など）で切り替えるのがおすすめです。
+ステージ違いなど、配置だけが異なるシーンはクラスを増やさず、1 つのクラスを `GlobalContext` の値（ステージ番号など）で切り替えるのがおすすめです。
 
 ---
 
@@ -791,6 +818,6 @@ CollisionDispatch::GetInstance().Register(ColliderType::Box, ColliderType::Box,
 - **アセットのパス**：実行時のカレントディレクトリが変わるとテクスチャや `.cso` が見つからず、`assert` や `nullptr` 参照の原因になります。
 - **シーン切り替えは遅延反映**：`RequestChange` は予約のみで、実際の切り替えはフレーム末の `sceneManager.Update()` で行われます。スクリプトの `Update` 中に呼んでも安全です。
 - **遷移中はゲームが止まる**：`EXITING` / `ENTERING` の間は `OnUpdate` / スクリプト / 物理 / アニメーションが更新されません（時間 0 なら停止フレームはありません）。
-- **切り替えでシーン内はすべて破棄**：`GameObject*` などシーン内オブジェクトへのポインタを、シーンをまたいで保持しないこと。残したい値は `GameContext::shared` へ。
+- **切り替えでシーン内はすべて破棄**：`GameObject*` などシーン内オブジェクトへのポインタを、シーンをまたいで保持しないこと。残したい値は `GameContext::globalContext` へ。
 - **`Clear()` 中の生成は無効**：シーン破棄中（`OnDestroy` 内など）の `Instantiate` / `Add2DObject` は `nullptr` を返します。
-
+- **スクリーン空間フラグは描画ごとにリセット**：`Renderer::SetEnableScreenSpace(true)` を自分で使う場合は、描画後に必ず `false` に戻してください。戻さないと、それ以降の `TransformCBuffer` を使う描画がすべてスクリーン空間になります。
