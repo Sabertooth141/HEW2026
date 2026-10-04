@@ -78,6 +78,7 @@ void App::Update(float deltaTime)
 		physicsSystem.Update(deltaTime);
 		scriptSystem.LateUpdate(deltaTime);
 		animationSystem.Update(deltaTime);
+		enemySpawner.Update(deltaTime, *scene, camera);
 		scene->FlushPending();
 	}
 	sceneManager.Update(deltaTime); // switch happens here

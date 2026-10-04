@@ -167,6 +167,8 @@
     <ClCompile Include="CollisionTests.cpp" />
     <ClCompile Include="DebugRenderer.cpp" />
     <ClCompile Include="Drawable.cpp" />
+    <ClCompile Include="EnemyController.cpp" />
+    <ClCompile Include="EnemySpawner.cpp" />
     <ClCompile Include="GameObject.cpp" />
     <ClCompile Include="GameScene.cpp" />
     <ClCompile Include="IndexBuffer.cpp" />
@@ -215,6 +217,9 @@
     <ClInclude Include="CollisionDispatch.h" />
     <ClInclude Include="CollisionTests.h" />
     <ClInclude Include="DebugRenderer.h" />
+    <ClInclude Include="EnemyController.h" />
+    <ClInclude Include="EnemySpawner.h" />
+    <ClInclude Include="EnemySpawnPosition.h" />
     <ClInclude Include="GameContext.h" />
     <ClInclude Include="GameScene.h" />
     <ClInclude Include="IComponent.h" />

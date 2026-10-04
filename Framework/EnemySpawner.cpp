@@ -15,6 +15,17 @@ void EnemySpawner::Update(float deltaTime, Scene& scene, const Camera2D& camera)
 		return;
 	}
 
+	const auto& objects = scene.GetObjects();
+	const bool hasPlayer = std::any_of(objects.begin(), objects.end(), [](const auto& object)
+	{
+		return object->GetTag() == ObjectTag::Player;
+	});
+	if (!hasPlayer)
+	{
+		spawnTimer = 0.f;
+		return;
+	}
+
 	spawnTimer += deltaTime;
 	const float interval = std::fmax(0.05f, spawnInterval);
 	if (spawnTimer < interval)
@@ -24,7 +35,6 @@ void EnemySpawner::Update(float deltaTime, Scene& scene, const Camera2D& camera)
 	// Avoid a burst of enemies after a long frame or after reaching the limit.
 	spawnTimer = std::fmod(spawnTimer, interval);
 
-	const auto& objects = scene.GetObjects();
 	const auto count = std::count_if(objects.begin(), objects.end(), [](const auto& object)
 	{
 		return object->GetTag() == ObjectTag::Enemy;

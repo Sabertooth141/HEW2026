@@ -14,6 +14,7 @@
 #include "GameContext.h"
 #include "SceneManager.h"
 #include "TextRenderer.h"
+#include "EnemySpawner.h"
 
 class GameObject;
 class ModelReader;
@@ -53,6 +54,7 @@ private:
 
 	GameContext gameContext;
 	SceneManager sceneManager;
+	EnemySpawner enemySpawner;
 
 	std::unique_ptr<LightCBuffer> lightCBuffer;
 
