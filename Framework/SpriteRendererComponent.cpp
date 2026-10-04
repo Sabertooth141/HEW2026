@@ -34,8 +34,12 @@ void SpriteRendererComponent::Render() const
     MaterialComponent* comp = owner->GetComponent<MaterialComponent>();
     comp->Bind(renderer);
     renderer.SetSpriteFlip(flipX, flipY);
+    renderer.SetEnableScreenSpace(isInScreenSpace);
+
     for (auto& mesh : owner->GetMeshes())
     {
         mesh->Draw(renderer);
     }
+
+    renderer.SetEnableScreenSpace(false);
 }
