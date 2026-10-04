@@ -462,10 +462,10 @@
     <FxCompile Include="SpriteVertexShader.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="DebugPixelShader.hlsl">
+    <FxCompile Include="ColorPixelShader.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="DebugVertexShader.hlsl">
+    <FxCompile Include="ColorVertexShader.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="TextPixelShader.hlsl">

@@ -15,7 +15,7 @@ void SceneManager::Register(const std::string& name, Factory factory)
 	factories[name] = std::move(factory);
 }
 
-void SceneManager::RequestChange(const std::string& name, float inFadeTime)
+void SceneManager::RequestChange(const std::string& name, const float inExitTime, const float inEnterTime)
 {
 	if (!IsRegistered(name))
 	{
@@ -28,20 +28,21 @@ void SceneManager::RequestChange(const std::string& name, float inFadeTime)
 		return;
 	}
 
-	fadeTime = std::max(inFadeTime, 0.001f);
-	fadeTimer = 0.f;
+	exitTime = std::max(inExitTime, 0.f);
+	enterTime = std::max(inEnterTime, 0.f);
+	phaseTimer = 0.f;
+	nextSceneName = name;
 
-	// if currScene not set == first scene -> just load and fade in
+	// first scene: nothing to exit from
 	if (!currScene)
 	{
 		SwitchToScene(name);
-		transState = TransitionState::FADE_IN;
+		transState = enterTime > 0.f ? TransitionState::ENTERING : TransitionState::NONE;
 		return;
 	}
 
-	// if not fade out currscene
-	nextSceneName = name;
-	transState = TransitionState::FADE_OUT;
+	// the actual switch always happens in Update() (end of frame), even with exitTime = 0
+	transState = TransitionState::EXITING;
 }
 
 void SceneManager::Update(float deltaTime)
@@ -51,19 +52,24 @@ void SceneManager::Update(float deltaTime)
 		return;
 	}
 
-	fadeTimer += std::min(deltaTime, 1.f / 30.f);
-	if (fadeTimer < fadeTime)
+	// scene loading spikes dt; clamp so a phase isn't skipped in one frame
+	phaseTimer += std::min(deltaTime, 1.f / 30.f);
+	if (phaseTimer < GetPhaseDuration())
 	{
 		return;
 	}
 
-	// if was fading out -> switch to next scene fade in
-	// else -> switch to not in transition
-	fadeTimer = 0.f;
-	if (transState == TransitionState::FADE_OUT)
+	AdvancePhase();
+}
+
+void SceneManager::AdvancePhase()
+{
+	phaseTimer = 0.f;
+
+	if (transState == TransitionState::EXITING)
 	{
 		SwitchToScene(nextSceneName);
-		transState = TransitionState::FADE_IN;
+		transState = enterTime > 0.f ? TransitionState::ENTERING : TransitionState::NONE;
 	}
 	else
 	{
@@ -71,21 +77,27 @@ void SceneManager::Update(float deltaTime)
 	}
 }
 
-float SceneManager::GetFadeAlpha() const
+float SceneManager::GetPhaseDuration() const
 {
-	const float timer = std::clamp(fadeTimer / fadeTime, 0.f, 1.f);
-
-	// if fading out -> go from 0 to 1
-	// if fading in -> from 1 to 0
 	switch (transState)
 	{
-	case TransitionState::FADE_OUT:
-		return timer;
-	case TransitionState::FADE_IN:
-		return 1.f - timer;
+	case TransitionState::EXITING:
+		return exitTime;
+	case TransitionState::ENTERING:
+		return enterTime;
 	default:
 		return 0.f;
 	}
+}
+
+float SceneManager::GetTransitionProgress() const
+{
+	const float duration = GetPhaseDuration();
+	if (duration <= 0.f)
+	{
+		return IsTransitioning() ? 1.f : 0.f;
+	}
+	return std::clamp(phaseTimer / duration, 0.f, 1.f);
 }
 
 void SceneManager::SwitchToScene(const std::string& inSceneName)
