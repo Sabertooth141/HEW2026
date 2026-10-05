@@ -10,11 +10,21 @@ void RegisterPrefabs()
 	PrefabRegistry::Instance().Register("enemy", [](GameObject& object)
 	{
 		object.SetTag(ObjectTag::Enemy);
+
 		auto& anim = object.AddComponent<AnimatorComponent>(object.GetRenderer());
+
 		anim.SetRenderLayer(RenderLayer::Enemy);
 		anim.SetStatic(L"../../assets/jinx.jpg");
+
 		object.GetTransform()->SetScale({ 48.f, 48.f, 1.f });
-		object.AddComponent<EnemyController>();
+
+		auto& enemy = object.AddComponent<EnemyController>();
+
+		// Set default status for the enemy
+		enemy.SetStatus(30, 10, 60.f, 5);
+
+		enemy.knockbackSpeed = 240.f;
+		enemy.knockbackDuration = 0.2f;
 	});
 
 	// blocks
@@ -35,4 +45,20 @@ void RegisterPrefabs()
 		object.AddComponent<PhysicsTest>();
 		object.SetTag(ObjectTag::Block);
 	});
+
+	//Experience
+	PrefabRegistry::Instance().Register(
+		"experience", [](GameObject& object)
+		{
+			object.SetTag(ObjectTag::Experience);
+
+			auto& anim =
+				object.AddComponent<AnimatorComponent>(object.GetRenderer());
+
+			anim.SetRenderLayer(RenderLayer::Default);
+
+			anim.SetStatic(L"../../assets/jinx.jpg");
+
+			object.GetTransform()->SetScale({ 12.f, 12.f, 1.f });
+		});
 }

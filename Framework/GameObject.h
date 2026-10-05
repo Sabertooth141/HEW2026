@@ -24,7 +24,8 @@ enum class ObjectTag : uint8_t
 	Enemy,
 	Player,
 	Block,
-	Ground
+	Ground,
+	Experience,
 };
 
 class GameObject
