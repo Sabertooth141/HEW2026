@@ -31,7 +31,6 @@ void EnemyController::SetExternalControl(bool enabled)
 
 void EnemyController::LateUpdate(float deltaTime)
 {
-    // 死亡処理は衝突判定の途中ではなく、ここで実行する
     if (dead)
     {
         FinishDeath();
@@ -43,7 +42,7 @@ void EnemyController::LateUpdate(float deltaTime)
         return;
     }
 
-    // 捕獲中の位置・回転は銛側に任せる
+	// playerに追従する処理は銛に刺されたときは行わない
     if (externalControl)
     {
         return;
