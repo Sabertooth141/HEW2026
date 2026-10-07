@@ -104,6 +104,12 @@ void EnemyController::LateUpdate(float deltaTime)
         position.y += dy / distance * step;
 
         transform->SetPosition(position);
+
+        //　方向転換
+        auto rotation = transform->GetRotation();
+        rotation.z = std::atan2(dy, dx);
+        transform->SetRotation(rotation);
+
         return;
     }
 }
