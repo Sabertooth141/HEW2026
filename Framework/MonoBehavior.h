@@ -30,7 +30,7 @@ public:
 	{
 	}
 
-	void ChangeScene(const std::string& sceneName, float fadeTime = 0.4f) const;
+	void ChangeScene(const std::string& sceneName, float exitTime = 0.f, float enterTime = 0.f) const;
 
 	void SetInput(Keyboard& inKeyboard, Mouse& inMouse);
 

@@ -25,6 +25,7 @@ void AnimatorComponent::AddAnimation(const std::string& animName, const std::wst
 	auto spriteRenderer = std::make_unique<SpriteRendererComponent>(renderer, srv.Get());
 	spriteRenderer->layer = renderLayer;
 	spriteRenderer->sortOrder = sortOrder;
+	spriteRenderer->isInScreenSpace = isInScreenSpace;
 
 	spriteRenderer->owner = owner;
 	auto spriteAnimator = std::make_unique<SpriteAnimatorComponent>(*spriteRenderer, spriteJson);
@@ -40,6 +41,8 @@ void AnimatorComponent::SetStatic(const std::wstring& spritePath)
 	auto spriteRenderer = std::make_unique<SpriteRendererComponent>(renderer, srv.Get());
 	spriteRenderer->layer = renderLayer;
 	spriteRenderer->sortOrder = sortOrder;
+	spriteRenderer->isInScreenSpace = isInScreenSpace;
+
 	spriteRenderer->owner = owner;
 	auto spriteAnimator = std::make_unique<SpriteAnimatorComponent>(*spriteRenderer, 1, 1, 1);
 	spriteAnimator->owner = owner;
@@ -125,5 +128,15 @@ void AnimatorComponent::SetFlipY(const bool inFlip) const
 	for (auto& entry : animations)
 	{
 		entry.second.spriteRenderer->flipY = inFlip;
+	}
+}
+
+void AnimatorComponent::SetEnableScreenSpace(const bool enabled)
+{
+	isInScreenSpace = enabled;
+
+	for (auto& [name, entry] : animations)
+	{
+		entry.spriteRenderer->isInScreenSpace = isInScreenSpace;
 	}
 }
