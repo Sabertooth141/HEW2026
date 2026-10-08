@@ -8,6 +8,7 @@
 #include "SceneManager.h"
 #include "SpriteVertex.h"
 #include "TextRenderer.h"
+#include "EnemySpawner.h"
 
 void GameScene::OnEnter()
 {
@@ -17,6 +18,7 @@ void GameScene::OnEnter()
 	// player
 	MeshData quad = MakeSpriteQuad();
 	playerObj = Add2DObject();
+	playerObj->SetTag(ObjectTag::Player);
 
 	playerObj->GetTransform()->SetPosition({ -128, -100, 1 });
 
@@ -66,16 +68,13 @@ void GameScene::OnEnter()
 
 	playerObj->GetComponent<CameraController>()->SetGroundTop(groundObj->GetTransform()->GetPosition().y);
 
-	// UI test
-	GameObject* icon = Add2DObject();
-	icon->GetTransform()->SetPosition({ 200.f, 150.f, 1.f });
+	//block->GetComponent<Rigidbody2DComponent>()->SetFreezeRotation(true);
 
-	auto& anim = icon->AddComponent<AnimatorComponent>(context.renderer);
-	anim.SetRenderLayer(RenderLayer::UI);
-	anim.SetEnableScreenSpace(true);
-	anim.SetStatic(L"../../assets/jinx.jpg");
+	GameObject* spawnerObject = Add2DObject();
+	auto& spawner = spawnerObject->AddComponent<EnemySpawner>();
 
-	icon->GetTransform()->SetScale(0.05f);
+	spawner.spawnInterval = 1.f;
+	spawner.maxEnemies = 30;
 }
 
 void GameScene::OnUpdate(float deltaTime)
