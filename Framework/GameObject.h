@@ -81,6 +81,19 @@ public:
 		return nullptr;
 	}
 
+	template <typename T>
+	const T* GetComponent() const
+	{
+		auto it = components.find(typeid(T));
+
+		if (it == components.end())
+		{
+			return nullptr;
+		}
+
+		return static_cast<const T*>(it->second.get());
+	}
+
 	void NotifyColliderEnter2D(const GameObject& other) const;
 	void NotifyColliderStay2D(const GameObject& other) const;
 	void NotifyColliderLeave2D(const GameObject& other) const;
@@ -97,6 +110,11 @@ public:
 
 	TransformComponent* GetTransform();
 	std::vector<std::unique_ptr<MeshComponent>>& GetMeshes();
+
+	const TransformComponent* GetTransform() const
+	{
+		return GetComponent<TransformComponent>();
+	}
 
 	ObjectTag GetTag() const
 	{
