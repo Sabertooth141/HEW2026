@@ -1,10 +1,22 @@
 #include "PrefabRegistry.h"
 
 #include "GameObject.h"
+#include "EnemyController.h"
 #include "PhysicsTest.h"
 
 void RegisterPrefabs()
 {
+	//Enemy
+	PrefabRegistry::Instance().Register("enemy", [](GameObject& object)
+	{
+		object.SetTag(ObjectTag::Enemy);
+		auto& anim = object.AddComponent<AnimatorComponent>(object.GetRenderer());
+		anim.SetRenderLayer(RenderLayer::Enemy);
+		anim.SetStatic(L"../../assets/jinx.jpg");
+		object.GetTransform()->SetScale({ 48.f, 48.f, 1.f });
+		object.AddComponent<EnemyController>();
+	});
+
 	// blocks
 	PrefabRegistry::Instance().Register("block", [](GameObject& object)
 	{

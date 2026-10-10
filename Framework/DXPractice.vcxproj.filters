@@ -259,6 +259,11 @@
     </ClCompile>
     <ClCompile Include="EditorUI.cpp">
       <Filter>Source Files\EditorUI</Filter>
+    <ClCompile Include="EnemySpawner.cpp">
+      <Filter>Source Files\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="EnemyController.cpp">
+      <Filter>Source Files\Scripts</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -460,6 +465,7 @@
     <ClInclude Include="ResultScene.h">
       <Filter>Header Files\Scene\GameScenes</Filter>
     </ClInclude>
+<<<<<<< HEAD
     <ClInclude Include="ImGuiLayer.h">
       <Filter>Header Files\EditorUI</Filter>
     </ClInclude>
@@ -468,6 +474,16 @@
     </ClInclude>
     <ClInclude Include="ObjectTags.h">
       <Filter>Header Files\GameObject</Filter>
+=======
+    <ClInclude Include="EnemyController.h">
+      <Filter>Header Files\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="EnemySpawner.h">
+      <Filter>Header Files\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="EnemySpawnPosition.h">
+      <Filter>Header Files\Scripts</Filter>
+>>>>>>> master
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
