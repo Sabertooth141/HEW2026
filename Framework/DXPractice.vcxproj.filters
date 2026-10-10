@@ -109,6 +109,12 @@
     <Filter Include="Source Files\Scene\GameScenes">
       <UniqueIdentifier>{6de6b70d-d8d3-48ba-9814-670e20335154}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\EditorUI">
+      <UniqueIdentifier>{ee787c11-76f0-4081-81f2-e79e2d67c772}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\EditorUI">
+      <UniqueIdentifier>{cde8be3e-2a51-43e3-8f9a-8f59380c40f2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Image Include="small.ico">
@@ -248,6 +254,11 @@
     <ClCompile Include="ResultScene.cpp">
       <Filter>Source Files\Scene\GameScenes</Filter>
     </ClCompile>
+    <ClCompile Include="ImGuiLayer.cpp">
+      <Filter>Source Files\EditorUI</Filter>
+    </ClCompile>
+    <ClCompile Include="EditorUI.cpp">
+      <Filter>Source Files\EditorUI</Filter>
     <ClCompile Include="EnemySpawner.cpp">
       <Filter>Source Files\Scripts</Filter>
     </ClCompile>
@@ -454,6 +465,14 @@
     <ClInclude Include="ResultScene.h">
       <Filter>Header Files\Scene\GameScenes</Filter>
     </ClInclude>
+    <ClInclude Include="ImGuiLayer.h">
+      <Filter>Header Files\EditorUI</Filter>
+    </ClInclude>
+    <ClInclude Include="EditorUI.h">
+      <Filter>Header Files\EditorUI</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjectTags.h">
+      <Filter>Header Files\GameObject</Filter>
     <ClInclude Include="EnemyController.h">
       <Filter>Header Files\Scripts</Filter>
     </ClInclude>
