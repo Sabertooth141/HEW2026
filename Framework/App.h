@@ -61,4 +61,3 @@ private:
 
 	float sensitivity = 0.004f;
 };
-

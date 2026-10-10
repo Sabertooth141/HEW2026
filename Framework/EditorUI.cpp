@@ -174,6 +174,12 @@ void EditorUI::ValidateSelection(Scene& scene)
 	{
 		return obj.get() == selectedObject;
 	});
+
+	if (!isObjAlive)
+	{
+		selectedObject = nullptr;
+		isDragging = false;
+	}
 }
 
 void EditorUI::DrawHierarchy(Scene& scene)
