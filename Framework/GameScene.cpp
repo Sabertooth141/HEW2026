@@ -18,7 +18,7 @@ void GameScene::OnEnter()
 	// player
 	MeshData quad = MakeSpriteQuad();
 	playerObj = Add2DObject();
-	playerObj->SetTag(ObjectTag::Player);
+	playerObj->SetTag(ObjectTag::PLAYER);
 
 	playerObj->GetTransform()->SetPosition({ -128, -100, 1 });
 

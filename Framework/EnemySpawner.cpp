@@ -31,7 +31,7 @@ void EnemySpawner::SpawnEnemies(float deltaTime,Scene& scene,const Camera2D& cam
 	const auto& objects = scene.GetObjects();
 	const bool hasPlayer = std::any_of(objects.begin(), objects.end(), [](const auto& object)
 	{
-		return object->GetTag() == ObjectTag::Player;
+		return object->GetTag() == ObjectTag::PLAYER;
 	});
 
 	if (!hasPlayer)
@@ -54,7 +54,7 @@ void EnemySpawner::SpawnEnemies(float deltaTime,Scene& scene,const Camera2D& cam
 
 	const auto count = std::count_if(objects.begin(), objects.end(), [](const auto& object)
 	{
-		return object->GetTag() == ObjectTag::Enemy;
+		return object->GetTag() == ObjectTag::ENEMY;
 	});
 
 	if (static_cast<std::size_t>(count) >= maxEnemies)

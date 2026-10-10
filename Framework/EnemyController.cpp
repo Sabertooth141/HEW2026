@@ -14,7 +14,7 @@ void EnemyController::LateUpdate(float deltaTime)
 
 	for (const auto& object : scene->GetObjects())
 	{
-		if (object->GetTag() != ObjectTag::Player) continue;
+		if (object->GetTag() != ObjectTag::PLAYER) continue;
 
 		const auto target = object->GetTransform()->GetPosition();
 		auto position = owner->GetTransform()->GetPosition();
