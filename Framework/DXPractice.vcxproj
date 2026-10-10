@@ -222,13 +222,10 @@
     <ClInclude Include="CollisionDispatch.h" />
     <ClInclude Include="CollisionTests.h" />
     <ClInclude Include="DebugRenderer.h" />
-<<<<<<< HEAD
     <ClInclude Include="EditorUI.h" />
-=======
     <ClInclude Include="EnemyController.h" />
     <ClInclude Include="EnemySpawner.h" />
     <ClInclude Include="EnemySpawnPosition.h" />
->>>>>>> master
     <ClInclude Include="GameContext.h" />
     <ClInclude Include="GameScene.h" />
     <ClInclude Include="IComponent.h" />

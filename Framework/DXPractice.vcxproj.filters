@@ -465,7 +465,6 @@
     <ClInclude Include="ResultScene.h">
       <Filter>Header Files\Scene\GameScenes</Filter>
     </ClInclude>
-<<<<<<< HEAD
     <ClInclude Include="ImGuiLayer.h">
       <Filter>Header Files\EditorUI</Filter>
     </ClInclude>
@@ -474,7 +473,6 @@
     </ClInclude>
     <ClInclude Include="ObjectTags.h">
       <Filter>Header Files\GameObject</Filter>
-=======
     <ClInclude Include="EnemyController.h">
       <Filter>Header Files\Scripts</Filter>
     </ClInclude>
@@ -483,7 +481,6 @@
     </ClInclude>
     <ClInclude Include="EnemySpawnPosition.h">
       <Filter>Header Files\Scripts</Filter>
->>>>>>> master
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
