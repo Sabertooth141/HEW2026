@@ -16,18 +16,36 @@ jobs:
       matrix:
         configuration: [Debug, Release]
 
+    env:
+      # Store vcpkg's built packages inside the workspace so actions/cache can save them
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\vcpkg-cache
+
     steps:
       - uses: actions/checkout@v5
 
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
 
+      # Hook vcpkg into MSBuild so vcpkg.json (Assimp, ImGui) is installed during the build
+      - name: Set up vcpkg
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:VCPKG_DEFAULT_BINARY_CACHE | Out-Null
+          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" integrate install
+
+      # Reuse built packages between runs; only rebuilds when vcpkg.json changes
+      - name: Cache vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: vcpkg-cache
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('**/vcpkg.json') }}
+
       - name: Build
         run: >
           msbuild HEW2026.slnx /m /nologo
           /p:Configuration=${{ matrix.configuration }}
           /p:Platform=x64
-          /p:VcpkgEnableManifest=false
+          /p:VcpkgEnableManifest=true
 
       # Keep the x64/Release layout so the game's "../../assets/" paths still resolve
       - name: Package
@@ -36,7 +54,7 @@ jobs:
         run: |
           $bin = "dist/HEW2026/x64/Release"
           New-Item -ItemType Directory -Force -Path $bin | Out-Null
-          Copy-Item x64/Release/*.exe, x64/Release/*.cso -Destination $bin
+          Copy-Item x64/Release/*.exe, x64/Release/*.cso, x64/Release/*.dll -Destination $bin
           if (Test-Path assets) { Copy-Item assets "dist/HEW2026/assets" -Recurse }
           Get-ChildItem dist -Recurse | Select-Object FullName
 
