@@ -259,6 +259,7 @@
     </ClCompile>
     <ClCompile Include="EditorUI.cpp">
       <Filter>Source Files\EditorUI</Filter>
+    </ClCompile>
     <ClCompile Include="EnemySpawner.cpp">
       <Filter>Source Files\Scripts</Filter>
     </ClCompile>
@@ -473,6 +474,7 @@
     </ClInclude>
     <ClInclude Include="ObjectTags.h">
       <Filter>Header Files\GameObject</Filter>
+    </ClInclude>
     <ClInclude Include="EnemyController.h">
       <Filter>Header Files\Scripts</Filter>
     </ClInclude>
