@@ -11,21 +11,13 @@
 #include "ScriptSystem.h"
 #include "RenderSystem.h"
 #include "GameContext.h"
+#include "ObjectTags.h"
 
 class Rigidbody2DComponent;
 class PhysicsSystem;
 struct GameContext;
 class ModelReader;
 class Renderer;
-
-enum class ObjectTag : uint8_t
-{
-	Default,
-	Enemy,
-	Player,
-	Block,
-	Ground
-};
 
 class GameObject
 {
@@ -35,7 +27,8 @@ public:
 	           const std::wstring& vsPath = L"VertexShader.cso", const std::wstring& psPath = L"PixelShader.cso");
 	// for 2d
 	GameObject(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, GameContext& context,
-	           const std::wstring& vsPath = L"SpriteVertexShader.cso", const std::wstring& psPath = L"SpritePixelShader.cso");
+	           const std::wstring& vsPath = L"SpriteVertexShader.cso",
+	           const std::wstring& psPath = L"SpritePixelShader.cso");
 	GameObject(Renderer& renderer);
 
 	void Update(float deltaTime);
@@ -107,8 +100,18 @@ public:
 		tag = inTag;
 	}
 
+	const std::string& GetName() const
+	{
+		return objName;
+	}
+
+	void SetName(const std::string& inName)
+	{
+		objName = std::move(inName);
+	}
+
 private:
-	ObjectTag tag = ObjectTag::Default;
+	ObjectTag tag = ObjectTag::DEFAULT;
 	std::unordered_map<std::type_index, std::unique_ptr<IComponent>> components;
 	std::vector<std::unique_ptr<MeshComponent>> meshes;
 
@@ -118,4 +121,6 @@ private:
 	AnimationSystem* animationSystem = nullptr;
 	RenderSystem* renderSystem = nullptr;
 	PhysicsSystem* physicsSystem = nullptr;
+
+	std::string objName = "GameObject";
 };

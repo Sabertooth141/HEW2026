@@ -69,6 +69,8 @@ public:
 	// 0 -> 1 
 	float GetTransitionProgress() const;
 
+	std::vector<std::string> GetSceneNames() const;
+
 private:
 	void SwitchToScene(const std::string& inSceneName);
 	void AdvancePhase();

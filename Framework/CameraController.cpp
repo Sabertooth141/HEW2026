@@ -27,7 +27,7 @@ void CameraController::LateUpdate(float deltaTime)
     for (auto& obj : owner->GetContext().gameScene->GetObjects())
     {
         if (obj.get() == owner)                continue;
-        if (obj->GetTag() != ObjectTag::Block) continue;
+        if (obj->GetTag() != ObjectTag::BLOCK) continue;
 
         const auto* rb = obj->GetComponent<Rigidbody2DComponent>();
         if (rb && !rb->IsSleeping() && std::abs(rb->GetVelocity().y) > settleSpeed)

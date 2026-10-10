@@ -21,6 +21,6 @@ void RegisterPrefabs()
 		object.AddComponent<BoxCollider2D>(DirectX::XMFLOAT2(0.5f, 0.5f), DirectX::XMFLOAT2(0.f, 0.f), false, *object.GetTransform());
 
 		object.AddComponent<PhysicsTest>();
-		object.SetTag(ObjectTag::Block);
+		object.SetTag(ObjectTag::BLOCK);
 	});
 }

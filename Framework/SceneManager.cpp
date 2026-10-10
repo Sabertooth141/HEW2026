@@ -100,6 +100,18 @@ float SceneManager::GetTransitionProgress() const
 	return std::clamp(phaseTimer / duration, 0.f, 1.f);
 }
 
+std::vector<std::string> SceneManager::GetSceneNames() const
+{
+	std::vector<std::string> names;
+	for (const auto& [name, factory] : factories)
+	{
+		names.push_back(name);
+	}
+
+	std::ranges::sort(names);
+	return names;
+}
+
 void SceneManager::SwitchToScene(const std::string& inSceneName)
 {
 	// uninit current scene

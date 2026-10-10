@@ -78,6 +78,9 @@
     <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
+  <PropertyGroup Label="Vcpkg">
+    <VcpkgEnableManifest>true</VcpkgEnableManifest>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -167,8 +170,10 @@
     <ClCompile Include="CollisionTests.cpp" />
     <ClCompile Include="DebugRenderer.cpp" />
     <ClCompile Include="Drawable.cpp" />
+    <ClCompile Include="EditorUI.cpp" />
     <ClCompile Include="GameObject.cpp" />
     <ClCompile Include="GameScene.cpp" />
+    <ClCompile Include="ImGuiLayer.cpp" />
     <ClCompile Include="IndexBuffer.cpp" />
     <ClCompile Include="InputLayout.cpp" />
     <ClCompile Include="Keyboard.cpp" />
@@ -215,6 +220,7 @@
     <ClInclude Include="CollisionDispatch.h" />
     <ClInclude Include="CollisionTests.h" />
     <ClInclude Include="DebugRenderer.h" />
+    <ClInclude Include="EditorUI.h" />
     <ClInclude Include="GameContext.h" />
     <ClInclude Include="GameScene.h" />
     <ClInclude Include="IComponent.h" />
@@ -222,6 +228,7 @@
     <ClInclude Include="Drawable.h" />
     <ClInclude Include="DrawableBase.h" />
     <ClInclude Include="GameObject.h" />
+    <ClInclude Include="ImGuiLayer.h" />
     <ClInclude Include="Keyboard.h" />
     <ClInclude Include="Light.h" />
     <ClInclude Include="LightCBuffer.h" />
@@ -233,6 +240,7 @@
     <ClInclude Include="ModelReader.h" />
     <ClInclude Include="MonoBehavior.h" />
     <ClInclude Include="Mouse.h" />
+    <ClInclude Include="ObjectTags.h" />
     <ClInclude Include="PhysicsSystem.h" />
     <ClInclude Include="PhysicsTest.h" />
     <ClInclude Include="PlayerController.h" />

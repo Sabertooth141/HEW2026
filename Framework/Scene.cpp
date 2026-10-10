@@ -21,6 +21,7 @@ GameObject* Scene::Instantiate(const std::string& prefab, const DirectX::XMFLOAT
 	auto object = std::make_unique<GameObject>(
 		quad.vertices, quad.indices, context);
 
+	object->SetName(prefab);
 	object->GetTransform()->SetPosition(pos);
 	(*prefabFunction)(*object);
 

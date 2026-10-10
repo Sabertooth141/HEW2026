@@ -42,6 +42,8 @@ public:
 
 	Renderer& GetRenderer();
 
+	HWND GetHwnd() const;
+
 public:
 	Keyboard keyboard;
 	Mouse mouse;

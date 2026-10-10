@@ -5,13 +5,14 @@
 #include "AnimationSystem.h"
 #include "Camera2D.h"
 #include "DebugRenderer.h"
+#include "EditorUI.h"
 #include "LightCBuffer.h"
 #include "PhysicsSystem.h"
 #include "RenderSystem.h"
-#include "Scene.h"
 #include "ScriptSystem.h"
 #include "Timer.h"
 #include "GameContext.h"
+#include "ImGuiLayer.h"
 #include "SceneManager.h"
 #include "TextRenderer.h"
 
@@ -53,6 +54,8 @@ private:
 
 	GameContext gameContext;
 	SceneManager sceneManager;
+	ImGuiLayer imGui;
+	EditorUI editor;
 
 	std::unique_ptr<LightCBuffer> lightCBuffer;
 
