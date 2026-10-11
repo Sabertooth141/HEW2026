@@ -65,6 +65,7 @@ void App::Init()
 	sceneManager.RequestChange(sceneManager.IsRegistered(cmdLine) ? cmdLine : "Title");
 
 	wnd.mouse.EnableRaw();
+	imGui.Init(wnd.GetHwnd(), renderer.GetDevice().Get(), renderer.GetContext().Get());
 }
 
 void App::Update(float deltaTime)
@@ -72,12 +73,15 @@ void App::Update(float deltaTime)
 	Scene* scene = sceneManager.GetCurrScene();
 	if (scene && !sceneManager.IsTransitioning())
 	{
-		scene->Update(deltaTime);
-		scene->OnUpdate(deltaTime);
-		scriptSystem.Update(deltaTime);
-		physicsSystem.Update(deltaTime);
-		scriptSystem.LateUpdate(deltaTime);
-		animationSystem.Update(deltaTime);
+		if (editor.ShouldTick())
+		{
+			scene->Update(deltaTime);
+			scene->OnUpdate(deltaTime);
+			scriptSystem.Update(deltaTime);
+			physicsSystem.Update(deltaTime);
+			scriptSystem.LateUpdate(deltaTime);
+			animationSystem.Update(deltaTime);
+		}
 		scene->FlushPending();
 	}
 	sceneManager.Update(deltaTime); // switch happens here
@@ -85,11 +89,16 @@ void App::Update(float deltaTime)
 
 void App::HandleInput(float deltaTime)
 {
+	if (wnd.keyboard.KeyIsTriggered(VK_F1))
+	{
+		editor.ToggleVisible();
+	}
 }
 
 void App::Draw(float deltaTime)
 {
 	renderer.BeginFrame(0, 0, 0);
+	imGui.BeginFrame();
 	textRenderer.Begin();
 
 	debugRenderer.Begin();
@@ -104,9 +113,12 @@ void App::Draw(float deltaTime)
 		scene->OnDrawUI(textRenderer);
 	}
 
+	editor.Draw(sceneManager, camera);
+
 	debugRenderer.Flush(renderer);
 	textRenderer.Flush(renderer);
 
+	imGui.EndFrame();
 	renderer.EndFrame();
 }
 

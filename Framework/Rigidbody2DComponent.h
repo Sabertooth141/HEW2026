@@ -66,6 +66,11 @@ public:
 		RefreshInv();
 	}
 
+	float GetGravity() const
+	{
+		return gravity;
+	}
+
 	DirectX::XMFLOAT2 GetVelocity() const
 	{
 		return velocity;
@@ -94,6 +99,11 @@ public:
 	float GetInvInertia() const
 	{
 		return invInertia;
+	}
+
+	bool IsFreezeRotation() const
+	{
+		return freezeRotation;
 	}
 
 	float GetFriction() const

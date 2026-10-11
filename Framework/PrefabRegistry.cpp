@@ -12,7 +12,7 @@ void RegisterPrefabs()
 	//Enemy
 	PrefabRegistry::Instance().Register("enemy", [](GameObject& object)
 	{
-		object.SetTag(ObjectTag::Enemy);
+		object.SetTag(ObjectTag::ENEMY);
 
 		auto& anim = object.AddComponent<AnimatorComponent>(object.GetRenderer());
 
@@ -60,14 +60,14 @@ void RegisterPrefabs()
 		object.AddComponent<BoxCollider2D>(DirectX::XMFLOAT2(0.5f, 0.5f), DirectX::XMFLOAT2(0.f, 0.f), false, *object.GetTransform());
 
 		object.AddComponent<PhysicsTest>();
-		object.SetTag(ObjectTag::Block);
+		object.SetTag(ObjectTag::BLOCK);
 	});
 
 	//Experience
 	PrefabRegistry::Instance().Register(
 		"experience", [](GameObject& object)
 		{
-			object.SetTag(ObjectTag::Experience);
+			object.SetTag(ObjectTag::EXPERIENCE);
 
 			auto& anim =
 				object.AddComponent<AnimatorComponent>(object.GetRenderer());

@@ -33,6 +33,16 @@ public:
 	void SetRenderLayer(RenderLayer inLayer);
 	void SetSortOrder(int inOrder);
 
+	RenderLayer GetRenderLayer() const
+	{
+		return renderLayer;
+	}
+
+	int GetSortOrder() const
+	{
+		return sortOrder;
+	}
+
 	void SetFlipX(bool inFlip) const;
 	void SetFlipY(bool inFlip) const;
 

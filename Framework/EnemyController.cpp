@@ -85,7 +85,7 @@ void EnemyController::LateUpdate(float deltaTime)
     // 通常時はプレイヤーへ向かって移動
     for (const auto& object : scene->GetObjects())
     {
-        if (object->GetTag() != ObjectTag::Player)
+        if (object->GetTag() != ObjectTag::PLAYER)
         {
             continue;
         }
