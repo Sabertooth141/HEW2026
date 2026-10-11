@@ -19,16 +19,6 @@ struct GameContext;
 class ModelReader;
 class Renderer;
 
-enum class ObjectTag : uint8_t
-{
-	Default,
-	Enemy,
-	Player,
-	Block,
-	Ground,
-	Experience,
-};
-
 class GameObject
 {
 public:

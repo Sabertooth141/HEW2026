@@ -9,7 +9,7 @@ void RegisterPrefabs()
 	//Enemy
 	PrefabRegistry::Instance().Register("enemy", [](GameObject& object)
 	{
-		object.SetTag(ObjectTag::Enemy);
+		object.SetTag(ObjectTag::ENEMY);
 
 		auto& anim = object.AddComponent<AnimatorComponent>(object.GetRenderer());
 
@@ -50,7 +50,7 @@ void RegisterPrefabs()
 	PrefabRegistry::Instance().Register(
 		"experience", [](GameObject& object)
 		{
-			object.SetTag(ObjectTag::Experience);
+			object.SetTag(ObjectTag::EXPERIENCE);
 
 			auto& anim =
 				object.AddComponent<AnimatorComponent>(object.GetRenderer());
