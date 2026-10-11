@@ -33,8 +33,24 @@ public:
 	void SetRenderLayer(RenderLayer inLayer);
 	void SetSortOrder(int inOrder);
 
+	RenderLayer GetRenderLayer() const
+	{
+		return renderLayer;
+	}
+
+	int GetSortOrder() const
+	{
+		return sortOrder;
+	}
+
 	void SetFlipX(bool inFlip) const;
 	void SetFlipY(bool inFlip) const;
+
+	void SetEnableScreenSpace(const bool enabled);
+	bool IsScreenSpaceEnabled() const
+	{
+		return isInScreenSpace;
+	}
 
 public:
 	GameObject* parent = nullptr;
@@ -49,4 +65,6 @@ private:
 	int sortOrder = 0;
 
 	bool enabled = true;
+
+	bool isInScreenSpace = false;
 };

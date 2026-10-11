@@ -31,6 +31,8 @@ public:
 	bool flipX = false;
 	bool flipY = false;
 
+	bool isInScreenSpace = false;
+
 private:
 	Renderer& renderer;
 	PixelConstantBuffer<UVTransformData> uvCBuffer;

@@ -16,8 +16,8 @@ namespace
 
 DebugRenderer::DebugRenderer(Renderer& renderer)
 {
-	vertexShader = std::make_unique<VertexShader>(renderer, L"DebugVertexShader.cso");
-	pixelShader = std::make_unique<PixelShader>(renderer, L"DebugPixelShader.cso");
+	vertexShader = std::make_unique<VertexShader>(renderer, L"ColorVertexShader.cso");
+	pixelShader = std::make_unique<PixelShader>(renderer, L"ColorPixelShader.cso");
 
 	std::vector<D3D11_INPUT_ELEMENT_DESC> layout =
 	{

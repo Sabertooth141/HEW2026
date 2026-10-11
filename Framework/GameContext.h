@@ -8,7 +8,7 @@ class AnimationSystem;
 class RenderSystem;
 class Scene;
 class Keyboard;
-class Mosue;
+class Mouse;
 class SceneManager;
 
 struct GlobalContext
