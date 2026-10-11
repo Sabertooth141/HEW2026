@@ -169,8 +169,10 @@
     <ClCompile Include="Drawable.cpp" />
     <ClCompile Include="EnemyController.cpp" />
     <ClCompile Include="EnemySpawner.cpp" />
+    <ClCompile Include="ExperienceOrb.cpp" />
     <ClCompile Include="GameObject.cpp" />
     <ClCompile Include="GameScene.cpp" />
+    <ClCompile Include="HarpoonController.cpp" />
     <ClCompile Include="IndexBuffer.cpp" />
     <ClCompile Include="InputLayout.cpp" />
     <ClCompile Include="Keyboard.cpp" />
@@ -185,6 +187,7 @@
     <ClCompile Include="PhysicsTest.cpp" />
     <ClCompile Include="PixelShader.cpp" />
     <ClCompile Include="PlayerController.cpp" />
+    <ClCompile Include="PlayerStatus.cpp" />
     <ClCompile Include="PrefabRegistry.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="ResultScene.cpp" />
@@ -194,6 +197,7 @@
     <ClCompile Include="SceneManager.cpp" />
     <ClCompile Include="SpriteAnimatorComponent.cpp" />
     <ClCompile Include="SpriteRendererComponent.cpp" />
+    <ClCompile Include="SwingCollisionDetector.cpp" />
     <ClCompile Include="TextRenderer.cpp" />
     <ClCompile Include="TextureCache.cpp" />
     <ClCompile Include="TitleScene.cpp" />
@@ -220,8 +224,10 @@
     <ClInclude Include="EnemyController.h" />
     <ClInclude Include="EnemySpawner.h" />
     <ClInclude Include="EnemySpawnPosition.h" />
+    <ClInclude Include="ExperienceOrb.h" />
     <ClInclude Include="GameContext.h" />
     <ClInclude Include="GameScene.h" />
+    <ClInclude Include="HarpoonController.h" />
     <ClInclude Include="IComponent.h" />
     <ClInclude Include="ConstantBuffer.h" />
     <ClInclude Include="Drawable.h" />
@@ -241,6 +247,7 @@
     <ClInclude Include="PhysicsSystem.h" />
     <ClInclude Include="PhysicsTest.h" />
     <ClInclude Include="PlayerController.h" />
+    <ClInclude Include="PlayerStatus.h" />
     <ClInclude Include="PrefabRegistry.h" />
     <ClInclude Include="RenderLayer.h" />
     <ClInclude Include="RenderSystem.h" />
@@ -255,6 +262,7 @@
     <ClInclude Include="SpriteRenderSystem.h" />
     <ClInclude Include="SpriteVertex.h" />
     <ClInclude Include="stb_image.h" />
+    <ClInclude Include="SwingCollisionDetector.h" />
     <ClInclude Include="TextRenderer.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="TextureCache.h" />

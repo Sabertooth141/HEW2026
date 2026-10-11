@@ -83,6 +83,12 @@ void AnimatorComponent::Update(float deltaTime)
 
 void AnimatorComponent::Render()
 {
+	if (!enabled)
+	{
+		return;
+	}
+
+
 	if (currAnimation->spriteRenderer.get() == nullptr)
 	{
 		return;

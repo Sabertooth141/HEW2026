@@ -4,6 +4,9 @@
 class Camera2D
 {
 public:
+
+    void Set2DViewRange(float range);
+
     DirectX::XMFLOAT2 GetPosition() const { return position; }
     void SetPosition(const DirectX::XMFLOAT2& p) { position = p; }
 

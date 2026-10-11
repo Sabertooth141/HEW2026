@@ -30,3 +30,20 @@ void EnemyController::LateUpdate(float deltaTime)
 		return;
 	}
 }
+
+
+
+void EnemyController::TakeDamage(float damage)
+{
+	if (damage <= 0.0f)
+	{
+		return;
+	}
+
+	hp -= damage;
+
+	if (hp < 0.0f)
+	{
+		hp = 0.0f;
+	}
+}

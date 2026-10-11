@@ -15,6 +15,7 @@
 #include "SpriteVertex.h"
 #include "TitleScene.h"
 #include "WindowSettings.h"
+#include "HarpoonController.h"
 
 App::App(const std::string& cmdLine) : cmdLine(cmdLine),
                                        wnd(WIN_WIDTH, WIN_HEIGHT, L"DXPractice"),
@@ -70,17 +71,38 @@ void App::Init()
 void App::Update(float deltaTime)
 {
 	Scene* scene = sceneManager.GetCurrScene();
+
 	if (scene && !sceneManager.IsTransitioning())
 	{
 		scene->Update(deltaTime);
 		scene->OnUpdate(deltaTime);
-		scriptSystem.Update(deltaTime);
-		physicsSystem.Update(deltaTime);
-		scriptSystem.LateUpdate(deltaTime);
-		animationSystem.Update(deltaTime);
-		scene->FlushPending();
+
+		bool levelUpSelecting = false;
+
+		for (auto& go : scene->GetObjects())
+		{
+			auto* playerController =
+				go->GetComponent<PlayerController>();
+
+			if (playerController != nullptr &&
+				playerController->IsLevelUpSelecting())
+			{
+				levelUpSelecting = true;
+				break;
+			}
+		}
+
+		if (!levelUpSelecting)
+		{
+			scriptSystem.Update(deltaTime);
+			physicsSystem.Update(deltaTime);
+			scriptSystem.LateUpdate(deltaTime);
+			animationSystem.Update(deltaTime);
+			scene->FlushPending();
+		}
 	}
-	sceneManager.Update(deltaTime); // switch happens here
+
+	sceneManager.Update(deltaTime);
 }
 
 void App::HandleInput(float deltaTime)
@@ -94,15 +116,23 @@ void App::Draw(float deltaTime)
 
 	debugRenderer.Begin();
 	renderer.SetView(camera.GetView());
-	renderer.Set2DMode();
-	renderSystem.Render();
 
 	if (Scene* scene = sceneManager.GetCurrScene())
 	{
+		GameScene* gameScene = dynamic_cast<GameScene*>(scene);
+
+		if (gameScene != nullptr)
+		{
+			renderer.Set2DViewRange(gameScene->GetViewRange());
+		}
+
 		DebugRender(*scene);
 		DebugTextRender(*scene, deltaTime);
 		scene->OnDrawUI(textRenderer);
 	}
+
+	renderer.Set2DMode();
+	renderSystem.Render();
 
 	debugRenderer.Flush(renderer);
 	textRenderer.Flush(renderer);
@@ -112,12 +142,56 @@ void App::Draw(float deltaTime)
 
 void App::DebugRender(Scene& scene)
 {
+	GameObject* player = nullptr;
+
 	for (auto& go : scene.GetObjects())
 	{
 		if (auto* col = go->GetComponent<BoxCollider2D>())
 		{
-			debugRenderer.DrawBox(col->GetWorldOBB().GetCorners(), {0, 1, 0, 1});
+			debugRenderer.DrawBox(
+				col->GetWorldOBB().GetCorners(),
+				{ 0, 1, 0, 1 }
+			);
 		}
+
+		if (go->GetComponent<PlayerController>() != nullptr)
+		{
+			player = go.get();
+		}
+	}
+
+	if (player == nullptr)
+	{
+		return;
+	}
+
+	auto p = player->GetTransform()->GetPosition();
+
+	for (auto& go : scene.GetObjects())
+	{
+		auto* controller =
+			go->GetComponent<HarpoonController>();
+
+		if (controller == nullptr || !controller->IsStuck())
+		{
+			continue;
+		}
+
+		GameObject* hammerEnemy =
+			controller->GetStuckObject();
+
+		if (hammerEnemy == nullptr)
+		{
+			continue;
+		}
+
+		auto e = hammerEnemy->GetTransform()->GetPosition();
+
+		debugRenderer.DrawLine(
+			{ p.x, p.y },
+			{ e.x, e.y },
+			{ 1, 0, 0, 1 }
+		);
 	}
 }
 

@@ -9,6 +9,8 @@
 #include "SpriteVertex.h"
 #include "TextRenderer.h"
 #include "EnemySpawner.h"
+#include "WindowSettings.h"
+#include "Mouse.h"
 
 void GameScene::OnEnter()
 {
@@ -44,29 +46,35 @@ void GameScene::OnEnter()
 	playerObj->GetComponent<PlayerController>()->SetInput(context.keyboard, context.mouse);
 	playerObj->AddComponent<CameraController>();
 
+	// enemy
+	auto* enemy = Instantiate(
+		"enemy",
+		{ 100.0f, -100.0f, 1.0f }
+	);
+
 	// ground
 	// physics test
-	MeshData groundQuad = MakeSpriteQuad();
-	auto groundObj = Add2DObject();
+	//MeshData groundQuad = MakeSpriteQuad();
+	//auto groundObj = Add2DObject();
 
-	groundObj->GetTransform()->SetPosition({ 0, -200, 1 });
+	//groundObj->GetTransform()->SetPosition({ 0, -200, 1 });
 
-	groundObj->AddComponent<AnimatorComponent>(renderer);
-	groundObj->GetComponent<AnimatorComponent>()->SetRenderLayer(RenderLayer::Default);
-	groundObj->GetComponent<AnimatorComponent>()->SetSortOrder(0);
-	groundObj->GetComponent<AnimatorComponent>()->SetStatic(L"../../assets/bgTest.jpg");
-	groundObj->GetTransform()->SetScale({ 1000, 100, 1 });
+	//groundObj->AddComponent<AnimatorComponent>(renderer);
+	//groundObj->GetComponent<AnimatorComponent>()->SetRenderLayer(RenderLayer::Default);
+	//groundObj->GetComponent<AnimatorComponent>()->SetSortOrder(0);
+	//groundObj->GetComponent<AnimatorComponent>()->SetStatic(L"../../assets/bgTest.jpg");
+	//groundObj->GetTransform()->SetScale({ 1000, 100, 1 });
 
-	groundObj->AddComponent<PhysicsTest>();
+	//groundObj->AddComponent<PhysicsTest>();
 
 	// physics
-	Rigidbody2DComponent* groundRb = &groundObj->AddComponent<Rigidbody2DComponent>(*groundObj->GetTransform(), 1.0f);
-	BoxCollider2D* groundCol = &groundObj->AddComponent<BoxCollider2D>(DirectX::XMFLOAT2(0.5f, 0.5f),
-		DirectX::XMFLOAT2(0, 0),
-		false, *groundObj->GetTransform());
-	groundRb->SetIsStatic(true);
+	//Rigidbody2DComponent* groundRb = &groundObj->AddComponent<Rigidbody2DComponent>(*groundObj->GetTransform(), 1.0f);
+//	BoxCollider2D* groundCol = &groundObj->AddComponent<BoxCollider2D>(DirectX::XMFLOAT2(0.5f, 0.5f),
+		//DirectX::XMFLOAT2(0, 0),
+		//false, *groundObj->GetTransform());
+	//groundRb->SetIsStatic(true);
 
-	playerObj->GetComponent<CameraController>()->SetGroundTop(groundObj->GetTransform()->GetPosition().y);
+	//playerObj->GetComponent<CameraController>()->SetGroundTop(groundObj->GetTransform()->GetPosition().y);
 
 	//block->GetComponent<Rigidbody2DComponent>()->SetFreezeRotation(true);
 
@@ -75,6 +83,21 @@ void GameScene::OnEnter()
 
 	spawner.spawnInterval = 1.f;
 	spawner.maxEnemies = 30;
+	
+	// レベルアップ選択肢UI
+	for (int i = 0; i < 3; ++i)
+	{
+		levelUpChoiceObjects[i] = Add2DObject();
+
+		auto& levelUpAnim =
+			levelUpChoiceObjects[i]->AddComponent<AnimatorComponent>(context.renderer);
+
+		levelUpAnim.SetRenderLayer(RenderLayer::UI);
+		levelUpAnim.SetEnableScreenSpace(true);
+		levelUpAnim.SetStatic(L"../../assets/LevelUp_MaxHP.png");
+		levelUpAnim.SetEnabled(false);
+
+    }
 }
 
 void GameScene::OnUpdate(float deltaTime)
@@ -84,7 +107,19 @@ void GameScene::OnUpdate(float deltaTime)
 		return;
 	}
 
+	auto* playerController =
+		playerObj->GetComponent<PlayerController>();
+
+	if (playerController != nullptr &&
+		playerController->IsLevelUpSelecting())
+	{
+		// レベルアップ選択中は時間を止める
+		HandleLevelUpInput();
+		return;
+	}
+
 	playTimer -= deltaTime;
+
 	if (playTimer <= 0.f)
 	{
 		finished = true;
@@ -93,15 +128,116 @@ void GameScene::OnUpdate(float deltaTime)
 	}
 }
 
+const wchar_t* GetLevelUpImagePath(PlayerStatus::StatType type)
+{
+	switch (type)
+	{
+	case PlayerStatus::StatType::MAX_HP:
+		return L"../../assets/LevelUp_MaxHP.png";
+
+	case PlayerStatus::StatType::SWING_DAMAGE:
+		return L"../../assets/LevelUp_SwingDamage.png";
+
+	case PlayerStatus::StatType::SWING_SPEED:
+		return L"../../assets/LevelUp_SwingSpeed.png";
+
+	case PlayerStatus::StatType::MOVE_SPEED:
+		return L"../../assets/LevelUp_MoveSpeed.png";
+
+	case PlayerStatus::StatType::VIEW_RANGE:
+		return L"../../assets/LevelUp_ViewRange.png";
+
+	case PlayerStatus::StatType::HARPOON_INTERVAL:
+		return L"../../assets/LevelUp_HarpoonInterval.png";
+
+	case PlayerStatus::StatType::ABSORB_RANGE:
+		return L"../../assets/LevelUp_AbsorbRange.png";
+	}
+
+	return L"";
+}
+
 void GameScene::OnDrawUI(TextRenderer& text)
 {
 	Scene::OnDrawUI(text);
 
-	text.DrawScreen(std::format("タワーの高さ: {:.2f}", GetTowerHeight()),
-		{ WIN_WIDTH * 0.5f, 24.f }, TextColor::Yellow, 1.f, TextAlign::Center);
+	text.DrawScreen(
+		std::format("タワーの高さ: {:.2f}", GetTowerHeight()),
+		{ WIN_WIDTH * 0.5f, 24.f },
+		TextColor::Yellow,
+		1.f,
+		TextAlign::Center);
 
-	text.DrawScreen(std::format("残り時間: {:.2f}", std::max(playTimer, 0.f)),
-		{ WIN_WIDTH * 0.5f, 40.f }, TextColor::Yellow, 1.f, TextAlign::Center);
+	text.DrawScreen(
+		std::format("残り時間: {:.2f}", std::max(playTimer, 0.f)),
+		{ WIN_WIDTH * 0.5f, 40.f },
+		TextColor::Yellow,
+		1.f,
+		TextAlign::Center);
+
+	// プレイヤーのHP表示
+	auto* hpPlayerController =
+		playerObj->GetComponent<PlayerController>();
+
+	if (hpPlayerController != nullptr)
+	{
+		const auto& status = hpPlayerController->GetStatus();
+
+		text.DrawScreen(
+			std::format("HP: {:.0f} / {:.0f}",
+				status.GetHP(),
+				status.GetMaxHP()),
+			{ 20.f, 24.f },
+			TextColor::Yellow,
+			1.f,
+			TextAlign::Left);
+	}
+	// レベルアップ選択中
+	auto* playerController =
+		playerObj->GetComponent<PlayerController>();
+
+	if (playerController != nullptr &&
+		playerController->IsLevelUpSelecting())
+	{
+		const auto& choices =
+			playerController->GetLevelUpChoices();
+
+		text.DrawScreen(
+			"レベルアップ！",
+			{ WIN_WIDTH * 0.5f, 150.f },
+			TextColor::Yellow,
+			2.f,
+			TextAlign::Center);
+
+		for (size_t i = 0; i < choices.size(); ++i)
+		{
+			const LevelUpChoiceRect rect = GetLevelUpChoiceRect(i);
+
+			auto* anim =
+				levelUpChoiceObjects[i]->GetComponent<AnimatorComponent>();
+
+			anim->SetStatic(GetLevelUpImagePath(choices[i]));
+			levelUpChoiceObjects[i]->GetTransform()->SetScale(0.5f);
+
+			levelUpChoiceObjects[i]->GetTransform()->SetPosition({
+				rect.centerX - WIN_WIDTH * 0.5f,
+				WIN_HEIGHT * 0.5f - rect.centerY,
+				1.f
+				});
+
+			anim->SetEnabled(true);
+		}
+	}
+	else
+	{
+		for (int i = 0; i < 3; ++i)
+		{
+			auto* anim =
+				levelUpChoiceObjects[i]->GetComponent<AnimatorComponent>();
+
+			anim->SetEnabled(false);
+		}
+	}
 }
 
 float GameScene::GetTowerHeight() const
@@ -109,3 +245,88 @@ float GameScene::GetTowerHeight() const
 	CameraController* cam = playerObj->GetComponent<CameraController>();
 	return cam->GetStackTopY() - cam->GetGroundTop();
 }
+
+void GameScene::HandleLevelUpInput()
+{
+	auto* playerController =
+		playerObj->GetComponent<PlayerController>();
+
+	if (playerController == nullptr)
+	{
+		return;
+	}
+
+	if (!context.mouse.LeftPressed())
+	{
+		return;
+	}
+
+	const float mouseX =
+		static_cast<float>(context.mouse.GetPosX());
+
+	const float mouseY =
+		static_cast<float>(context.mouse.GetPosY());
+
+
+
+	const auto& choices =
+		playerController->GetLevelUpChoices();
+
+
+	for (size_t i = 0; i < choices.size(); ++i)
+	{
+		const LevelUpChoiceRect rect = GetLevelUpChoiceRect(i);
+
+		const float left = rect.centerX - rect.width * 0.5f;
+		const float right = rect.centerX + rect.width * 0.5f;
+		const float top = rect.centerY - rect.height * 0.5f;
+		const float bottom = rect.centerY + rect.height * 0.5f;
+
+		if (mouseX >= left &&
+			mouseX <= right &&
+			mouseY >= top &&
+			mouseY <= bottom)
+		{
+			playerController->SelectLevelUpChoice(i);
+
+			// レベルアップ選択肢の画像を消す
+			for (int j = 0; j < 3; ++j)
+			{
+				auto* anim =
+					levelUpChoiceObjects[j]->GetComponent<AnimatorComponent>();
+
+				anim->SetEnabled(false);
+			}
+
+			playerController->IgnoreMouseUntilRelease();
+
+			return;
+		}
+	}
+}
+
+float GameScene::GetViewRange() const
+{
+	auto* playerController =
+		playerObj->GetComponent<PlayerController>();
+
+	if (playerController == nullptr)
+	{
+		return 1.0f;
+	}
+
+	return playerController->GetStatus().GetViewRange();
+}
+
+LevelUpChoiceRect GameScene::GetLevelUpChoiceRect(size_t index) const
+{
+	LevelUpChoiceRect rect;
+
+	rect.centerX = 180.f + index * 220.f;
+	rect.centerY = 300.f;
+	rect.width = 170.f;
+	rect.height = 150.f;
+
+	return rect;
+}
+

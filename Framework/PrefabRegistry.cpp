@@ -3,7 +3,10 @@
 #include "GameObject.h"
 #include "EnemyController.h"
 #include "PhysicsTest.h"
+#include "ExperienceOrb.h"
+#include "SwingCollisionDetector.h"
 
+#include "HarpoonController.h"
 void RegisterPrefabs()
 {
 	//Enemy
@@ -15,24 +18,86 @@ void RegisterPrefabs()
 		anim.SetStatic(L"../../assets/jinx.jpg");
 		object.GetTransform()->SetScale({ 48.f, 48.f, 1.f });
 		object.AddComponent<EnemyController>();
+		object.AddComponent<SwingCollisionDetector>();
 	});
 
 	// blocks
 	PrefabRegistry::Instance().Register("block", [](GameObject& object)
-	{
-		auto& anim = object.AddComponent<AnimatorComponent>(object.GetRenderer());
-		anim.SetRenderLayer(RenderLayer::Default);
-		anim.SetSortOrder(0);
-		anim.SetStatic(L"../../assets/jinx.jpg");
+		{
+			auto& anim = object.AddComponent<AnimatorComponent>(object.GetRenderer());
+			anim.SetRenderLayer(RenderLayer::Default);
+			anim.SetSortOrder(0);
+			anim.SetStatic(L"../../assets/jinx.jpg");
 
-		object.GetTransform()->SetScale(0.05f);
+			object.GetTransform()->SetScale(0.05f);
 
-		auto& rb = object.AddComponent<Rigidbody2DComponent>(*object.GetTransform(), 1.0f);
-		rb.SetGravity(500.f);
+			auto& rb = object.AddComponent<Rigidbody2DComponent>(*object.GetTransform(), 1.0f);
+			rb.SetGravity(500.f);
 
-		object.AddComponent<BoxCollider2D>(DirectX::XMFLOAT2(0.5f, 0.5f), DirectX::XMFLOAT2(0.f, 0.f), false, *object.GetTransform());
+			object.AddComponent<BoxCollider2D>(DirectX::XMFLOAT2(0.5f, 0.5f), DirectX::XMFLOAT2(0.f, 0.f), false, *object.GetTransform());
 
-		object.AddComponent<PhysicsTest>();
-		object.SetTag(ObjectTag::Block);
-	});
+			object.AddComponent<PhysicsTest>();
+			object.SetTag(ObjectTag::Block);
+		});
+
+
+
+	PrefabRegistry::Instance().Register("enemy", [](GameObject& object)
+		{
+			auto& anim = object.AddComponent<AnimatorComponent>(object.GetRenderer());
+
+			anim.SetRenderLayer(RenderLayer::Default);
+			anim.SetSortOrder(0);
+
+			anim.SetStatic(L"../../assets/jinx.jpg");
+
+			object.GetTransform()->SetScale(0.05f);
+
+			auto& rb = object.AddComponent<Rigidbody2DComponent>(
+				*object.GetTransform(), 1.0f);
+
+			rb.SetGravity(0.f);
+
+			object.AddComponent<BoxCollider2D>(
+				DirectX::XMFLOAT2(0.5f, 0.5f),
+				DirectX::XMFLOAT2(0.f, 0.f),
+				false,
+				*object.GetTransform());
+
+			object.AddComponent<EnemyController>();
+			object.AddComponent<SwingCollisionDetector>();
+
+			object.SetTag(ObjectTag::Enemy);
+		});
+
+
+
+	PrefabRegistry::Instance().Register("harpoon", [](GameObject& object)
+		{
+			auto& anim = object.AddComponent<AnimatorComponent>(object.GetRenderer());
+
+			anim.SetRenderLayer(RenderLayer::Default);
+			anim.SetSortOrder(0);
+
+			anim.SetStatic(L"../../assets/jinx.jpg");
+
+			object.GetTransform()->SetScale(0.02f);
+
+			auto& rb = object.AddComponent<Rigidbody2DComponent>(
+				*object.GetTransform(), 1.0f);
+
+			rb.SetGravity(0.f);
+
+			object.AddComponent<BoxCollider2D>(
+				DirectX::XMFLOAT2(0.5f, 0.2f),
+				DirectX::XMFLOAT2(0.f, 0.f),
+				true,
+				*object.GetTransform());
+
+			object.AddComponent<HarpoonController>();
+		});
+
+
 }
+
+
