@@ -225,7 +225,7 @@ void EnemyController::ReceiveCollisionDamage(const GameObject& other)
         return;
     }
 
-    if (other.GetTag() != ObjectTag::Enemy)
+    if (other.GetTag() != ObjectTag::ENEMY)
     {
         return;
     }
