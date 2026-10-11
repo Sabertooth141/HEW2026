@@ -4,6 +4,9 @@
 #include "EnemyController.h"
 #include "PhysicsTest.h"
 
+#include "BoxCollider2D.h"
+#include "Rigidbody2DComponent.h"
+
 void RegisterPrefabs()
 {
 	//Enemy
@@ -18,9 +21,23 @@ void RegisterPrefabs()
 
 		object.GetTransform()->SetScale({ 48.f, 48.f, 1.f });
 
+		auto& enemyBody = object.AddComponent<Rigidbody2DComponent>(
+			*object.GetTransform(), 1.f);
+
+		enemyBody.SetGravity(0.f);
+		enemyBody.SetFreezeRotation(true);
+		enemyBody.SetIsStatic(false);
+
+		//当たり判定を画像サイズにあわせる
+		object.AddComponent<BoxCollider2D>(
+			DirectX::XMFLOAT2(0.5f, 0.5f),
+			DirectX::XMFLOAT2(0.f, 0.f),
+			true,
+			*object.GetTransform());
+
 		auto& enemy = object.AddComponent<EnemyController>();
 
-		// Set default status for the enemy
+		// デフォルトのステータスを設定
 		enemy.SetStatus(30, 10, 60.f, 5);
 
 		enemy.knockbackSpeed = 240.f;

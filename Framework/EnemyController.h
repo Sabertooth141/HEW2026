@@ -46,6 +46,23 @@ public:
 	float knockbackSpeed = 240.f;
 	float knockbackDuration = 0.2f;
 
+	// 振り回し攻撃の判定を有効にするか
+	void SetAttackActive(bool enabled)
+	{
+		attackActive = enabled;
+	}
+
+	bool IsAttackActive() const
+	{
+		return attackActive && !dead;
+	}
+
+	// 接触し続けたときの被弾の間隔
+	float damageCooldown = 0.3f;
+
+	void OnCollisionEnter2D(const GameObject& other) override;
+	void OnCollisionStay2D(const GameObject& other) override;
+
 private:
 	void FinishDeath();
 
@@ -54,6 +71,11 @@ private:
 	bool dead = false;
 	bool deathHandled = false;
 	bool externalControl = false;
+
+	void ReceiveCollisionDamage(const GameObject& other);
+
+	bool attackActive = false;
+	float damageCooldownTimer = 0.f;
 
 	float knockbackTimer = 0.f;
 	DirectX::XMFLOAT2 knockbackDirection = { 0.f, 0.f };
