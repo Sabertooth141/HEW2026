@@ -20,6 +20,10 @@ class Renderer
 	friend class DebugRenderer;
 
 public:
+
+	int screenWidth;
+	int screenHeight;
+
 	Renderer(HWND hWnd, int width, int height);
 	Renderer(const Renderer&) = default;
 	Renderer& operator =(const Renderer&) = default;
@@ -56,6 +60,8 @@ public:
 
 	void Set3DMode();
 	void Set2DMode();
+	void Set2DViewRange(float range);
+
 
 	void SetEnableScreenSpace(const bool enabled)
 	{
@@ -65,6 +71,11 @@ public:
 	bool IsScreenSpaceEnabled() const
 	{
 		return isDrawInScreen;
+	}
+
+	DirectX::XMMATRIX GetUIProj()
+	{
+		return uiOrthoMatrix;
 	}
 
 private:
@@ -90,7 +101,7 @@ private:
 	// use ortho for 2D and perspective for 3D
 	DirectX::XMMATRIX projMatrix;
 	DirectX::XMMATRIX orthoMatrix;
-
+	DirectX::XMMATRIX uiOrthoMatrix;
 	DirectX::XMMATRIX activeProj = {};
 
 	bool isDrawInScreen = false;
