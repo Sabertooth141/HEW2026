@@ -41,6 +41,7 @@ public:
 
 
     void TakeDamage(float damage);
+    void Heal(float amount);
     bool IsDead() const;
     void AddMaxHP(float amount);
     void LevelUp();
@@ -80,12 +81,12 @@ private:
 
 
 
-    float maxHP = 3.0f;
-    float hp = 3.0f;
+    float maxHP = 30.0f;
+    float hp = 30.0f;
 
-    float moveSpeed = 500.0f;
+    float moveSpeed = 150.0f;
     float swingSpeed = 1.0f;
-    float swingDamage = 1.0f;
+    float swingDamage = 10.0f;
     float viewRange = 1.0f;
     float harpoonInterval = 2.0f;
     float absorbRange = 1.0f;

@@ -6,6 +6,7 @@
 #include "WindowSettings.h"
 #include "Mouse.h"
 #include "Camera2D.h"
+#include "EnemyController.h"
 
 void PlayerController::Start()
 {
@@ -93,13 +94,13 @@ void PlayerController::HandleInput(float deltaTime)
 	}
 
 
-	if (keyboard->KeyIsTriggered('L'))
-	{
-		if (!levelUpSelecting)
-		{
-			AddExperience(100.0f);
-		}
-	}
+//	if (keyboard->KeyIsTriggered('L'))
+	//{
+		//if (!levelUpSelecting)
+		//{
+			//AddExperience(100.0f);
+		//}
+	//}
 
 }
 
@@ -284,13 +285,21 @@ void PlayerController::OnCollisionEnter2D(const GameObject& other)
 	}
 
 	// 敵以外との接触ではダメージを受けない
-	if (other.GetTag() != ObjectTag::Enemy)
+	if (other.GetTag() != ObjectTag::ENEMY)
 	{
 		return;
 	}
 
-	// プレイヤーのHPを1減らす
-	status.TakeDamage(1.0f);
+	// 敵の攻撃力分、プレイヤーのHPを減らす
+	auto* enemy = other.GetComponent<EnemyController>();
+
+	if (enemy == nullptr)
+	{
+		return;
+	}
+
+	status.TakeDamage(
+		static_cast<float>(enemy->GetAttackPower()));
 
 	// 無敵時間を開始する
 	invulnerabilityTimer = invulnerabilityDuration;
@@ -325,6 +334,7 @@ void PlayerController::SelectLevelUpChoice(size_t index)
 	}
 
 	status.ApplyLevelUp(levelUpChoices[index]);
+	status.Heal(status.GetMaxHP() - status.GetHP());
 
 	levelUpSelecting = false;
 

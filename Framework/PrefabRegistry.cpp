@@ -3,6 +3,8 @@
 #include "GameObject.h"
 #include "EnemyController.h"
 #include "PhysicsTest.h"
+#include "HarpoonController.h"
+#include "ExperienceOrb.h"
 
 #include "BoxCollider2D.h"
 #include "Rigidbody2DComponent.h"
@@ -63,7 +65,7 @@ void RegisterPrefabs()
 		object.SetTag(ObjectTag::BLOCK);
 	});
 
-	//Experience
+	// Experience
 	PrefabRegistry::Instance().Register(
 		"experience", [](GameObject& object)
 		{
@@ -73,9 +75,44 @@ void RegisterPrefabs()
 				object.AddComponent<AnimatorComponent>(object.GetRenderer());
 
 			anim.SetRenderLayer(RenderLayer::Default);
-
 			anim.SetStatic(L"../../assets/jinx.jpg");
 
 			object.GetTransform()->SetScale({ 12.f, 12.f, 1.f });
+
+			object.AddComponent<ExperienceOrb>();
 		});
+
+
+
+	// Harpoon
+	PrefabRegistry::Instance().Register(
+		"harpoon", [](GameObject& object)
+		{
+			object.SetTag(ObjectTag::DEFAULT);
+
+			auto& anim =
+				object.AddComponent<AnimatorComponent>(object.GetRenderer());
+
+			anim.SetRenderLayer(RenderLayer::Default);
+			anim.SetStatic(L"../../assets/jinx.jpg");
+
+			object.GetTransform()->SetScale({ 12.f, 12.f, 1.f });
+
+			auto& rb =
+				object.AddComponent<Rigidbody2DComponent>(
+					*object.GetTransform(), 1.f);
+
+			rb.SetGravity(0.f);
+			rb.SetFreezeRotation(true);
+			rb.SetIsStatic(false);
+
+			object.AddComponent<BoxCollider2D>(
+				DirectX::XMFLOAT2(0.5f, 0.5f),
+				DirectX::XMFLOAT2(0.f, 0.f),
+				true,
+				*object.GetTransform());
+
+			object.AddComponent<HarpoonController>();
+		});
+
 }

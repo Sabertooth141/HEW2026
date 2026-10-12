@@ -57,12 +57,19 @@ public:
 		return attackActive && !dead;
 	}
 
+	void SetHammerActive(bool enabled, int damage);
 	// 接触し続けたときの被弾の間隔
 	float damageCooldown = 0.3f;
 
 	void OnCollisionEnter2D(const GameObject& other) override;
 	void OnCollisionStay2D(const GameObject& other) override;
 
+	int GetCollisionDamage() const
+	{
+		return hammerActive ? hammerDamage : status.attackPower;
+	}
+	bool IsHammerActive() const { return hammerActive; }
+	int GetHammerDamage() const { return hammerDamage; }
 private:
 	void FinishDeath();
 
@@ -80,4 +87,7 @@ private:
 	float knockbackTimer = 0.f;
 	DirectX::XMFLOAT2 knockbackDirection = { 0.f, 0.f };
 	DirectX::XMFLOAT3 deathPosition = { 0.f, 0.f, 1.f };
+
+	bool hammerActive = false;
+	int hammerDamage = 0;
 };

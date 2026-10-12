@@ -109,7 +109,15 @@ void GameScene::OnUpdate(float deltaTime)
 
 	auto* playerController =
 		playerObj->GetComponent<PlayerController>();
-
+	// プレイヤーのHPが0になったらゲームオーバー画面へ
+	if (playerController != nullptr &&
+		playerController->GetStatus().GetHP() <= 0.f)
+	{
+		finished = true;
+		context.globalContext.towerHeight = GetTowerHeight();
+		context.sceneManager->RequestChange("Result");
+		return;
+	}
 	if (playerController != nullptr &&
 		playerController->IsLevelUpSelecting())
 	{
@@ -328,5 +336,11 @@ LevelUpChoiceRect GameScene::GetLevelUpChoiceRect(size_t index) const
 	rect.height = 150.f;
 
 	return rect;
+}
+
+bool GameScene::IsLevelUpSelecting() const
+{
+	auto* controller = playerObj->GetComponent<PlayerController>();
+	return controller && controller->IsLevelUpSelecting();
 }
 

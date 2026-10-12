@@ -6,6 +6,7 @@
 #include "GameObject.h"
 #include "Scene.h"
 
+#include <Windows.h>
 #include "BoxCollider2D.h"
 
 void EnemyController::SetStatus(
@@ -124,6 +125,15 @@ bool EnemyController::TakeDamage(
 
     damageCooldownTimer = std::fmax(0.f, damageCooldown);
     status.hp = std::max(0, status.hp - damage);
+    char message[128];
+    sprintf_s(
+        message,
+        "Enemy HP: %d / Damage: %d / Hammer: %d\n",
+        status.hp,
+        damage,
+        hammerActive ? 1 : 0);
+
+    OutputDebugStringA(message);
 
     // 死亡時
     if (status.hp == 0)
@@ -219,50 +229,55 @@ void EnemyController::OnCollisionStay2D(const GameObject& other)
 
 void EnemyController::ReceiveCollisionDamage(const GameObject& other)
 {
-	// 死亡時や捕獲中はダメージを受けない
-    if (dead || externalControl)
+    if (dead || other.GetTag() != ObjectTag::ENEMY) return;
+
+    const auto* otherEnemy = other.GetComponent<EnemyController>();
+    if (!otherEnemy || otherEnemy->IsDead()) return;
+
+    const auto* otherTransform = other.GetTransform();
+    if (!otherTransform) return;
+
+    // 自分がハンマーなら、相手に攻撃し、自分も衝突ダメージを受ける
+    if (IsHammerActive())
     {
+        TakeDamage(
+            otherEnemy->GetCollisionDamage(),
+            otherTransform->GetPosition());
+
+        const_cast<EnemyController*>(otherEnemy)->TakeDamage(
+            GetHammerDamage(),
+            owner->GetTransform()->GetPosition());
+
         return;
     }
 
-    if (other.GetTag() != ObjectTag::ENEMY)
+    // 相手がハンマーなら、通常の敵がダメージを受ける
+    if (otherEnemy->IsHammerActive())
     {
-        return;
+        TakeDamage(
+            otherEnemy->GetHammerDamage(),
+            otherTransform->GetPosition());
     }
-
-    const auto* attacker = other.GetComponent<EnemyController>();
-
-    // 敵同士が触れただけのときはダメージを与えない
-    if (!attacker || !attacker->IsAttackActive())
-    {
-        return;
-    }
-
-    const auto* attackerTransform = other.GetTransform();
-
-    if (!attackerTransform)
-    {
-        return;
-    }
-
-    TakeDamage(
-        attacker->GetAttackPower(),
-        attackerTransform->GetPosition());
 }
 
-
-
-void EnemyController::TakeDamage(float damage)
+void EnemyController::SetHammerActive(bool enabled, int damage)
 {
-	if (damage <= 0.0f)
-	{
-		return;
-	}
+    if (dead)
+    {
+        return;
+    }
 
-	hp -= damage;
+    hammerActive = enabled;
+    hammerDamage = damage;
 
-	if (hp < 0.0f)
-	{
-		hp = 0.0f;
-	}
+    char message[128];
+    sprintf_s(
+        message,
+        "SetHammerActive: active=%d, damage=%d, HP=%d\n",
+        hammerActive ? 1 : 0,
+        hammerDamage,
+        status.hp);
+
+    OutputDebugStringA(message);
 }
+

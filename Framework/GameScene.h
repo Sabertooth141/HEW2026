@@ -24,6 +24,7 @@ public:
 	float GetViewRange() const;
 
 	LevelUpChoiceRect GetLevelUpChoiceRect(size_t index) const;
+	bool IsLevelUpSelecting() const;
 
 private:
 	float GetTowerHeight() const;

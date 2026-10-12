@@ -167,3 +167,12 @@ std::vector<PlayerStatus::StatType> PlayerStatus::GetLevelUpChoices() const
 
     return availableChoices;
 }
+
+void PlayerStatus::Heal(float amount)
+{
+    hp += amount;
+    if (hp > maxHP)
+    {
+        hp = maxHP;
+    }
+}

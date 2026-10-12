@@ -51,6 +51,10 @@ void ExperienceOrb::Update(float deltaTime)
 
             player->AddExperience(10.0f);
             OutputDebugStringA("EXP: AddExperience reached!\n");
+
+            // 拾った経験値オーブを消す
+            scene->Destroy(owner);
+
             return;
         }
     }

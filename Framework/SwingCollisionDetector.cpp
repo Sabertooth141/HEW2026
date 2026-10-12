@@ -12,7 +12,7 @@ void SwingCollisionDetector::OnCollisionEnter2D(const GameObject& other)
     MonoBehavior::OnCollisionEnter2D(other);
 
     // 自分自身や敵以外との衝突は無視する
-    if (&other == owner || other.GetTag() != ObjectTag::Enemy)
+    if (&other == owner || other.GetTag() != ObjectTag::ENEMY)
         return;
 
     auto* scene = owner->GetContext().gameScene;
@@ -88,8 +88,13 @@ void SwingCollisionDetector::OnCollisionEnter2D(const GameObject& other)
 
     if (enemy)
     {
-        const float damage = player->GetStatus().GetSwingDamage();
-        enemy->TakeDamage(damage);
+        const int damage =
+            static_cast<int>(player->GetStatus().GetSwingDamage());
+
+        const DirectX::XMFLOAT3 attackPosition =
+            owner->GetTransform()->GetPosition();
+
+        enemy->TakeDamage(damage, attackPosition);
         OutputDebugStringA("Swing damage applied!\n");
     }
 }
