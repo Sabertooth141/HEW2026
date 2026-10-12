@@ -95,6 +95,11 @@ void Scene::FlushPending()
 		return std::ranges::find(pendingDestroy, p.get()) != pendingDestroy.end();
 	});
 
+	// A pickup can be collected on the same frame it was instantiated.
+	std::erase_if(pendingSpawn, [this](const std::unique_ptr<GameObject>& p)
+	{
+		return std::ranges::find(pendingDestroy, p.get()) != pendingDestroy.end();
+	});
 	pendingDestroy.clear();
 
 	for (auto& object : pendingSpawn)

@@ -1,6 +1,15 @@
 #include "SceneManager.h"
 
 #include "Camera2D.h"
+#include "MiningDemoScene.h"
+#include "OreAcceptance.h"
+#include "OrePrefabs.h"
+
+SceneManager::SceneManager(GameContext& inContext) : context(inContext)
+{
+	Register<MiningDemoScene>("OreDemo");
+	Register<OreAcceptanceScene>("OreAcceptance");
+}
 
 SceneManager::~SceneManager()
 {
@@ -129,4 +138,5 @@ void SceneManager::SwitchToScene(const std::string& inSceneName)
 
 	context.gameScene = currScene.get();
 	currScene->OnEnter();
+	if (inSceneName == "Game") PlaceStageOres(*currScene);
 }
