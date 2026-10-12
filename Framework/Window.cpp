@@ -1,4 +1,7 @@
+#include <imgui.h>
 #include "Window.h"
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM, LPARAM);
 
 Window::WindowClass Window::WindowClass::wndClass;
 
@@ -74,6 +77,11 @@ Renderer& Window::GetRenderer()
 	return *renderer;
 }
 
+HWND Window::GetHwnd() const
+{
+	return hWnd;
+}
+
 void Window::SetTitle(const std::string& title)
 {
 	std::wstring wTitle(title.begin(), title.end());
@@ -120,6 +128,14 @@ LRESULT Window::HandleMsgInterpret(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 
 LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+	{
+		return true;
+	}
+
+	const bool editorMouse = ImGui::GetCurrentContext() && ImGui::GetIO().WantCaptureMouse;
+	const bool editorKeys = ImGui::GetCurrentContext() && ImGui::GetIO().WantCaptureKeyboard;
+
 	switch (msg)
 	{
 	case WM_CLOSE:
@@ -147,6 +163,11 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	// keyboard msg
 	case WM_KEYDOWN:
 	case WM_SYSKEYDOWN:
+		if (editorKeys)
+		{
+			break;
+		}
+
 		if (!(lParam & 0x40000000) || keyboard.AutorepeatIsEnabled())
 		{
 			keyboard.OnKeyPressed(static_cast<unsigned char>(wParam));
@@ -157,6 +178,11 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		keyboard.OnKeyReleased(static_cast<unsigned char>(wParam));
 		break;
 	case WM_CHAR:
+		if (editorKeys)
+		{
+			break;
+		}
+
 		keyboard.OnChar(static_cast<unsigned char>(wParam));
 		break;
 
@@ -202,6 +228,11 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	}
 	case WM_LBUTTONDOWN:
 	{
+		if (editorMouse)
+		{
+			break;
+		}
+
 		SetForegroundWindow(hWnd);
 		if (!cursorEnabled)
 		{
@@ -215,6 +246,11 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	}
 	case WM_RBUTTONDOWN:
 	{
+		if (editorMouse)
+		{
+			break;
+		}
+
 		const POINTS pt = MAKEPOINTS(lParam);
 		mouse.OnRightPressed(pt.x, pt.y);
 		break;
@@ -245,6 +281,11 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	}
 	case WM_MOUSEWHEEL:
 	{
+		if (editorMouse)
+		{
+			break;
+		}
+
 		const POINTS pt = MAKEPOINTS(lParam);
 		const int delta = GET_WHEEL_DELTA_WPARAM(wParam);
 		mouse.OnWheelDelta(pt.x, pt.y, delta);
@@ -254,6 +295,11 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	// raw mouse msg
 	case WM_INPUT:
 	{
+		if (editorMouse)
+		{
+			break;
+		}
+
 		if (!mouse.rawEnabled)
 		{
 			break;

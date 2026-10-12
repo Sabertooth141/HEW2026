@@ -78,6 +78,9 @@
     <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
+  <PropertyGroup Label="Vcpkg">
+    <VcpkgEnableManifest>true</VcpkgEnableManifest>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -140,6 +143,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -167,12 +171,12 @@
     <ClCompile Include="CollisionTests.cpp" />
     <ClCompile Include="DebugRenderer.cpp" />
     <ClCompile Include="Drawable.cpp" />
+    <ClCompile Include="EditorUI.cpp" />
     <ClCompile Include="EnemyController.cpp" />
     <ClCompile Include="EnemySpawner.cpp" />
-    <ClCompile Include="ExperienceOrb.cpp" />
     <ClCompile Include="GameObject.cpp" />
     <ClCompile Include="GameScene.cpp" />
-    <ClCompile Include="HarpoonController.cpp" />
+    <ClCompile Include="ImGuiLayer.cpp" />
     <ClCompile Include="IndexBuffer.cpp" />
     <ClCompile Include="InputLayout.cpp" />
     <ClCompile Include="Keyboard.cpp" />
@@ -187,7 +191,6 @@
     <ClCompile Include="PhysicsTest.cpp" />
     <ClCompile Include="PixelShader.cpp" />
     <ClCompile Include="PlayerController.cpp" />
-    <ClCompile Include="PlayerStatus.cpp" />
     <ClCompile Include="PrefabRegistry.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="ResultScene.cpp" />
@@ -197,7 +200,6 @@
     <ClCompile Include="SceneManager.cpp" />
     <ClCompile Include="SpriteAnimatorComponent.cpp" />
     <ClCompile Include="SpriteRendererComponent.cpp" />
-    <ClCompile Include="SwingCollisionDetector.cpp" />
     <ClCompile Include="TextRenderer.cpp" />
     <ClCompile Include="TextureCache.cpp" />
     <ClCompile Include="TitleScene.cpp" />
@@ -221,18 +223,18 @@
     <ClInclude Include="CollisionDispatch.h" />
     <ClInclude Include="CollisionTests.h" />
     <ClInclude Include="DebugRenderer.h" />
+    <ClInclude Include="EditorUI.h" />
     <ClInclude Include="EnemyController.h" />
     <ClInclude Include="EnemySpawner.h" />
     <ClInclude Include="EnemySpawnPosition.h" />
-    <ClInclude Include="ExperienceOrb.h" />
     <ClInclude Include="GameContext.h" />
     <ClInclude Include="GameScene.h" />
-    <ClInclude Include="HarpoonController.h" />
     <ClInclude Include="IComponent.h" />
     <ClInclude Include="ConstantBuffer.h" />
     <ClInclude Include="Drawable.h" />
     <ClInclude Include="DrawableBase.h" />
     <ClInclude Include="GameObject.h" />
+    <ClInclude Include="ImGuiLayer.h" />
     <ClInclude Include="Keyboard.h" />
     <ClInclude Include="Light.h" />
     <ClInclude Include="LightCBuffer.h" />
@@ -244,10 +246,10 @@
     <ClInclude Include="ModelReader.h" />
     <ClInclude Include="MonoBehavior.h" />
     <ClInclude Include="Mouse.h" />
+    <ClInclude Include="ObjectTags.h" />
     <ClInclude Include="PhysicsSystem.h" />
     <ClInclude Include="PhysicsTest.h" />
     <ClInclude Include="PlayerController.h" />
-    <ClInclude Include="PlayerStatus.h" />
     <ClInclude Include="PrefabRegistry.h" />
     <ClInclude Include="RenderLayer.h" />
     <ClInclude Include="RenderSystem.h" />
@@ -262,7 +264,6 @@
     <ClInclude Include="SpriteRenderSystem.h" />
     <ClInclude Include="SpriteVertex.h" />
     <ClInclude Include="stb_image.h" />
-    <ClInclude Include="SwingCollisionDetector.h" />
     <ClInclude Include="TextRenderer.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="TextureCache.h" />
