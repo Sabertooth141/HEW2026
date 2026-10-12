@@ -334,6 +334,33 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
   </ItemGroup>
+  <PropertyGroup Condition="'$(Platform)'=='x64'">
+    <OutDir>$(MSBuildThisFileDirectory)..\x64\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="OreController.cpp" />
+    <ClCompile Include="ExperiencePickupController.cpp" />
+    <ClCompile Include="OreGameplayAdapter.cpp" />
+    <ClCompile Include="OrePrefabs.cpp" />
+    <ClCompile Include="MiningDemoScene.cpp" />
+    <ClCompile Include="OreDemoEnemyController.cpp" />
+    <ClCompile Include="OreAcceptance.cpp" />
+    <ClInclude Include="OreState.h" />
+    <ClInclude Include="HammerContactComponent.h" />
+    <ClInclude Include="OreController.h" />
+    <ClInclude Include="ExperiencePickupController.h" />
+    <ClInclude Include="OreGameplayAdapter.h" />
+    <ClInclude Include="OreExperienceReceiver.h" />
+    <ClInclude Include="OrePrefabs.h" />
+    <ClInclude Include="MiningDemoScene.h" />
+    <ClInclude Include="OreDemoEnemyController.h" />
+    <ClInclude Include="OreAcceptance.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
 </Project>

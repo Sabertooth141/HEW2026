@@ -3,12 +3,14 @@
 #include "GameObject.h"
 #include "EnemyController.h"
 #include "PhysicsTest.h"
+#include "OrePrefabs.h"
 
 #include "BoxCollider2D.h"
 #include "Rigidbody2DComponent.h"
 
 void RegisterPrefabs()
 {
+	RegisterOrePrefabs();
 	//Enemy
 	PrefabRegistry::Instance().Register("enemy", [](GameObject& object)
 	{

@@ -16,9 +16,7 @@ public:
 
 	using Factory = std::function<std::unique_ptr<Scene>(GameContext&)>;
 
-	explicit SceneManager(GameContext& inContext) : context(inContext)
-	{
-	}
+	explicit SceneManager(GameContext& inContext);
 
 	~SceneManager();
 	SceneManager(const SceneManager&) = delete;
