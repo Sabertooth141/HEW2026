@@ -5,9 +5,12 @@
 
 #include "GameObject.h"
 #include "Scene.h"
-
+#include "OreController.h"
 #include <Windows.h>
 #include "BoxCollider2D.h"
+#include "PlayerController.h"
+#include "PlayerStatus.h"
+#include "HarpoonController.h"
 
 void EnemyController::SetStatus(
     int hp,
@@ -229,15 +232,72 @@ void EnemyController::OnCollisionStay2D(const GameObject& other)
 
 void EnemyController::ReceiveCollisionDamage(const GameObject& other)
 {
-    if (dead || other.GetTag() != ObjectTag::ENEMY) return;
+    if (dead) return;
 
-    const auto* otherEnemy = other.GetComponent<EnemyController>();
+    auto* ore = const_cast<GameObject&>(other)
+        .GetComponent<OreController>();
+
+    // 鉱石との衝突
+    if (ore != nullptr && !ore->IsDestroyed())
+    {
+        auto* scene = owner->GetContext().gameScene;
+        if (scene == nullptr) return;
+
+        // 銛がこの鉱石を捕獲しているか確認
+        bool oreIsHammer = false;
+
+        for (const auto& object : scene->GetObjects())
+        {
+            auto* harpoon =
+                object->GetComponent<HarpoonController>();
+
+            if (harpoon != nullptr &&
+                harpoon->IsHammerObject(&other))
+            {
+                oreIsHammer = true;
+                break;
+            }
+        }
+
+        if (oreIsHammer)
+        {
+            // ハンマー状態の鉱石が敵に与えるダメージ
+            PlayerController* player = nullptr;
+
+            for (const auto& object : scene->GetObjects())
+            {
+                player = object->GetComponent<PlayerController>();
+                if (player != nullptr) break;
+            }
+
+            if (player != nullptr)
+            {
+                const int damage = static_cast<int>(
+                    player->GetStatus().GetSwingDamage());
+
+                TakeDamage(
+                    damage,
+                    other.GetTransform()->GetPosition());
+            }
+
+            // 鉱石自身もダメージを受ける
+            ore->TakeDamage(GetCollisionDamage());
+        }
+
+        return;
+    }
+
+    // 敵同士の既存処理
+    if (other.GetTag() != ObjectTag::ENEMY) return;
+
+    const auto* otherEnemy =
+        other.GetComponent<EnemyController>();
+
     if (!otherEnemy || otherEnemy->IsDead()) return;
 
     const auto* otherTransform = other.GetTransform();
     if (!otherTransform) return;
 
-    // 自分がハンマーなら、相手に攻撃し、自分も衝突ダメージを受ける
     if (IsHammerActive())
     {
         TakeDamage(
@@ -251,7 +311,6 @@ void EnemyController::ReceiveCollisionDamage(const GameObject& other)
         return;
     }
 
-    // 相手がハンマーなら、通常の敵がダメージを受ける
     if (otherEnemy->IsHammerActive())
     {
         TakeDamage(
@@ -259,6 +318,7 @@ void EnemyController::ReceiveCollisionDamage(const GameObject& other)
             otherTransform->GetPosition());
     }
 }
+
 
 void EnemyController::SetHammerActive(bool enabled, int damage)
 {
