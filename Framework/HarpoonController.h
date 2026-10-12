@@ -5,6 +5,7 @@
 class HarpoonController :public MonoBehavior
 {
 public:
+	int GetHammerDamage() const;
 	void Awake() override;
 	void Update(float deltaTime) override;
 	void OnCollisionEnter2D(const GameObject& other) override;
@@ -14,9 +15,11 @@ public:
 	{
 		return isStuck && stuckObject == object;
 	}
+
 private:
 	bool isStuck = false;
 	GameObject* stuckObject = nullptr;
+	bool isOreTarget = false;
 	float swingAngle = 0.0f;
 	float swingRadius = 0.0f;
 };

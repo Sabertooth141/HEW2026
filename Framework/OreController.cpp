@@ -9,6 +9,8 @@
 #include "HammerContactComponent.h"
 #include "OreGameplayAdapter.h"
 #include "Scene.h"
+#include "EnemyController.h"
+#include "HarpoonController.h"
 
 OreController::OreController(OreType type)
     : state(type)
@@ -45,11 +47,13 @@ void OreController::OnDestroy()
 
 void OreController::OnCollisionEnter2D(const GameObject& other)
 {
+    OutputDebugStringA("Ore collision: ENTER\n");
     HandleHammerContact(other);
 }
 
 void OreController::OnCollisionStay2D(const GameObject& other)
 {
+    OutputDebugStringA("Ore collision: STAY\n");
     HandleHammerContact(other);
 }
 
@@ -102,6 +106,68 @@ void OreController::HandleHammerContact(const GameObject& other)
 
 void OreController::HandleNativeHammerContact(GameObject& other)
 {
+    // ハンマー状態の鉱石が、通常の鉱石にぶつかった場合
+    auto* otherOre = other.GetComponent<OreController>();
+
+    if (otherOre != nullptr)
+    {
+        auto* scene = owner->GetContext().gameScene;
+
+        if (scene != nullptr)
+        {
+            for (const auto& object : scene->GetObjects())
+            {
+                auto* harpoon =
+                    object->GetComponent<HarpoonController>();
+
+                if (harpoon != nullptr &&
+                    harpoon->IsHammerObject(&other))
+                {
+                    OutputDebugStringA(
+                        "Hammer ore recognized!\n");
+
+                    const int damage = harpoon->GetHammerDamage();
+
+                    OutputDebugStringA(
+                        ("Hammer damage: " +
+                            std::to_string(damage) + "\n").c_str());
+
+                    if (damage > 0)
+                    {
+                        TakeDamage(damage);
+                        OutputDebugStringA(
+                            "Normal ore damaged!\n");
+                    }
+                    return;
+                }
+            }
+        }
+    }
+
+    // ハンマー状態の敵が鉱石にぶつかった場合
+    auto* enemy = other.GetComponent<EnemyController>();
+
+    if (enemy != nullptr && enemy->IsHammerActive())
+    {
+        auto& contact = nativeContacts[&other];
+
+        // 同じ接触中に何度もダメージを与えない
+        if (contact.appliedForContact)
+            return;
+
+        contact.appliedForContact = true;
+        contact.captureSource = nullptr;
+        contact.lastDamageFrame = contactFrameId;
+
+        const int damage = enemy->GetHammerDamage();
+
+        if (damage > 0)
+        {
+            TakeDamage(damage);
+        }
+
+        return;
+    }
     const auto query = OreGameplayAdapter::QueryNativeHammerContact(other);
     if (!query.captured)
     {

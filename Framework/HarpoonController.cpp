@@ -6,6 +6,8 @@
 #include "PlayerController.h"
 #include "PlayerStatus.h"
 #include "EnemyController.h"
+#include "OreController.h"
+
 
 void HarpoonController::Awake()
 {
@@ -58,10 +60,24 @@ void HarpoonController::Update(float deltaTime)
     }
 
     // ここから先は、Scene内に存在する敵だけを参照する
-    auto* enemyController =
-        stuckObject->GetComponent<EnemyController>();
+    auto* enemyController = stuckObject->GetComponent<EnemyController>();
+    auto* oreController = stuckObject->GetComponent<OreController>();
 
-    if (enemyController == nullptr || enemyController->IsDead())
+    if (enemyController != nullptr && enemyController->IsDead())
+    {
+        isStuck = false;
+        stuckObject = nullptr;
+        return;
+    }
+
+    if (oreController != nullptr && oreController->IsDestroyed())
+    {
+        isStuck = false;
+        stuckObject = nullptr;
+        return;
+    }
+
+    if (enemyController == nullptr && oreController == nullptr)
     {
         isStuck = false;
         stuckObject = nullptr;
@@ -116,8 +132,8 @@ void HarpoonController::OnCollisionEnter2D(const GameObject& other)
     if (isStuck)
         return;
 
-    if (other.GetTag() == ObjectTag::ENEMY)// ||
-      //  other.GetTag() == ObjectTag::Ore
+    if (other.GetTag() == ObjectTag::ENEMY ||
+        const_cast<GameObject&>(other).GetComponent<OreController>() != nullptr)
 
 
     {
@@ -158,8 +174,13 @@ void HarpoonController::OnCollisionEnter2D(const GameObject& other)
             if (object.get() == &other)
             {
                 stuckObject = object.get();
+
                 auto* enemyController =
                     stuckObject->GetComponent<EnemyController>();
+                auto* oreController =
+                    stuckObject->GetComponent<OreController>();
+
+                isOreTarget = (oreController != nullptr);
 
                 if (enemyController != nullptr && player != nullptr)
                 {
@@ -220,4 +241,28 @@ void HarpoonController::OnCollisionEnter2D(const GameObject& other)
             rb->SetVelocity({ 0.f, 0.f });
         }
     }
+}
+
+int HarpoonController::GetHammerDamage() const
+{
+    if (owner == nullptr)
+        return 0;
+
+    auto* scene = owner->GetContext().gameScene;
+    if (scene == nullptr)
+        return 0;
+
+    for (const auto& object : scene->GetObjects())
+    {
+        auto* playerController =
+            object->GetComponent<PlayerController>();
+
+        if (playerController != nullptr)
+        {
+            return static_cast<int>(
+                playerController->GetStatus().GetSwingDamage());
+        }
+    }
+
+    return 0;
 }
