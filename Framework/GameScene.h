@@ -16,7 +16,6 @@ private:
 private:
 	GameObject* playerObj = nullptr;
 
-	float playTime = 25.f;
-	float playTimer = playTime;
+	float playTimer = 0.f;
 	bool finished = false;
 };
