@@ -174,14 +174,12 @@ std::vector<PhysicsSystem::EntryPair> PhysicsSystem::GenerateCandidatePairs()
 				Entry* b = entriesInCell[j];
 
 				// a pair needs at least one body capable of moving
-				const bool aInert = a->rigidbody->IsStatic() || a->rigidbody->IsSleeping();
-				const bool bInert = b->rigidbody->IsStatic() || b->rigidbody->IsSleeping();
-
-				if (aInert && bInert)
+				// 静止物体同士だけを衝突候補から除外する
+				if (a->rigidbody->IsStatic() &&
+					b->rigidbody->IsStatic())
 				{
 					continue;
 				}
-
 				dedup.insert(MakeCanonicalEntryPair(a, b));
 			}
 		}

@@ -15,6 +15,7 @@
 #include "SpriteVertex.h"
 #include "TitleScene.h"
 #include "WindowSettings.h"
+#include "HarpoonController.h"
 
 App::App(const std::string& cmdLine) : cmdLine(cmdLine),
                                        wnd(WIN_WIDTH, WIN_HEIGHT, L"DXPractice"),
@@ -75,12 +76,22 @@ void App::Update(float deltaTime)
 	{
 		if (editor.ShouldTick())
 		{
-			scene->Update(deltaTime);
-			scene->OnUpdate(deltaTime);
-			scriptSystem.Update(deltaTime);
-			physicsSystem.Update(deltaTime);
-			scriptSystem.LateUpdate(deltaTime);
-			animationSystem.Update(deltaTime);
+			auto* gameScene = dynamic_cast<GameScene*>(scene);
+
+			if (gameScene && gameScene->IsLevelUpSelecting())
+			{
+				// 選択中は選択入力だけ処理する
+				scene->OnUpdate(deltaTime);
+			}
+			else
+			{
+				scene->Update(deltaTime);
+				scene->OnUpdate(deltaTime);
+				scriptSystem.Update(deltaTime);
+				physicsSystem.Update(deltaTime);
+				scriptSystem.LateUpdate(deltaTime);
+				animationSystem.Update(deltaTime);
+			}
 		}
 		scene->FlushPending();
 	}
@@ -103,6 +114,11 @@ void App::Draw(float deltaTime)
 
 	debugRenderer.Begin();
 	renderer.SetView(camera.GetView());
+	if (auto* gameScene =
+		dynamic_cast<GameScene*>(sceneManager.GetCurrScene()))
+	{
+		renderer.Set2DViewRange(gameScene->GetViewRange());
+	}
 	renderer.Set2DMode();
 	renderSystem.Render();
 
@@ -124,15 +140,51 @@ void App::Draw(float deltaTime)
 
 void App::DebugRender(Scene& scene)
 {
+	GameObject* player = nullptr;
+
+	// プレイヤーを探す
 	for (auto& go : scene.GetObjects())
 	{
+		if (go->GetComponent<PlayerController>() != nullptr)
+		{
+			player = go.get();
+			break;
+		}
+	}
+
+	// プレイヤーがいなければ終了
+	if (player == nullptr)
+	{
+		return;
+	}
+
+	auto playerPos = player->GetTransform()->GetPosition();
+
+	for (auto& go : scene.GetObjects())
+	{
+		// 当たり判定の枠を表示
 		if (auto* col = go->GetComponent<BoxCollider2D>())
 		{
-			debugRenderer.DrawBox(col->GetWorldOBB().GetCorners(), {0, 1, 0, 1});
+			debugRenderer.DrawBox(
+				col->GetWorldOBB().GetCorners(),
+				{ 0, 1, 0, 1 });
+		}
+
+		// ハンマー状態の銛を探す
+		auto* harpoon = go->GetComponent<HarpoonController>();
+
+		if (harpoon != nullptr && harpoon->IsStuck())
+		{
+			auto hammerPos = go->GetTransform()->GetPosition();
+
+			// プレイヤーとハンマー状態の敵を赤い線でつなぐ
+			debugRenderer.DrawLine(
+				{ playerPos.x, playerPos.y },
+				{ hammerPos.x, hammerPos.y },
+				{ 1, 0, 0, 1 });
 		}
 	}
 }
-
 void App::DebugTextRender(Scene& scene, float deltaTime)
 {
 	textRenderer.DebugLine("%.1f fps  (%.2f ms)", deltaTime > 0.f ? 1.f / deltaTime : 0.f, deltaTime * 1000.f);
@@ -140,3 +192,4 @@ void App::DebugTextRender(Scene& scene, float deltaTime)
 	textRenderer.DebugLine("objects %zu", scene.GetObjects().size());
 	textRenderer.DebugLine(TextColor::Cyan, "cam y %.0f", camera.GetPosition().y);
 }
+

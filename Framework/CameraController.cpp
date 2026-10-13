@@ -72,20 +72,29 @@ void CameraController::LateUpdate(float deltaTime)
     }
 
     DirectX::XMFLOAT2 camPos = camera->GetPosition();
-    if (lambda > 0.f)
-    {
-        camPos.y += delta * (1.f - std::exp(-lambda * deltaTime));
-        camera->SetPosition(camPos);
-    }
 
-    DirectX::XMFLOAT3 playerPos = owner->GetTransform()->GetPosition();
-    playerPos.y = camPos.y + playerOffset;
-    owner->GetTransform()->SetPosition(playerPos);
+    DirectX::XMFLOAT3 playerPos =
+        owner->GetTransform()->GetPosition();
 
-    if (ownerRb)
-    {
-        ownerRb->SetVelocity({ ownerRb->GetVelocity().x, 0.f });
-    }
+    // プレイヤーを画面中央にする目標座標
+    const float targetCameraX = playerPos.x;
+    const float targetCameraY = playerPos.y;
+
+    const float followSpeed = 5.0f;
+
+    // X座標（左右）を追従
+    const float deltaX = targetCameraX - camPos.x;
+    camPos.x += deltaX *
+        (1.0f - std::exp(-followSpeed * deltaTime));
+
+    // Y座標（上下）を追従
+    const float deltaY = targetCameraY - camPos.y;
+    camPos.y += deltaY *
+        (1.0f - std::exp(-followSpeed * deltaTime));
+
+    camera->SetPosition(camPos);
+
+
 }
 
 float CameraController::GetStackTopY()
