@@ -126,14 +126,7 @@ void GameScene::OnUpdate(float deltaTime)
 		return;
 	}
 
-	playTimer -= deltaTime;
-
-	if (playTimer <= 0.f)
-	{
-		finished = true;
-		context.globalContext.towerHeight = GetTowerHeight();
-		context.sceneManager->RequestChange("Result");
-	}
+	playTimer += deltaTime;
 }
 
 const wchar_t* GetLevelUpImagePath(PlayerStatus::StatType type)
@@ -168,20 +161,6 @@ const wchar_t* GetLevelUpImagePath(PlayerStatus::StatType type)
 void GameScene::OnDrawUI(TextRenderer& text)
 {
 	Scene::OnDrawUI(text);
-
-	text.DrawScreen(
-		std::format("タワーの高さ: {:.2f}", GetTowerHeight()),
-		{ WIN_WIDTH * 0.5f, 24.f },
-		TextColor::Yellow,
-		1.f,
-		TextAlign::Center);
-
-	text.DrawScreen(
-		std::format("残り時間: {:.2f}", std::max(playTimer, 0.f)),
-		{ WIN_WIDTH * 0.5f, 40.f },
-		TextColor::Yellow,
-		1.f,
-		TextAlign::Center);
 
 	// プレイヤーのHP表示
 	auto* hpPlayerController =
@@ -246,6 +225,9 @@ void GameScene::OnDrawUI(TextRenderer& text)
 			anim->SetEnabled(false);
 		}
 	}
+
+	text.DrawScreen(std::format("プレイ時間: {:.2f}", std::max(playTimer, 0.f)),
+		{ WIN_WIDTH * 0.5f, 40.f }, TextColor::Yellow, 1.f, TextAlign::Center);
 }
 
 float GameScene::GetTowerHeight() const
