@@ -22,12 +22,24 @@ GameObject* Scene::Instantiate(const std::string& prefab, const DirectX::XMFLOAT
 		quad.vertices, quad.indices, context);
 
 	object->SetName(prefab);
+	object->SetPrefabName(prefab);
 	object->GetTransform()->SetPosition(pos);
 	(*prefabFunction)(*object);
 
 	GameObject* raw = object.get();
 	pendingSpawn.push_back(std::move(object));
 	return raw;
+}
+
+GameObject* Scene::InstantiateAsLayout(const std::string& prefab, const DirectX::XMFLOAT3& pos)
+{
+	GameObject* object = Instantiate(prefab, pos);
+	if (object)
+	{
+		object->SetLayoutObject(true);
+	}
+	
+	return object;
 }
 
 GameObject* Scene::Add2DObject()
@@ -107,6 +119,11 @@ void Scene::FlushPending()
 		objects.push_back(std::move(object));
 	}
 	pendingSpawn.clear();
+}
+
+bool Scene::IsPenshingDestroy(const GameObject* obj) const
+{
+	return std::ranges::find(pendingDestroy, obj) != pendingDestroy.end();
 }
 
 void Scene::UnregisterFromSys(GameObject* object)

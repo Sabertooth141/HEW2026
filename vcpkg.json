@@ -2,7 +2,8 @@
   "name": "hew2026",
   "version": "0.1.0",
   "dependencies": [
-    { "name": "imgui", "features": ["dx11-binding", "win32-binding"] }
+    { "name": "imgui", "features": ["dx11-binding", "win32-binding"] },
+    "nlohmann-json"
   ],
   "builtin-baseline": "9849e070ad4c3383890fb1c80ae0c54325e2484a"
 }

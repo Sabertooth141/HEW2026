@@ -20,6 +20,7 @@ public:
 	Scene& operator=(const Scene&) = delete;
 
 	GameObject* Instantiate(const std::string& prefab, const DirectX::XMFLOAT3& pos);
+	GameObject* InstantiateAsLayout(const std::string& prefab, const DirectX::XMFLOAT3& pos);
 	GameObject* Add2DObject();
 	void Destroy(GameObject* object);
 
@@ -44,6 +45,13 @@ public:
 	void Clear();
 
 	void FlushPending();
+
+	bool IsPenshingDestroy(const GameObject* obj) const;
+
+	const std::vector<std::unique_ptr<GameObject>>& GetObjects() const
+	{
+		return objects;
+	}
 
 	std::vector<std::unique_ptr<GameObject>>& GetObjects()
 	{

@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <functional>
 #include <string>
 #include <unordered_map>
@@ -25,6 +26,21 @@ public:
     {
         auto it = prefabs.find(name);
         return it != prefabs.end() ? &it->second : nullptr;
+    }
+
+    // 登録済みプレハブ名の一覧（名前順）
+    std::vector<std::string> GetPrefabNames() const
+    {
+        std::vector<std::string> names;
+        names.reserve(prefabs.size());
+
+        for (const auto& [name, function] : prefabs)
+        {
+	        names.push_back(name);
+        }
+
+        std::ranges::sort(names);
+        return names;
     }
 
 private:

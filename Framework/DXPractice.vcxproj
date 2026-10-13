@@ -200,6 +200,7 @@
     <ClCompile Include="Rigidbody2DComponent.cpp" />
     <ClCompile Include="Sampler.cpp" />
     <ClCompile Include="Scene.cpp" />
+    <ClCompile Include="SceneLayout.cpp" />
     <ClCompile Include="SceneManager.cpp" />
     <ClCompile Include="SpriteAnimatorComponent.cpp" />
     <ClCompile Include="SpriteRendererComponent.cpp" />
@@ -263,6 +264,7 @@
     <ClInclude Include="Rigidbody2DComponent.h" />
     <ClInclude Include="Sampler.h" />
     <ClInclude Include="Scene.h" />
+    <ClInclude Include="SceneLayout.h" />
     <ClInclude Include="SceneManager.h" />
     <ClInclude Include="ScriptSystem.h" />
     <ClInclude Include="SpriteAnimatorComponent.h" />
@@ -341,7 +343,6 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
   </ItemGroup>
-
   <PropertyGroup Condition="'$(Platform)'=='x64'">
     <OutDir>$(MSBuildThisFileDirectory)..\x64\$(Configuration)\</OutDir>
   </PropertyGroup>
