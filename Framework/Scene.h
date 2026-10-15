@@ -46,7 +46,7 @@ public:
 
 	void FlushPending();
 
-	bool IsPenshingDestroy(const GameObject* obj) const;
+	bool IsPendingDestroy(const GameObject* obj) const;
 
 	const std::vector<std::unique_ptr<GameObject>>& GetObjects() const
 	{

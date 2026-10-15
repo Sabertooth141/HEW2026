@@ -1,5 +1,6 @@
 #pragma once
 #include <DirectXMath.h>
+#include <string>
 class GameObject;
 class Scene;
 class Camera2D;
@@ -30,6 +31,8 @@ private:
 	void DrawToolbar(SceneManager& sceneManager);
 	void HandleViewportMouse(Scene& scene, Camera2D& camera);
 	void DrawSelectionOutline(Camera2D& camera);
+	void DrawLayoutSave(SceneManager* sceneManager);
+	void DrawPrefabPalette(Scene& scene, const Camera2D& camera);
 
 	void ValidateSelection(Scene& scene);
 
@@ -46,4 +49,7 @@ private:
 
 	bool isDragging = false;
 	DirectX::XMFLOAT2 objDragOffset = {};
+
+	std::string saveMessage;
+	bool saveValid = true;
 };

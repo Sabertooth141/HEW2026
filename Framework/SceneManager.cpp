@@ -138,5 +138,8 @@ void SceneManager::SwitchToScene(const std::string& inSceneName)
 
 	context.gameScene = currScene.get();
 	currScene->OnEnter();
+
+	// OnEnter の直後にシーン JSON のレイアウトオブジェクトを読み込む（ファイルがなければ何もしない）
+	lastLayoutLoad = SceneLayout::Load(*currScene, currName);
 	if (inSceneName == "Game") PlaceStageOres(*currScene);
 }

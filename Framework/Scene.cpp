@@ -121,7 +121,7 @@ void Scene::FlushPending()
 	pendingSpawn.clear();
 }
 
-bool Scene::IsPenshingDestroy(const GameObject* obj) const
+bool Scene::IsPendingDestroy(const GameObject* obj) const
 {
 	return std::ranges::find(pendingDestroy, obj) != pendingDestroy.end();
 }

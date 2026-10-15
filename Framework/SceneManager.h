@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "Scene.h"
+#include "SceneLayout.h"
 
 class SceneManager
 {
@@ -69,6 +70,11 @@ public:
 
 	std::vector<std::string> GetSceneNames() const;
 
+	const SceneLayout::Result& GetLastLayoutLoad() const
+	{
+		return lastLayoutLoad;
+	}
+
 private:
 	void SwitchToScene(const std::string& inSceneName);
 	void AdvancePhase();
@@ -78,6 +84,8 @@ private:
 	GameContext& context;
 	// シーンネーム　と　シーンコンストラクタ
 	std::unordered_map<std::string, Factory> factories;
+
+	SceneLayout::Result lastLayoutLoad;
 
 	std::unique_ptr<Scene> currScene;
 	std::string currName;
