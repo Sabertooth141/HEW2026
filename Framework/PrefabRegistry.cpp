@@ -29,7 +29,7 @@ void RegisterPrefabs()
 		object.AddComponent<BoxCollider2D>(
 			DirectX::XMFLOAT2(0.5f, 0.5f),
 			DirectX::XMFLOAT2(0.f, 0.f),
-			true,
+			false,
 			*object.GetTransform());
 
 		auto& enemy = object.AddComponent<EnemyController>();
