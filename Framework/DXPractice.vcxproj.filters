@@ -260,23 +260,8 @@
     <ClCompile Include="EditorUI.cpp">
       <Filter>Source Files\EditorUI</Filter>
     </ClCompile>
-    <ClCompile Include="EnemySpawner.cpp">
-      <Filter>Source Files\Scripts</Filter>
-    </ClCompile>
     <ClCompile Include="EnemyController.cpp">
       <Filter>Source Files\Scripts</Filter>
-    </ClCompile>
-    <ClCompile Include="PlayerStatus.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="HarpoonController.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ExperienceOrb.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="SwingCollisionDetector.cpp">
-      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -490,21 +475,6 @@
     <ClInclude Include="EnemyController.h">
       <Filter>Header Files\Scripts</Filter>
     </ClInclude>
-    <ClInclude Include="EnemySpawner.h">
-      <Filter>Header Files\Scripts</Filter>
-    </ClInclude>
-    <ClInclude Include="EnemySpawnPosition.h">
-      <Filter>Header Files\Scripts</Filter>
-    </ClInclude>
-    <ClInclude Include="ExperienceOrb.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="PlayerStatus.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SwingCollisionDetector.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="PixelShader.hlsl">
@@ -531,12 +501,5 @@
     <FxCompile Include="TextVertexShader.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="x64\Debug\PlayerStatus.cpp.obj.dt.module.json.command" />
-    <None Include="x64\Debug\PlayerStatus.cpp.obj.dt.module.json" />
-    <None Include="x64\Debug\HarpoonController.cpp.obj.dt.module.json.command" />
-    <None Include="x64\Debug\HarpoonController.cpp.obj.dt.module.json" />
-    <None Include="x64\Debug\HarpoonController.cpp.obj.dt.d.json" />
   </ItemGroup>
 </Project>

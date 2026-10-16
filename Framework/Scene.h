@@ -58,6 +58,11 @@ public:
 		return objects;
 	}
 
+	PhysicsSystem& GetPhysics() const 
+	{
+		return context.physicsSys;
+	}
+
 protected:
 	GameContext& context;
 

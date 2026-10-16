@@ -12,6 +12,27 @@ class GameObject;
 class PhysicsSystem
 {
 public:
+	struct DebugStats
+	{
+		// counts
+		int bodies = 0;
+		int gridCells = 0;
+		int maxPerCell = 0;      // most bodies sharing one cell
+		int rawPairChecks = 0;   // i/j iterations before dedup (the n^2 part)
+		int candidatePairs = 0;  // after dedup
+		int contacts = 0;        // pairs that really touched and became constraints
+		int overlaps = 0;        // touching pairs including triggers
+
+		// time of the last step, in milliseconds
+		float integrateMs = 0.f;
+		float broadPhaseMs = 0.f;
+		float narrowPhaseMs = 0.f;
+		float solveMs = 0.f;
+		float positionMs = 0.f;
+		float sleepAndEventsMs = 0.f;
+		float totalMs = 0.f;
+	};
+
 	void Register(Rigidbody2DComponent* rigidbody, Collider2D* collider, GameObject* gameObject);
 
 	void AttachRBToEntry(GameObject* object, Rigidbody2DComponent* rb);
@@ -30,6 +51,19 @@ public:
 	void SetRestitutionSlop(const float inSlop)
 	{
 		restitutionSlop = inSlop;
+	}
+
+	const DebugStats& GetDebugStats() const
+	{
+		return debugStats;
+	}
+
+	// how many times Update ran since the last call; call once per rendered frame
+	int ConsumeStepCount()
+	{
+		const int steps = stepsSinceRead;
+		stepsSinceRead = 0;
+		return steps;
 	}
 
 private:
@@ -100,10 +134,7 @@ private:
 		}
 	};
 
-	// One solvable contact pair. Built once per frame, then relaxed over several
-	// iterations. The accumulated impulses are what make multi-point manifolds
-	// stable: each iteration applies only the *delta* needed to reach the clamped
-	// total, so the two contact points stop undoing each other's work.
+	// One solvable contact pair. Built once per frame
 	struct ContactConstraint
 	{
 		Rigidbody2DComponent* a = nullptr;
@@ -111,8 +142,7 @@ private:
 
 		CollisionManifold manifold;
 
-		// contact offsets from each body's center, cached (positions don't move
-		// during velocity iterations)
+		// contact offsets from each body's center
 		DirectX::XMFLOAT2 rA[2]{};
 		DirectX::XMFLOAT2 rB[2]{};
 
@@ -163,10 +193,6 @@ private:
 	// solver tuning
 	int velocityIterations = 8;
 
-	// Below this approach speed, restitution is forced to 0. Without this, the
-	// -gravity * dt that integration injects every frame gets bounced back as
-	// +restitution * gravity * dt and a resting body never settles.
-	// Rule of thumb: ~2 * gravity * fixedDeltaTime.
 	float restitutionSlop = 8.f;
 
 	float positionSlop = 0.05f;
@@ -174,4 +200,7 @@ private:
 
 	// normal.y beyond this counts as "supported" for sleep purposes (~45 degrees)
 	float supportNormalThreshold = 0.7f;
+
+	DebugStats debugStats;
+	int stepsSinceRead = 0;
 };
