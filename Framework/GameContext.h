@@ -13,7 +13,7 @@ class SceneManager;
 
 struct GlobalContext
 {
-    float towerHeight = 0.f;
+    float playTime = 0.f;
 };
 
 struct GameContext
