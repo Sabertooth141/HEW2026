@@ -116,6 +116,7 @@ void EditorUI::Draw(SceneManager& sceneManager, Camera2D& camera)
 	ImGui::BeginDisabled(isTransitioning);
 	DrawHierarchy(*scene);
 	DrawInspector(*scene);
+	DrawPhysicsDebug(scene->GetPhysics());
 
 	DrawPrefabPalette(*scene, camera);
 	ImGui::EndDisabled();
@@ -521,6 +522,37 @@ void EditorUI::DrawPrefabPalette(Scene& scene, const Camera2D& camera)
 			}
 		}
 	}
+
+	ImGui::End();
+}
+
+void EditorUI::DrawPhysicsDebug(PhysicsSystem& physics)
+{
+	const PhysicsSystem::DebugStats& s = physics.GetDebugStats();
+	const int steps = physics.ConsumeStepCount();
+
+	ImGui::Begin("Physics Stats");
+
+	ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+	ImGui::Text("Physics steps this frame: %d", steps);
+
+	ImGui::SeparatorText("Counts");
+	ImGui::Text("Bodies:          %d", s.bodies);
+	ImGui::Text("Grid cells:      %d", s.gridCells);
+	ImGui::Text("Max per cell:    %d", s.maxPerCell);
+	ImGui::Text("Raw pair checks: %d", s.rawPairChecks);
+	ImGui::Text("Candidate pairs: %d", s.candidatePairs);
+	ImGui::Text("Overlaps:        %d", s.overlaps);
+	ImGui::Text("Contacts:        %d", s.contacts);
+
+	ImGui::SeparatorText("Time per step (ms)");
+	ImGui::Text("Integrate:       %.3f", s.integrateMs);
+	ImGui::Text("Broad phase:     %.3f", s.broadPhaseMs);
+	ImGui::Text("Narrow phase:    %.3f", s.narrowPhaseMs);
+	ImGui::Text("Solve:           %.3f", s.solveMs);
+	ImGui::Text("Positions:       %.3f", s.positionMs);
+	ImGui::Text("Sleep + events:  %.3f", s.sleepAndEventsMs);
+	ImGui::Text("Total:           %.3f", s.totalMs);
 
 	ImGui::End();
 }

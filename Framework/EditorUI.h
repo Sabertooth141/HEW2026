@@ -1,6 +1,7 @@
 #pragma once
 #include <DirectXMath.h>
 #include <string>
+class PhysicsSystem;
 class GameObject;
 class Scene;
 class Camera2D;
@@ -33,6 +34,7 @@ private:
 	void DrawSelectionOutline(Camera2D& camera);
 	void DrawLayoutSave(SceneManager* sceneManager);
 	void DrawPrefabPalette(Scene& scene, const Camera2D& camera);
+	void DrawPhysicsDebug(PhysicsSystem& physics);
 
 	void ValidateSelection(Scene& scene);
 
