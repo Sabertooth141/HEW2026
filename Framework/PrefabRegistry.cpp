@@ -3,36 +3,29 @@
 #include "GameObject.h"
 #include "EnemyController.h"
 #include "PhysicsTest.h"
-#include "HarpoonController.h"
-#include "ExperienceOrb.h"
-#include "OrePrefabs.h"
 
 #include "BoxCollider2D.h"
 #include "Rigidbody2DComponent.h"
 
 void RegisterPrefabs()
 {
-	RegisterOrePrefabs();
-	//Enemy
+	// enemy
 	PrefabRegistry::Instance().Register("enemy", [](GameObject& object)
 	{
 		object.SetTag(ObjectTag::ENEMY);
 
 		auto& anim = object.AddComponent<AnimatorComponent>(object.GetRenderer());
-
 		anim.SetRenderLayer(RenderLayer::Enemy);
 		anim.SetStatic(L"../../assets/jinx.jpg");
 
 		object.GetTransform()->SetScale({ 48.f, 48.f, 1.f });
 
-		auto& enemyBody = object.AddComponent<Rigidbody2DComponent>(
-			*object.GetTransform(), 1.f);
+		auto& rb = object.AddComponent<Rigidbody2DComponent>(*object.GetTransform(), 1.f);
+		rb.SetGravity(0.f);
+		rb.SetFreezeRotation(true);
+		rb.SetIsStatic(false);
 
-		enemyBody.SetGravity(0.f);
-		enemyBody.SetFreezeRotation(true);
-		enemyBody.SetIsStatic(false);
-
-		//当たり判定を画像サイズにあわせる
+		// 当たり判定を画像サイズにあわせる
 		object.AddComponent<BoxCollider2D>(
 			DirectX::XMFLOAT2(0.5f, 0.5f),
 			DirectX::XMFLOAT2(0.f, 0.f),
@@ -40,17 +33,14 @@ void RegisterPrefabs()
 			*object.GetTransform());
 
 		auto& enemy = object.AddComponent<EnemyController>();
-
-		// デフォルトのステータスを設定
-		enemy.SetStatus(30, 10, 60.f, 5);
-
-		enemy.knockbackSpeed = 240.f;
-		enemy.knockbackDuration = 0.2f;
+		enemy.SetStatus(30, 10, 60.f);
 	});
 
-	// blocks
+	// block (physics sample)
 	PrefabRegistry::Instance().Register("block", [](GameObject& object)
 	{
+		object.SetTag(ObjectTag::BLOCK);
+
 		auto& anim = object.AddComponent<AnimatorComponent>(object.GetRenderer());
 		anim.SetRenderLayer(RenderLayer::Default);
 		anim.SetSortOrder(0);
@@ -61,60 +51,12 @@ void RegisterPrefabs()
 		auto& rb = object.AddComponent<Rigidbody2DComponent>(*object.GetTransform(), 1.0f);
 		rb.SetGravity(500.f);
 
-		object.AddComponent<BoxCollider2D>(DirectX::XMFLOAT2(0.5f, 0.5f), DirectX::XMFLOAT2(0.f, 0.f), false, *object.GetTransform());
+		object.AddComponent<BoxCollider2D>(
+			DirectX::XMFLOAT2(0.5f, 0.5f),
+			DirectX::XMFLOAT2(0.f, 0.f),
+			false,
+			*object.GetTransform());
 
 		object.AddComponent<PhysicsTest>();
-		object.SetTag(ObjectTag::BLOCK);
 	});
-
-	// Experience
-	PrefabRegistry::Instance().Register(
-		"experience", [](GameObject& object)
-		{
-			object.SetTag(ObjectTag::EXPERIENCE);
-
-			auto& anim =
-				object.AddComponent<AnimatorComponent>(object.GetRenderer());
-
-			anim.SetRenderLayer(RenderLayer::Default);
-			anim.SetStatic(L"../../assets/jinx.jpg");
-
-			object.GetTransform()->SetScale({ 12.f, 12.f, 1.f });
-
-			object.AddComponent<ExperienceOrb>();
-		});
-
-
-
-	// Harpoon
-	PrefabRegistry::Instance().Register(
-		"harpoon", [](GameObject& object)
-		{
-			object.SetTag(ObjectTag::DEFAULT);
-
-			auto& anim =
-				object.AddComponent<AnimatorComponent>(object.GetRenderer());
-
-			anim.SetRenderLayer(RenderLayer::Default);
-			anim.SetStatic(L"../../assets/jinx.jpg");
-
-			object.GetTransform()->SetScale({ 12.f, 12.f, 1.f });
-
-			auto& rb =
-				object.AddComponent<Rigidbody2DComponent>(
-					*object.GetTransform(), 1.f);
-
-			rb.SetGravity(0.f);
-			rb.SetFreezeRotation(true);
-			rb.SetIsStatic(false);
-
-			object.AddComponent<BoxCollider2D>(
-				DirectX::XMFLOAT2(0.5f, 0.5f),
-				DirectX::XMFLOAT2(0.f, 0.f),
-				true,
-				*object.GetTransform());
-
-			object.AddComponent<HarpoonController>();
-		});
-
 }
