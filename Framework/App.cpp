@@ -11,6 +11,7 @@
 #include "ResultScene.h"
 #include "SpriteRendererComponent.h"
 #include "SpriteVertex.h"
+#include "TextLabel.h"
 #include "TitleScene.h"
 #include "WindowSettings.h"
 
@@ -106,6 +107,7 @@ void App::Draw(float deltaTime)
 
 	if (Scene* scene = sceneManager.GetCurrScene())
 	{
+		DrawTextLabels(*scene);
 		DebugRender(*scene);
 		DebugTextRender(*scene, deltaTime);
 		scene->OnDrawUI(textRenderer);
@@ -140,5 +142,24 @@ void App::DebugTextRender(Scene& scene, float deltaTime)
 	textRenderer.DebugLine("scene %s", sceneManager.GetCurrSceneName().c_str());
 	textRenderer.DebugLine("objects %zu", scene.GetObjects().size());
 	textRenderer.DebugLine(TextColor::Cyan, "cam y %.0f", camera.GetPosition().y);
+}
+
+void App::DrawTextLabels(Scene& scene)
+{
+	const DirectX::XMFLOAT2 camPos = camera.GetPosition();
+
+	for (const auto& obj : scene.GetObjects())
+	{
+		const auto& textLabel = obj->GetComponent<TextLabel>();
+
+		if (!textLabel || textLabel->text.empty())
+		{
+			continue;
+		}
+
+		const DirectX::XMFLOAT3 pos = obj->GetTransform()->GetPosition();
+		textRenderer.DrawScreen(textLabel->text, { pos.x - camPos.x + textLabel->posOffset.x,
+									  pos.y - camPos.y + textLabel->posOffset.y });
+	}
 }
 

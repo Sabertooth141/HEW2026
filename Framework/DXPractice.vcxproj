@@ -227,6 +227,7 @@
     <ClInclude Include="EnemyController.h" />
     <ClInclude Include="GameContext.h" />
     <ClInclude Include="GameScene.h" />
+    <ClInclude Include="TextLabel.h" />
     <ClInclude Include="IComponent.h" />
     <ClInclude Include="ConstantBuffer.h" />
     <ClInclude Include="Drawable.h" />
