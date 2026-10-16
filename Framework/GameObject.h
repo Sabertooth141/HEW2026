@@ -125,7 +125,27 @@ public:
 
 	void SetName(const std::string& inName)
 	{
-		objName = std::move(inName);
+		objName = inName;
+	}
+
+	std::string GetPrefabName() const
+	{
+		return prefabName;
+	}
+
+	void SetPrefabName(const std::string& inName)
+	{
+		prefabName = inName;
+	}
+
+	bool IsLayoutObject() const
+	{
+		return isLayoutObject;
+	}
+
+	void SetLayoutObject(const bool inIsLayout)
+	{
+		isLayoutObject = inIsLayout;
 	}
 
 private:
@@ -141,4 +161,6 @@ private:
 	PhysicsSystem* physicsSystem = nullptr;
 
 	std::string objName = "GameObject";
+	std::string prefabName;
+	bool isLayoutObject = false;
 };

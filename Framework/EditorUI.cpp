@@ -4,6 +4,7 @@
 
 #include "Camera2D.h"
 #include "GameObject.h"
+#include "PrefabRegistry.h"
 #include "Scene.h"
 #include "SceneManager.h"
 #include "WindowSettings.h"
@@ -115,6 +116,8 @@ void EditorUI::Draw(SceneManager& sceneManager, Camera2D& camera)
 	ImGui::BeginDisabled(isTransitioning);
 	DrawHierarchy(*scene);
 	DrawInspector(*scene);
+
+	DrawPrefabPalette(*scene, camera);
 	ImGui::EndDisabled();
 
 	if (!isTransitioning)
@@ -487,6 +490,39 @@ void EditorUI::DrawSelectionOutline(Camera2D& camera)
 	drawList->AddQuad(WorldToScreen(corners[0], cam, isScreenSpace), WorldToScreen(corners[1], cam, isScreenSpace),
 		WorldToScreen(corners[2], cam, isScreenSpace), WorldToScreen(corners[3], cam, isScreenSpace),
 		IM_COL32(255, 200, 0, 255), 2.f);
+}
+
+void EditorUI::DrawLayoutSave(SceneManager* sceneManager)
+{
+}
+
+void EditorUI::DrawPrefabPalette(Scene& scene, const Camera2D& camera)
+{
+	ImGui::SetNextWindowSize({ 10.f, 420.f }, ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowPos({ 200.f, 250.f }, ImGuiCond_FirstUseEver);
+
+	if (ImGui::Begin("プレハブ"))
+	{
+		ImGui::TextDisabled("クリックで画面中央に配置");
+		ImGui::Separator();
+
+		for (const std::string& prefabName : PrefabRegistry::Instance().GetPrefabNames())
+		{
+			if (ImGui::Selectable(prefabName.c_str()))
+			{
+				const DirectX::XMFLOAT2 cam = camera.GetPosition();
+
+				// 次フレームの FlushPending でシーンに追加される（一時停止中も Flush は行われる）
+				if (GameObject* obj = scene.InstantiateAsLayout(prefabName, {cam.x, cam.y, 1.f}))
+				{
+					selectedObject = obj;
+					isDragging = false;
+				}
+			}
+		}
+	}
+
+	ImGui::End();
 }
 
 GameObject* EditorUI::Pick(Scene& scene, const Camera2D& camera, const DirectX::XMFLOAT2 mousePosScreen)
