@@ -1,14 +1,9 @@
 #include "SceneManager.h"
 
 #include "Camera2D.h"
-#include "MiningDemoScene.h"
-#include "OreAcceptance.h"
-#include "OrePrefabs.h"
 
 SceneManager::SceneManager(GameContext& inContext) : context(inContext)
 {
-	Register<MiningDemoScene>("OreDemo");
-	Register<OreAcceptanceScene>("OreAcceptance");
 }
 
 SceneManager::~SceneManager()
@@ -141,5 +136,4 @@ void SceneManager::SwitchToScene(const std::string& inSceneName)
 
 	// OnEnter の直後にシーン JSON のレイアウトオブジェクトを読み込む（ファイルがなければ何もしない）
 	lastLayoutLoad = SceneLayout::Load(*currScene, currName);
-	if (inSceneName == "Game") PlaceStageOres(*currScene);
 }

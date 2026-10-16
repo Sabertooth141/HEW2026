@@ -27,7 +27,7 @@ void ResultScene::OnDrawUI(TextRenderer& text)
 	text.DrawScreen("ゲームオーバー", { WIN_WIDTH * 0.5f, 150.f },
 		TextColor::Yellow, 3.f, TextAlign::Center);
 
-	text.DrawScreen(std::format("タワーの高さ: {:.2f}", context.globalContext.towerHeight),
+	text.DrawScreen(std::format("プレイ時間: {:.2f}", context.globalContext.playTime),
 		{ WIN_WIDTH * 0.5f, 200.f }, TextColor::Yellow, 1.f, TextAlign::Center);
 
 	if (elapsed >= inputDelay)

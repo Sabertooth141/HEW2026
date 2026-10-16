@@ -1,10 +1,25 @@
 #include "PhysicsSystem.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 
 #include "CollisionDispatch.h"
 #include "GameObject.h"
+
+namespace
+{
+	using Clock = std::chrono::steady_clock;
+
+	// returns ms since `mark`, then moves `mark` to now so phases can be chained
+	float Lap(Clock::time_point& mark)
+	{
+		const Clock::time_point now = Clock::now();
+		const float ms = std::chrono::duration<float, std::milli>(now - mark).count();
+		mark = now;
+		return ms;
+	}
+}
 
 void PhysicsSystem::Register(Rigidbody2DComponent* rigidbody, Collider2D* collider, GameObject* gameObject)
 {
@@ -56,21 +71,27 @@ void PhysicsSystem::Unregister(GameObject* gameObject)
 
 void PhysicsSystem::Update(const float deltaTime)
 {
+	stepsSinceRead += 1;
+
+	const Clock::time_point start = Clock::now();
+	Clock::time_point mark = start;
+
 	// 1. integrate
 	IntegrateForces(deltaTime);
+	debugStats.integrateMs = Lap(mark);
 
 	// 2. broad phase
 	RebuildGrid();
 	const std::vector<EntryPair> candidatePairs = GenerateCandidatePairs();
+	debugStats.broadPhaseMs = Lap(mark);
 
 	// 3. narrow phase -> builds constraints and fires overlap events
 	currentOverlaps.clear();
 	contacts.clear();
 	ProcessPairs(candidatePairs);
+	debugStats.narrowPhaseMs = Lap(mark);
 
-	// 4. relax the whole contact set repeatedly. Solving each contact once lets
-	//    the second point undo the first, which is what makes a resting box rock
-	//    and walk sideways.
+	// 4. relax the whole contact set repeatedly.
 	for (int iteration = 0; iteration < velocityIterations; iteration++)
 	{
 		for (ContactConstraint& constraint : contacts)
@@ -78,15 +99,16 @@ void PhysicsSystem::Update(const float deltaTime)
 			SolveVelocityConstraint(constraint);
 		}
 	}
+	debugStats.solveMs = Lap(mark);
 
 	// 5. push bodies out of penetration once, after velocities have settled
 	for (const ContactConstraint& constraint : contacts)
 	{
 		CorrectPositions(constraint);
 	}
+	debugStats.positionMs = Lap(mark);
 
-	// 6. sleep is evaluated AFTER resolution. Before it, a resting body still
-	//    carries the -gravity * dt from integration and never looks slow.
+	// 6. sleep is evaluated AFTER resolution.
 	for (Entry& entry : entries)
 	{
 		if (entry.rigidbody)
@@ -114,6 +136,15 @@ void PhysicsSystem::Update(const float deltaTime)
 			entry.rigidbody->ClearAccumulator();
 		}
 	}
+	debugStats.sleepAndEventsMs = Lap(mark);
+
+	debugStats.totalMs = std::chrono::duration<float, std::milli>(Clock::now() - start).count();
+
+	debugStats.bodies = static_cast<int>(entries.size());
+	debugStats.gridCells = static_cast<int>(grid.size());
+	debugStats.candidatePairs = static_cast<int>(candidatePairs.size());
+	debugStats.contacts = static_cast<int>(contacts.size());
+	debugStats.overlaps = static_cast<int>(currentOverlaps.size());
 }
 
 void PhysicsSystem::IntegrateForces(const float deltaTime)
@@ -164,12 +195,19 @@ std::vector<PhysicsSystem::EntryPair> PhysicsSystem::GenerateCandidatePairs()
 {
 	std::unordered_set<EntryPair, EntryPairHash> dedup;
 
+	debugStats.rawPairChecks = 0;
+	debugStats.maxPerCell = 0;
+
 	for (const auto& [cell, entriesInCell] : grid)
 	{
+		debugStats.maxPerCell = std::max(debugStats.maxPerCell, static_cast<int>(entriesInCell.size()));
+
 		for (size_t i = 0; i < entriesInCell.size(); i++)
 		{
 			for (size_t j = i + 1; j < entriesInCell.size(); j++)
 			{
+				debugStats.rawPairChecks += 1;
+
 				Entry* a = entriesInCell[i];
 				Entry* b = entriesInCell[j];
 
@@ -291,10 +329,7 @@ void PhysicsSystem::BuildConstraint(Entry* entryA, Entry* entryB, const Collisio
 
 	const DirectX::XMFLOAT2 normal = manifold.normal;
 
-	// tangent is derived from the NORMAL, not from relative velocity. Deriving it
-	// from a near-zero relative velocity gives a direction that flips randomly
-	// frame to frame, and friction then shoves the body in random directions
-	// instead of opposing a slide.
+	// tangent is derived from the NORMAL, not from relative velocity.
 	const DirectX::XMFLOAT2 tangent = { -normal.y, normal.x };
 
 	float deepestApproach = 0.f;
@@ -348,12 +383,6 @@ void PhysicsSystem::SolveVelocityConstraint(ContactConstraint& constraint) const
 	for (int i = 0; i < constraint.manifold.contactCount; i++)
 	{
 		// --- normal impulse ---
-		// Note there is no "skip if separating" branch here. With two contact
-		// points and any spin, one point is always approaching while the other
-		// separates; skipping the separating one leaves a single off-center
-		// impulse that torques the body and makes it see-saw. Instead the
-		// accumulated total is clamped to be non-negative, which lets a contact
-		// pull back impulse it over-applied without ever pulling bodies together.
 		if (constraint.normalMass[i] > 0.f)
 		{
 			const DirectX::XMFLOAT2 velA = a->GetVelAtPoint(constraint.rA[i]);
@@ -372,7 +401,6 @@ void PhysicsSystem::SolveVelocityConstraint(ContactConstraint& constraint) const
 		}
 
 		// --- friction impulse ---
-		// velocity is re-read because the normal impulse above just changed it
 		if (constraint.tangentMass[i] > 0.f)
 		{
 			const DirectX::XMFLOAT2 velA = a->GetVelAtPoint(constraint.rA[i]);
@@ -382,8 +410,6 @@ void PhysicsSystem::SolveVelocityConstraint(ContactConstraint& constraint) const
 
 			float lambda = -velAlongTangent / constraint.tangentMass[i];
 
-			// coulomb clamp against the ACCUMULATED normal impulse, not this
-			// iteration's slice of it
 			const float maxFriction = constraint.friction * constraint.normalImpulse[i];
 
 			const float oldImpulse = constraint.tangentImpulse[i];
