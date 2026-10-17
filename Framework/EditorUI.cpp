@@ -519,9 +519,13 @@ void EditorUI::DrawLayoutSave(SceneManager& sceneManager)
 
 	const auto drawStatus = [](bool isValid, const std::string& logMessage, bool highlight = false)
 		{
-			ImVec4 color = { 1.f, 0.4f, 0.4f, 1.f };
+			ImVec4 color;
 
-			if (isValid)
+			if (!isValid)
+			{
+				color = { 1.f, 0.4f, 0.4f, 1.f };
+			}
+			else
 			{
 				if (highlight)
 				{
@@ -554,8 +558,8 @@ void EditorUI::DrawLayoutSave(SceneManager& sceneManager)
 
 void EditorUI::DrawPrefabPalette(Scene& scene, const Camera2D& camera)
 {
-	ImGui::SetNextWindowSize({10.f, 420.f}, ImGuiCond_FirstUseEver);
-	ImGui::SetNextWindowPos({200.f, 250.f}, ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize({ 200.f, 250.f }, ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowPos({10.f, 420.f}, ImGuiCond_FirstUseEver);
 
 	if (ImGui::Begin("プレハブ"))
 	{
