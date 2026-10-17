@@ -3,7 +3,7 @@
 コンポーネント指向（COP）で作った DirectX 11 の 2D ゲームフレームワークです。
 `GameObject` に `Component` を追加して機能を組み立てる Unity ライクな構造になっています。
 
-現在は 2D 機能（スプライト・アニメーション・2D 物理・テキスト描画）と、ImGui によるエディタが中心です。3D（Assimp による読み込み）は下地のみ実装済みです。
+現在は 2D 機能（スプライト・アニメーション・2D 物理・テキスト描画）と、ImGui によるエディタ（オブジェクト編集・プレハブ配置・シーン JSON の保存／読み込み）が中心です。3D は下地のみで、Assimp による読み込みは現在無効（コメントアウト）になっています。
 
 ---
 
@@ -21,7 +21,7 @@
 10. [プレハブ（PrefabRegistry）](#10-プレハブprefabregistry)
 11. [カメラ](#11-カメラ)
 12. [入力（Keyboard / Mouse）](#12-入力keyboard--mouse)
-13. [テキスト描画（TextRenderer）](#13-テキスト描画textrenderer)
+13. [テキスト描画（TextRenderer / TextLabel）](#13-テキスト描画textrenderer--textlabel)
 14. [デバッグ描画（DebugRenderer）](#14-デバッグ描画debugrenderer)
 15. [テクスチャ・Renderer](#15-テクスチャrenderer)
 16. [エディタ（ImGui）](#16-エディタimgui)
@@ -38,8 +38,8 @@
 | 言語標準 | C++20 |
 | プラットフォーム | x64（Debug / Release） |
 | 文字コード | ソースは UTF-8（`/utf-8` オプション有効） |
-| 依存ライブラリ | Assimp・ImGui（vcpkg マニフェスト `vcpkg.json`）、stb_image（同梱） |
-| ウィンドウサイズ | `WindowSettings.h` の `WIN_WIDTH` / `WIN_HEIGHT`（800 x 600） |
+| 依存ライブラリ | ImGui・nlohmann/json（vcpkg マニフェスト `vcpkg.json`）、stb_image（同梱） |
+| ウィンドウサイズ | `WindowSettings.h` の `WIN_WIDTH` / `WIN_HEIGHT`（1366 x 768） |
 
 > **VS 2022 ではビルドできません。** `v145` ツールセットは VS 2026 専用です。
 > プロジェクトを「再ターゲット」して `v143` に変更したままコミットしないでください（他のメンバーや CI のビルドが壊れます）。
@@ -67,7 +67,7 @@
 
 1. リポジトリをクローンし、ルートの `HEW2026.slnx` を Visual Studio で開く。
 2. 構成を `x64` の `Debug` か `Release` にする。
-3. ビルドすると、vcpkg が `vcpkg.json` に書かれたライブラリ（Assimp・ImGui）を自動で取得・ビルドします。初回は時間がかかります（`vcpkg_installed/` は Git 管理外）。
+3. ビルドすると、vcpkg が `vcpkg.json` に書かれたライブラリ（ImGui・nlohmann/json）を自動で取得・ビルドします。初回は時間がかかります（`vcpkg_installed/` は Git 管理外）。
 4. HLSL は `.cso` にコンパイルされ、実行時に `D3DReadFileToBlob` で読み込まれます（`VertexShader.cso` など）。実行ファイルと同じ場所に出力されます。
 5. 画像などは `../../assets/` からの相対パスで読み込みます（例：`L"../../assets/jinx.jpg"`）。実行時のカレントディレクトリに注意してください。
 
@@ -124,6 +124,7 @@ sceneManager.Update(dt)      // 遷移の進行・シーン切り替え（常に
 renderer.BeginFrame()
 imGui.BeginFrame()           // ImGui のフレーム開始
 renderSystem.Render()        // スプライト
+DrawTextLabels(scene)        // TextLabel コンポーネントの文字（全シーン共通）
 DebugRender / DebugTextRender
 scene->OnDrawUI(text)        // シーンの HUD・画面テキスト
 editor.Draw()                // エディタ UI（F1 で表示中のみ）
@@ -152,7 +153,7 @@ renderer.EndFrame()          // Present
 - **原点は画面中央、+X が右、+Y が上**、単位はピクセル相当です。
 - スプライトの Z は `1` にしておきます（カメラは Z = -5 から +Z 方向を見ています）。
 - 回転は **ラジアン**。2D では `rotation.z` を使います（エディタのインスペクターでは度で表示されます）。
-- `TextRenderer::DrawScreen` だけは例外で、**左上原点・+Y が下**のピクセル座標です。
+- `TextRenderer::DrawScreen`（と、それを使う `TextLabel` のスクリーン表示）だけは例外で、**左上原点・+Y が下**のピクセル座標です。
 - **スクリーン空間のスプライト**（`SetEnableScreenSpace(true)`）はカメラの影響を受けず、画面に固定されます。座標系はワールドと同じく**画面中央原点・+Y が上**のピクセル座標です（`TextRenderer::DrawScreen` とは異なるので注意）。
 
 ---
@@ -197,17 +198,20 @@ obj->AddComponent<MyScript>();
 |---|---|
 | `GameObject* Add2DObject()` | 2D オブジェクトを即座にシーンへ追加して返す（初期化用） |
 | `GameObject* Instantiate(const std::string& prefab, const XMFLOAT3& pos)` | 登録済みプレハブから生成。名前はプレハブ名になる。**シーンへの追加は `FlushPending()` で行われる**（フレーム末） |
+| `GameObject* InstantiateAsLayout(const std::string& prefab, const XMFLOAT3& pos)` | シーン JSON に保存される「レイアウトオブジェクト」として生成（JSON ローダー・エディタ専用。ゲームコードでは `Instantiate` を使う）。[シーン JSON](#シーン-jsonレベルの保存読み込み) 参照 |
 | `void Destroy(GameObject* object)` | 破棄を予約。同じオブジェクトを複数回渡しても 1 回だけ。`FlushPending()` で実際に削除 |
+| `bool IsPendingDestroy(const GameObject* obj)` | 破棄予約済みか |
 | `void Update(float dt)` | 全オブジェクトを更新 |
 | `void FlushPending()` | 生成・破棄の反映。破棄時は物理・スクリプト・アニメーション・描画の各システムから登録解除 |
-| `GetObjects()` | 現在のオブジェクト一覧を取得 |
+| `GetObjects()` | 現在のオブジェクト一覧を取得（const 版あり） |
+| `GetPhysics()` | `PhysicsSystem` の参照 |
 | `void Clear()` | 全オブジェクトを各システムから登録解除して破棄（シーン切り替え時に `SceneManager` が呼ぶ） |
 
 #### シーンのフック（override して使う）
 
 | 関数 | 呼ばれるタイミング |
 |---|---|
-| `OnEnter()` | シーン開始時。**オブジェクトの生成はここで行う** |
+| `OnEnter()` | シーン開始時。**コードで作るオブジェクトの生成はここで行う**（直後にシーン JSON が読み込まれる） |
 | `OnExit()` | シーン終了時（`Clear()` の直前） |
 | `OnUpdate(float dt)` | 毎フレーム（遷移中・エディタで一時停止中は呼ばれない）。タイマーや遷移判定など |
 | `OnDrawUI(TextRenderer& text)` | 毎フレームの描画。HUD・画面テキスト |
@@ -284,6 +288,7 @@ sceneManager.Register("Stage2", [](GameContext& c) {
 | `GetTransitionState()` | 遷移の状態（下表） |
 | `IsTransitioning()` | 遷移中か（`NONE` 以外） |
 | `GetTransitionProgress()` | 現在のフェーズの進行度（0 → 1）。遷移していないときは 0 |
+| `GetLastLayoutLoad()` | 直近のシーン切り替えで読み込んだシーン JSON の結果（`SceneLayout::Result`）。エディタに表示 |
 
 #### 遷移の状態（`SceneManager::TransitionState`）
 
@@ -303,12 +308,13 @@ RequestChange("Result", exitTime, enterTime)
   → 現シーンの OnExit() → Clear() → 破棄
   → カメラ位置を (0, 0) にリセット
   → 新シーン生成 → context.gameScene を更新 → OnEnter()
+  → シーン JSON（assets/scenes/<シーン名>.json）のレイアウトオブジェクトを読み込み（ファイルがなければ何もしない）
   → ENTERING（enterTime 秒。ゲーム処理は停止）
   → NONE（通常更新に戻る）
 ```
 
 最初のシーン（`App::Init` での `RequestChange`）は `EXITING` を経由せず、すぐに読み込まれます。
-現在のシーン名を渡すと、そのシーンを作り直します（エディタの「リロード」はこれを使っています）。
+現在のシーン名を渡すと、そのシーンを作り直します（エディタの「リロード」はこれを使っています）。リロードでもシーン JSON は読み込み直されます。
 
 #### 遷移演出（フェードなど）の実装
 
@@ -374,6 +380,8 @@ Visual Studio の「プロジェクトのプロパティ → デバッグ → �
 | `GetRenderer()` / `GetContext()`     | Renderer / GameContext の参照 |
 | `GetTag()` / `SetTag(ObjectTag)`     | タグ（`ObjectTags.h` の `DEFAULT / ENEMY / PLAYER / BLOCK / GROUND`） |
 | `GetName()` / `SetName(name)`        | 名前。エディタのヒエラルキーに表示される（デフォルト `"GameObject"`、`Instantiate` ではプレハブ名） |
+| `GetPrefabName()`                    | 生成元のプレハブ名（`Instantiate` で自動設定。`Add2DObject` で作ったものは空） |
+| `IsLayoutObject()`                   | シーン JSON に保存されるオブジェクトか（`InstantiateAsLayout` で生成されたものだけ `true`） |
 
 > 名前を付けておくと、エディタでオブジェクトを見分けやすくなります。`OnEnter` で作るオブジェクトには `SetName` を付けることを推奨します。
 
@@ -570,6 +578,24 @@ void OnCollisionExit2D (const GameObject& other) override;  // 離れた瞬間
 
 トリガー同士・トリガーと通常コライダーでもイベントは発火します。
 
+### デバッグ統計（PhysicsSystem）
+
+物理の負荷を調べるための値を `PhysicsSystem` から取得できます。エディタの **Physics Stats** ウィンドウはこれを表示しています。
+
+| 関数 | 説明 |
+|---|---|
+| `GetDebugStats()` | 直近の 1 ステップの統計（`DebugStats`、下表） |
+| `ConsumeStepCount()` | 前回呼んでから `Update` が何回実行されたか。呼ぶと 0 に戻る（1 描画フレームに 1 回呼ぶ） |
+
+| `DebugStats` の値 | 内容 |
+|---|---|
+| `bodies` / `gridCells` / `maxPerCell` | 剛体の数 / 使用中のグリッドセル数 / 1 セルに入っている最大の剛体数 |
+| `rawPairChecks` / `candidatePairs` | 重複除去前のペア判定回数 / 重複除去後の候補ペア数 |
+| `overlaps` / `contacts` | 接触したペア数（トリガー含む） / 押し出し計算の対象になったペア数 |
+| `integrateMs` 〜 `sleepAndEventsMs` / `totalMs` | 各処理（積分・ブロードフェーズ・ナローフェーズ・解決・位置補正・スリープとイベント）の時間 / 合計（ミリ秒） |
+
+`maxPerCell` や `rawPairChecks` が大きい場合は、オブジェクトが 1 か所に密集してブロードフェーズが効いていません。
+
 ---
 
 ## 9. スクリプト（MonoBehavior）
@@ -662,9 +688,21 @@ scene.Instantiate("block", {0.f, 200.f, 1.f});   // どこからでも
 Instantiate("block", pos);                         // MonoBehavior 内から
 ```
 
-- 生成されたオブジェクトの名前は、プレハブ名（例：`"block"`）になります。
+- 生成されたオブジェクトの名前とプレハブ名（`GetPrefabName()`）は、プレハブ名（例：`"block"`）になります。
 - プレハブ関数より前に位置が設定されるため、プレハブ関数内で位置を上書きしないでください。
 - 未登録の名前を渡すと `assert` で止まり、`nullptr` が返ります。
+
+### 一覧の取得
+
+| 関数 | 説明 |
+|---|---|
+| `Register(name, fn)` | プレハブを登録（同名は上書き） |
+| `Find(name)` | 登録済みのプレハブ関数。なければ `nullptr` |
+| `GetPrefabNames()` | 登録済みプレハブ名の一覧（名前順）。エディタの **プレハブ** ウィンドウで使用 |
+
+登録したプレハブは、エディタの **プレハブ** ウィンドウに自動で表示され、クリックで配置できます。
+
+> プレハブ名はシーン JSON に保存されます。**名前を変えると、保存済みのシーンでは読み込まれなくなります**（スキップされる）。変更するときは JSON 側も合わせて直してください。
 
 ---
 
@@ -680,6 +718,18 @@ renderer.SetView(camera.GetView());   // App::Draw で毎フレーム設定
 - `GameContext::camera` から `owner->GetContext().camera` で取得できます。
 - 追従などのカメラ制御は `MonoBehavior` で実装し、`LateUpdate`（物理の後）で位置を更新するのがおすすめです。
 - シーン切り替え時にカメラ位置は `(0, 0)` にリセットされます。
+
+### CameraController（追従スクリプト）
+
+付けたオブジェクトをカメラが滑らかに追いかける `MonoBehavior` です。
+
+```cpp
+auto& cam = obj->AddComponent<CameraController>();
+cam.followSpeed = 5.f;   // 大きいほど速く追いつく（0 で追従しない）
+```
+
+- `LateUpdate` で、カメラ位置をオブジェクトの位置に向けて指数補間します（フレームレートに依存しません）。
+- 追従するのは 1 つのオブジェクトだけにしてください。複数に付けると、最後に更新されたものが優先されます。
 
 ---
 
@@ -733,7 +783,7 @@ Windows のメッセージは、まず ImGui に渡されます。エディタ�
 
 ---
 
-## 13. テキスト描画（TextRenderer）
+## 13. テキスト描画（TextRenderer / TextLabel）
 
 即時モードのテキスト描画です。フレーム中にキューに積み、`Flush` で一括描画します。文字は **UTF-8**（日本語対応）で、初めて使う文字は GDI で自動的にアトラスへラスタライズされます。
 
@@ -791,6 +841,36 @@ textRenderer.DrawWorld("Player", {pos.x, pos.y + 80.f});
 > - `BitmapFont` のアトラスは既定 1024x1024 です。文字種が非常に多い場合は満杯になり、それ以降の未登録文字は空白になります（`atlasSize` を上げてください）。
 > - 現在の `App` は `L"Consolas"` を指定しています。日本語を確実に表示したい場合は `L"MS Gothic"` などに変更してください。
 
+### TextLabel（オブジェクトに文字を付ける）
+
+Unity のように、**オブジェクトにコンポーネントとして文字を付ける**仕組みです。シーンのコードを書かなくても、`TextLabel` を持つオブジェクトの文字が自動で描画されます。
+
+```cpp
+auto& label = obj->AddComponent<TextLabel>();
+label.text = "Enemy";
+label.posOffset = {0.f, 40.f};   // オブジェクトの少し上
+
+// スクリプトから後で書き換える
+owner->GetComponent<TextLabel>()->text = std::format("HP {}", hp);
+```
+
+| メンバー | 説明 |
+|---|---|
+| `text` | 表示する文字（UTF-8）。空なら描画しない |
+| `posOffset` | 位置。意味は `isDrawingScreen` によって変わる（下表） |
+| `isDrawingScreen` | `false`：オブジェクトに追従（ワールド）／`true`：画面に固定（スクリーン） |
+
+| モード | 描画 | `posOffset` の意味 |
+|---|---|---|
+| ワールド（`false`、既定） | `DrawWorld`。カメラに合わせて動き、オブジェクトに付いていく。中央揃え | オブジェクトの位置からのずれ（ワールド単位、+Y が上） |
+| スクリーン（`true`） | `DrawScreen`。カメラの影響を受けず、画面に固定される。左揃え | **画面の左上からの位置**（ピクセル、+Y が下）。オブジェクトの位置は使われない |
+
+- 描画は `App::Draw` の `DrawTextLabels` で行われます（スプライトの後、`OnDrawUI` の前）。**全シーン共通**で、エディタで配置したオブジェクトやシーン JSON から読み込んだオブジェクトにも効きます。
+- 描画処理なので、エディタで一時停止中も表示され、ドラッグ中のオブジェクトにも付いていきます。
+- 文字は常にスプライトより手前に描画されます（スプライトのレイヤー・ソート順とは無関係）。
+- 使い分け：オブジェクトに属する文字（名前・頭上の HP・操作案内など）は `TextLabel`、シーン全体の HUD（スコア・タイマーなど）は `Scene::OnDrawUI` に書きます。
+- 現在、`TextLabel` はインスペクターに表示されず、シーン JSON にも保存されません。文字の内容はプレハブまたはスクリプトで設定してください。
+
 ---
 
 ## 14. デバッグ描画（DebugRenderer）
@@ -842,7 +922,7 @@ debugRenderer.Flush(renderer);
 
 ## 16. エディタ（ImGui）
 
-[Dear ImGui](https://github.com/ocornut/imgui) で作った実行時エディタです。ゲームを動かしたまま、シーン内のオブジェクトを確認・調整できます。
+[Dear ImGui](https://github.com/ocornut/imgui) で作った実行時エディタです。ゲームを動かしたまま、シーン内のオブジェクトを確認・調整できます。プレハブを配置してシーン JSON に保存すれば、レベルデザインにも使えます。
 
 ### 起動・表示
 
@@ -856,6 +936,9 @@ debugRenderer.Flush(renderer);
 | **エディター** | FPS 表示、一時停止／再開、1 フレーム進める、シーン選択、リロード |
 | **ヒエラルキー** | 現在のシーンのオブジェクト一覧（`GetName()` の名前で表示）。クリックで選択 |
 | **インスペクター** | 選択中のオブジェクトの編集と削除 |
+| **プレハブ** | 登録済みプレハブの一覧。クリックで画面中央に配置 |
+| **シーンセーブ** | 「シーンを保存」ボタンと、シーン JSON の読み込み／保存の結果 |
+| **Physics Stats** | 物理の統計（剛体数・ペア数・各処理の時間）。[デバッグ統計](#デバッグ統計physicssystem) 参照 |
 
 ウィンドウはドラッグで移動・リサイズできます。配置は実行時のカレントディレクトリの `imgui.ini` に保存されます（個人設定なので Git 管理外）。
 
@@ -869,7 +952,7 @@ debugRenderer.Flush(renderer);
 
 - **シーン** のドロップダウンから、登録済みのシーンへ切り替えられます。
 - **リロード** は現在のシーンを作り直します（`OnEnter` からやり直し）。
-- 遷移中は、シーン操作・ヒエラルキー・インスペクターが無効（グレー表示）になります。
+- 遷移中は、シーン操作・ヒエラルキー・インスペクター・プレハブ・保存が無効（グレー表示）になります。
 
 ### インスペクター
 
@@ -894,9 +977,83 @@ debugRenderer.Flush(renderer);
 - 何もない場所をクリックすると選択解除します。
 - ゲーム中のクリック操作と競合しないよう、実行中はビューでの選択はできません（ヒエラルキーからは選択できます）。
 
+### プレハブの配置
+
+- **プレハブ** ウィンドウの名前をクリックすると、そのプレハブが**カメラの位置（画面中央）**に生成され、選択状態になります。そのままドラッグやインスペクターで調整できます。
+- 配置したオブジェクトは `InstantiateAsLayout` で生成されるので、シーン JSON に保存されます。
+- 生成は `FlushPending()` で反映されるため、ヒエラルキーに現れるのは次のフレームです（一時停止中も反映されます）。
+- 不要なものはインスペクターの **削除** で消せます。
+
+### シーン JSON（レベルの保存・読み込み）
+
+エディタで配置したオブジェクトは、シーンごとの JSON ファイルに保存できます。
+
+```
+assets/scenes/<シーン名>.json      例：assets/scenes/Game.json
+```
+
+**保存されるのは「レイアウトオブジェクト」（`IsLayoutObject()` が `true`）だけです。**
+
+| 生成方法 | 保存 |
+|---|---|
+| エディタの **プレハブ** ウィンドウで配置 | される |
+| シーン JSON から読み込まれたもの | される |
+| `OnEnter` で `Add2DObject` / `Instantiate` したもの | されない（コードが毎回作る） |
+| スクリプトの `Instantiate`（弾・アイテムなど） | されない |
+
+フラグを立てるのは `Scene::InstantiateAsLayout` だけです（JSON ローダーとエディタ専用）。ゲームコードからは通常の `Instantiate` を使ってください。
+
+#### 作業の流れ
+
+1. F1 でエディタを開き、**一時停止** する
+2. **プレハブ** ウィンドウでプレハブをクリック → 画面中央に配置される
+3. ドラッグやインスペクターで位置・回転・スケール・名前を調整（不要なものは **削除**）
+4. **シーンセーブ** ウィンドウの **シーンを保存** → `assets/scenes/<シーン名>.json` に書き出し
+5. **リロード** で、保存した内容が読み込まれることを確認する
+
+- **シーンを保存** は一時停止中のみ押せます（実行中だと、動いた後の位置が保存されてしまうため）。
+- 保存したファイルは Git でコミットして共有します。同じシーンを複数人で同時に編集するとコンフリクトするので、シーン（ステージ）ごとに担当を決めてください。
+
+#### 読み込みのタイミング
+
+`SceneManager` がシーンを切り替えるとき、**`OnEnter()` の直後**に読み込みます（リロード時も同じ）。ファイルがなければ何もしません。
+結果（読み込んだ個数・エラー）は **シーンセーブ** ウィンドウに表示され、コードからは `SceneManager::GetLastLayoutLoad()` で取得できます。
+
+- 未登録のプレハブ名（名前変更・削除したもの）や不正な項目は飛ばされ、「スキップ」として個数が表示されます。
+- JSON の形式が壊れている場合は、ゲームを止めずにエラーメッセージを表示します。
+- 保存される値は **プレハブ名・名前・位置・回転（度）・スケール** だけです。タグやコンポーネントの値（`TextLabel` の文字など）はプレハブの設定が使われます。
+- スケールも保存されるので、あとでプレハブ側の既定スケールを変えても、保存済みのオブジェクトには反映されません。
+- `OnEnter` で作るオブジェクトはまだ `FlushPending()` 前なので、`OnEnter` の中から JSON で配置したオブジェクトを探すことはできません。必要なら最初の `OnUpdate` で探してください。
+
+#### ファイル形式
+
+1 オブジェクト 1 行で書かれます（Git の差分が読みやすく、コンフリクトも起きにくいように）。手で編集しても構いません（`//` コメントも可）。`prefab` 以外の項目は省略できます。
+
+```json
+{
+  "version": 1,
+  "scene": "Game",
+  "objects": [
+    {"prefab":"enemy","name":"enemy","position":[120.0,-40.0,1.0],"rotation":0.0,"scale":[48.0,48.0,1.0]}
+  ]
+}
+```
+
+#### SceneLayout（コードから使う場合）
+
+| 関数 | 説明 |
+|---|---|
+| `SceneLayout::Save(scene, sceneName)` | レイアウトオブジェクトを JSON に書き出す（一時ファイルに書いてから置き換えるので、途中で落ちても元のファイルは壊れない） |
+| `SceneLayout::Load(scene, sceneName)` | JSON を読み込み、`InstantiateAsLayout` で生成する。通常は `SceneManager` が自動で呼ぶ |
+| `SceneLayout::GetPath(sceneName)` | ファイルのパス（`../../assets/scenes/<シーン名>.json`） |
+
+戻り値の `SceneLayout::Result` は `valid`（失敗で `false`）・`fileFound`・`objectCount`・`skippedCount`・`message` を持ちます。例外は投げません。
+
+JSON の読み書きには [nlohmann/json](https://github.com/nlohmann/json) を使っています（vcpkg.json で自動インストール）。
+
 ### 注意点
 
-- エディタでの変更は**保存されません**。リロードやシーン切り替えで元に戻ります。
+- 保存されるのはレイアウトオブジェクトだけです。それ以外のオブジェクトへの変更は、リロードやシーン切り替えで元に戻ります。
 - `OnEnter` やスクリプトで作ったオブジェクトも編集できますが、次回の生成時にはコードの値に戻ります。調整した値はコード側に反映してください。
 - ビューでの選択は、カメラにズームがない前提（1 ワールド単位 = 1 ピクセル）で計算しています。
 - 日本語表示のため、ImGui のフォントには `C:/Windows/Fonts/meiryo.ttc`（メイリオ）を使います。見つからない場合は英字のみの既定フォントになり、日本語が `?` で表示されます。
@@ -924,7 +1081,9 @@ auto* hp = obj->GetComponent<HealthComponent>();
 
 ### 新しい Prefab を増やす
 
-`PrefabRegistry.cpp` の `RegisterPrefabs()` に `Register("名前", lambda)` を追加します。
+`PrefabRegistry.cpp` の `RegisterPrefabs()` に `Register("名前", lambda)` を追加します。エディタの **プレハブ** ウィンドウにも自動で表示されます。
+
+> 保存済みのシーン JSON はプレハブ名で参照しているので、既存のプレハブ名は変えないでください。
 
 ### 新しいタグを追加する
 
@@ -991,12 +1150,14 @@ CollisionDispatch::GetInstance().Register(ColliderType::Box, ColliderType::Box,
 - **Rigidbody + Collider が必須**：どちらか一方だけのオブジェクトは物理の対象になりません。
 - **AddComponent の順序**：`Awake` 内で他コンポーネントを取得する場合、先に追加しておくこと。
 - **`SetScale(float)` は乗算**：`SetStatic` / `AddAnimation` の後に使うこと。
-- **プレハブ生成は遅延反映**：`Instantiate` したオブジェクトが `GetObjects()` に現れるのは `FlushPending()` 後です。
+- **プレハブ生成は遅延反映**：`Instantiate` したオブジェクトが `GetObjects()` に現れるのは `FlushPending()` 後です。`OnEnter` の中で `GetObjects()` を探しても、そのフレームに生成したものやシーン JSON のオブジェクトは見つかりません。
 - **アセットのパス**：実行時のカレントディレクトリが変わるとテクスチャや `.cso` が見つからず、`assert` や `nullptr` 参照の原因になります。
 - **シーン切り替えは遅延反映**：`RequestChange` は予約のみで、実際の切り替えはフレーム末の `sceneManager.Update()` で行われます。スクリプトの `Update` 中に呼んでも安全です。
 - **遷移中・一時停止中はゲームが止まる**：`EXITING` / `ENTERING` の間とエディタで一時停止中は、`OnUpdate` / スクリプト / 物理 / アニメーションが更新されません（遷移時間 0 なら停止フレームはありません）。
 - **切り替えでシーン内はすべて破棄**：`GameObject*` などシーン内オブジェクトへのポインタを、シーンをまたいで保持しないこと。残したい値は `GameContext::globalContext` へ。
 - **`Clear()` 中の生成は無効**：シーン破棄中（`OnDestroy` 内など）の `Instantiate` / `Add2DObject` は `nullptr` を返します。
 - **スクリーン空間フラグは描画ごとにリセット**：`Renderer::SetEnableScreenSpace(true)` を自分で使う場合は、描画後に必ず `false` に戻してください。戻さないと、それ以降の `TransformCBuffer` を使う描画がすべてスクリーン空間になります。
-- **エディタの変更は保存されない**：調整した値はコードに反映してください。
+- **エディタで保存されるのはレイアウトオブジェクトだけ**：コードで作ったオブジェクトの調整値はコードに反映してください。
+- **プレハブ名を変えない**：シーン JSON はプレハブ名で参照しているため、名前を変えると保存済みのオブジェクトが読み込まれなくなります。
+- **`unique_ptr` の一覧はコピーしない**：`GetObjects()` をループするときは `for (const auto& obj : scene.GetObjects())` のように参照で受け取ってください（`auto obj` はコピーになり、コンパイルエラー C2280 になります）。
 - **ヘッダーで `App.h` をインクルードしない**：`App.h` は多くのヘッダーを含むため、下位のクラスのヘッダーから読み込むと循環インクルードになり、型が見つからないエラー（C3646 など）の原因になります。
