@@ -28,6 +28,7 @@ private:
 	void HandleInput();
 	void HandleMovement();
 	void HandleAnimation();
+	void HandleHUD();
 
 	Rigidbody2DComponent* rb = nullptr;
 	AnimatorComponent* anim = nullptr;
@@ -37,4 +38,6 @@ private:
 
 	float hp = 100.f;
 	float invulnerabilityTimer = 0.f;
+
+	float playTimer = 0.f;
 };

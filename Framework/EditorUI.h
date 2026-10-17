@@ -32,7 +32,7 @@ private:
 	void DrawToolbar(SceneManager& sceneManager);
 	void HandleViewportMouse(Scene& scene, Camera2D& camera);
 	void DrawSelectionOutline(Camera2D& camera);
-	void DrawLayoutSave(SceneManager* sceneManager);
+	void DrawLayoutSave(SceneManager& sceneManager);
 	void DrawPrefabPalette(Scene& scene, const Camera2D& camera);
 	void DrawPhysicsDebug(PhysicsSystem& physics);
 

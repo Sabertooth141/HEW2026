@@ -121,6 +121,8 @@ void EditorUI::Draw(SceneManager& sceneManager, Camera2D& camera)
 	DrawPrefabPalette(*scene, camera);
 	ImGui::EndDisabled();
 
+	DrawLayoutSave(sceneManager);
+
 	if (!isTransitioning)
 	{
 		HandleViewportMouse(*scene, camera);
@@ -165,6 +167,7 @@ void EditorUI::ValidateSelection(Scene& scene)
 		lastScene = &scene;
 		selectedObject = nullptr;
 		isDragging = false;
+		saveMessage.clear();
 		return;
 	}
 
@@ -446,7 +449,7 @@ void EditorUI::HandleViewportMouse(Scene& scene, Camera2D& camera)
 	}
 
 	const ImGuiIO& io = ImGui::GetIO();
-	const DirectX::XMFLOAT2 mouse = { io.MousePos.x, io.MousePos.y };
+	const DirectX::XMFLOAT2 mouse = {io.MousePos.x, io.MousePos.y};
 	const DirectX::XMFLOAT2 cam = camera.GetPosition();
 
 	if (!io.WantCaptureMouse && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
@@ -457,7 +460,7 @@ void EditorUI::HandleViewportMouse(Scene& scene, Camera2D& camera)
 		{
 			const DirectX::XMFLOAT3 pos = selectedObject->GetTransform()->GetPosition();
 			const DirectX::XMFLOAT2 worldPos = ScreenToWorld(mouse, cam, IsObjectScreenSpace(*selectedObject));
-			objDragOffset = { pos.x - worldPos.x, pos.y - worldPos.y };
+			objDragOffset = {pos.x - worldPos.x, pos.y - worldPos.y};
 		}
 	}
 
@@ -475,7 +478,7 @@ void EditorUI::HandleViewportMouse(Scene& scene, Camera2D& camera)
 	TransformComponent* transform = selectedObject->GetTransform();
 	const DirectX::XMFLOAT3 pos = transform->GetPosition();
 	const DirectX::XMFLOAT2 worldPos = ScreenToWorld(mouse, cam, IsObjectScreenSpace(*selectedObject));
-	transform->SetPosition({ worldPos.x + objDragOffset.x, worldPos.y + objDragOffset.y, pos.z });
+	transform->SetPosition({worldPos.x + objDragOffset.x, worldPos.y + objDragOffset.y, pos.z});
 	WakeObjRb(*selectedObject, true);
 }
 
@@ -489,18 +492,70 @@ void EditorUI::DrawSelectionOutline(Camera2D& camera)
 
 	ImDrawList* drawList = ImGui::GetForegroundDrawList();
 	drawList->AddQuad(WorldToScreen(corners[0], cam, isScreenSpace), WorldToScreen(corners[1], cam, isScreenSpace),
-		WorldToScreen(corners[2], cam, isScreenSpace), WorldToScreen(corners[3], cam, isScreenSpace),
-		IM_COL32(255, 200, 0, 255), 2.f);
+	                  WorldToScreen(corners[2], cam, isScreenSpace), WorldToScreen(corners[3], cam, isScreenSpace),
+	                  IM_COL32(255, 200, 0, 255), 2.f);
 }
 
-void EditorUI::DrawLayoutSave(SceneManager* sceneManager)
+void EditorUI::DrawLayoutSave(SceneManager& sceneManager)
 {
+	ImGui::Begin("シーンセーブ");
+
+	Scene* scene = sceneManager.GetCurrScene();
+
+	ImGui::BeginDisabled(!scene || !isPaused || sceneManager.IsTransitioning());
+	if (ImGui::Button("シーンを保存"))
+	{
+		const SceneLayout::Result result = SceneLayout::Save(*scene, sceneManager.GetCurrSceneName());
+		saveValid = result.valid;
+		saveMessage = result.message;
+	}
+
+	ImGui::EndDisabled();
+	if (!isPaused)
+	{
+		ImGui::SameLine();
+		ImGui::TextDisabled("一時停止中のみ");
+	}
+
+	const auto drawStatus = [](bool isValid, const std::string& logMessage, bool highlight = false)
+		{
+			ImVec4 color = { 1.f, 0.4f, 0.4f, 1.f };
+
+			if (isValid)
+			{
+				if (highlight)
+				{
+					color = { 0.4f, 0.9f, 0.4f, 1.f };
+				}
+				else
+				{
+					color = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
+				}
+			}
+
+			ImGui::PushStyleColor(ImGuiCol_Text, color);
+			ImGui::TextWrapped("%s", logMessage.c_str());
+			ImGui::PopStyleColor();
+		};
+
+	const SceneLayout::Result& load = sceneManager.GetLastLayoutLoad();
+	if (!load.message.empty())
+	{
+		drawStatus(load.valid && load.skippedCount == 0, load.message);
+	}
+	
+	if (!saveMessage.empty())
+	{
+		drawStatus(saveValid, saveMessage, true);
+	}
+
+	ImGui::End();
 }
 
 void EditorUI::DrawPrefabPalette(Scene& scene, const Camera2D& camera)
 {
-	ImGui::SetNextWindowSize({ 10.f, 420.f }, ImGuiCond_FirstUseEver);
-	ImGui::SetNextWindowPos({ 200.f, 250.f }, ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize({ 200.f, 250.f }, ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowPos({10.f, 420.f}, ImGuiCond_FirstUseEver);
 
 	if (ImGui::Begin("プレハブ"))
 	{
