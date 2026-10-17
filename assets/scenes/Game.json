@@ -2,5 +2,6 @@
  "version": 1,
  "scene": "Game",
  "objects": [
+  {"prefab":"player","name":"player","position":[0.0,0.0,1.0],"rotation":0.0,"scale":[64.0,64.0,1.0]}
   ]
 }

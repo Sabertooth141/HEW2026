@@ -157,9 +157,17 @@ void App::DrawTextLabels(Scene& scene)
 			continue;
 		}
 
-		const DirectX::XMFLOAT3 pos = obj->GetTransform()->GetPosition();
-		textRenderer.DrawScreen(textLabel->text, { pos.x - camPos.x + textLabel->posOffset.x,
-									  pos.y - camPos.y + textLabel->posOffset.y });
+		if (textLabel->isDrawingScreen)
+		{
+			textRenderer.DrawScreen(textLabel->text, textLabel->posOffset);
+		}
+		else
+		{
+			const DirectX::XMFLOAT3 pos = obj->GetTransform()->GetPosition();
+			textRenderer.DrawWorld(textLabel->text, { pos.x + textLabel->posOffset.x,
+													 pos.y + textLabel->posOffset.y });
+		}
+		
 	}
 }
 

@@ -39,7 +39,8 @@ void RegisterPrefabs()
 		object.AddComponent<CameraController>();
 
 		auto& label = object.AddComponent<TextLabel>();
-		label.posOffset = { 00.f, 00.f };
+		label.posOffset = { 10.f, 0.f };
+		label.isDrawingScreen = true;
 	});
 
 
