@@ -2,12 +2,15 @@
 
 #include <algorithm>
 #include <cmath>
+#include <format>
 
 #include "AnimatorComponent.h"
 #include "EnemyController.h"
 #include "GameObject.h"
 #include "Keyboard.h"
 #include "Rigidbody2DComponent.h"
+#include "SceneManager.h"
+#include "TextLabel.h"
 
 void PlayerController::Awake()
 {
@@ -16,6 +19,7 @@ void PlayerController::Awake()
 	rb = owner->GetComponent<Rigidbody2DComponent>();
 	anim = owner->GetComponent<AnimatorComponent>();
 	hp = maxHP;
+	playTimer = owner->GetContext().globalContext.playTime;
 }
 
 void PlayerController::Update(float deltaTime)
@@ -27,6 +31,15 @@ void PlayerController::Update(float deltaTime)
 	HandleInput();
 	HandleMovement();
 	HandleAnimation();
+	HandleHUD();
+
+	playTimer += deltaTime;
+	if (IsDead())
+	{
+		owner->GetContext().globalContext.playTime = playTimer;
+		owner->GetContext().sceneManager->RequestChange("Result");
+		DestroySelf();
+	}
 }
 
 void PlayerController::HandleInput()
@@ -58,7 +71,7 @@ void PlayerController::HandleMovement()
 		dirY /= length;
 	}
 
-	rb->SetVelocity({ dirX * moveSpeed, dirY * moveSpeed });
+	rb->SetVelocity({dirX * moveSpeed, dirY * moveSpeed});
 }
 
 void PlayerController::HandleAnimation()
@@ -84,6 +97,13 @@ void PlayerController::HandleAnimation()
 	{
 		anim->SetCurrAnimation(next);
 	}
+}
+
+void PlayerController::HandleHUD()
+{
+	std::string text = std::format("Player HP: {:.1f}", GetHP());
+
+	owner->GetComponent<TextLabel>()->text = text;
 }
 
 void PlayerController::OnCollisionEnter2D(const GameObject& other)

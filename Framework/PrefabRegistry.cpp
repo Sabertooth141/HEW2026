@@ -5,10 +5,45 @@
 #include "PhysicsTest.h"
 
 #include "BoxCollider2D.h"
+#include "CameraController.h"
+#include "PlayerController.h"
 #include "Rigidbody2DComponent.h"
+#include "TextLabel.h"
 
 void RegisterPrefabs()
 {
+	// player
+	PrefabRegistry::Instance().Register("player", [](GameObject& object)
+	{
+		object.SetTag(ObjectTag::PLAYER);
+
+		// physics
+		auto& playerRb = object.AddComponent<Rigidbody2DComponent>(*object.GetTransform(), 1.f);
+		playerRb.SetFreezeRotation(true);
+		playerRb.SetGravity(0.f);
+		object.AddComponent<BoxCollider2D>(
+			DirectX::XMFLOAT2(1.f, 1.f), DirectX::XMFLOAT2(0.f, 0.f), true, *object.GetTransform());
+
+		// animation
+		auto& anim = object.AddComponent<AnimatorComponent>(object.GetRenderer());
+		anim.SetRenderLayer(RenderLayer::Player);
+		anim.SetSortOrder(0);
+		anim.AddAnimation("CharIdle", L"../../assets/PlayerCharacter.png", L"../../assets/PlayerCharacter.json");
+		anim.AddAnimation("CharMove", L"../../assets/PlayerCharacterMove.png",
+		                  L"../../assets/PlayerCharacterMove.json");
+		anim.SetCurrAnimation("CharIdle");
+
+		// script
+		auto& controller = object.AddComponent<PlayerController>();
+		controller.SetInput(object.GetContext().keyboard, object.GetContext().mouse);
+		object.AddComponent<CameraController>();
+
+		auto& label = object.AddComponent<TextLabel>();
+		label.posOffset = { 10.f, 0.f };
+		label.isDrawingScreen = true;
+	});
+
+
 	// enemy
 	PrefabRegistry::Instance().Register("enemy", [](GameObject& object)
 	{
@@ -18,7 +53,7 @@ void RegisterPrefabs()
 		anim.SetRenderLayer(RenderLayer::Enemy);
 		anim.SetStatic(L"../../assets/jinx.jpg");
 
-		object.GetTransform()->SetScale({ 48.f, 48.f, 1.f });
+		object.GetTransform()->SetScale({48.f, 48.f, 1.f});
 
 		auto& rb = object.AddComponent<Rigidbody2DComponent>(*object.GetTransform(), 1.f);
 		rb.SetGravity(0.f);

@@ -34,6 +34,7 @@ private:
 	void Draw(float deltaTime);
 	void DebugRender(Scene& scene);
 	void DebugTextRender(Scene& scene, float deltaTime);
+	void DrawTextLabels(Scene& scene);
 
 private:
 	DirectX::XMFLOAT3 rotation = {};

@@ -263,6 +263,9 @@
     <ClCompile Include="EnemyController.cpp">
       <Filter>Source Files\Scripts</Filter>
     </ClCompile>
+    <ClCompile Include="SceneLayout.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Win.h">
@@ -474,6 +477,12 @@
     </ClInclude>
     <ClInclude Include="EnemyController.h">
       <Filter>Header Files\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneLayout.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TextLabel.h">
+      <Filter>Header Files\Text</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
