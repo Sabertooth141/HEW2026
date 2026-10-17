@@ -519,13 +519,9 @@ void EditorUI::DrawLayoutSave(SceneManager& sceneManager)
 
 	const auto drawStatus = [](bool isValid, const std::string& logMessage, bool highlight = false)
 		{
-			ImVec4 color;
+			ImVec4 color = { 1.f, 0.4f, 0.4f, 1.f };
 
-			if (!isValid)
-			{
-				color = { 1.f, 0.4f, 0.4f, 1.f };
-			}
-			else
+			if (isValid)
 			{
 				if (highlight)
 				{
@@ -533,7 +529,7 @@ void EditorUI::DrawLayoutSave(SceneManager& sceneManager)
 				}
 				else
 				{
-					ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
+					color = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
 				}
 			}
 
