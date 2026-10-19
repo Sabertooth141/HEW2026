@@ -141,7 +141,10 @@ void EditorUI::ToggleVisible()
 	{
 		isPaused = false;
 		isDragging = false;
+		return;
 	}
+	isPaused = true;
+	
 }
 
 bool EditorUI::ShouldTick()

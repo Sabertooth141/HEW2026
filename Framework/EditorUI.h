@@ -25,6 +25,7 @@ public:
 
 	bool ShouldTick();
 
+
 private:
 	// UI widgets
 	void DrawHierarchy(Scene& scene);

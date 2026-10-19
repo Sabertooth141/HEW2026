@@ -21,7 +21,8 @@ App::App(const std::string& cmdLine) : cmdLine(cmdLine),
                                        textRenderer(renderer, L"Consolas", 18),
                                        renderSystem(RenderSystem(renderer)),
                                        gameContext{
-	                                       renderer, physicsSystem, scriptSystem, animationSystem, renderSystem, camera, wnd.keyboard, wnd.mouse
+	                                       renderer, physicsSystem, scriptSystem, animationSystem, renderSystem, camera,
+	                                       wnd.keyboard, wnd.mouse
                                        },
                                        sceneManager(gameContext)
 {
@@ -88,10 +89,12 @@ void App::Update(float deltaTime)
 
 void App::HandleInput(float deltaTime)
 {
+#ifndef NDEBUG
 	if (wnd.keyboard.KeyIsTriggered(VK_F1))
 	{
 		editor.ToggleVisible();
 	}
+#endif
 }
 
 void App::Draw(float deltaTime)
@@ -131,7 +134,7 @@ void App::DebugRender(Scene& scene)
 		{
 			debugRenderer.DrawBox(
 				col->GetWorldOBB().GetCorners(),
-				{ 0, 1, 0, 1 });
+				{0, 1, 0, 1});
 		}
 	}
 }
@@ -164,10 +167,10 @@ void App::DrawTextLabels(Scene& scene)
 		else
 		{
 			const DirectX::XMFLOAT3 pos = obj->GetTransform()->GetPosition();
-			textRenderer.DrawWorld(textLabel->text, { pos.x + textLabel->posOffset.x,
-													 pos.y + textLabel->posOffset.y });
+			textRenderer.DrawWorld(textLabel->text, {
+				                       pos.x + textLabel->posOffset.x,
+				                       pos.y + textLabel->posOffset.y
+			                       });
 		}
-		
 	}
 }
-
