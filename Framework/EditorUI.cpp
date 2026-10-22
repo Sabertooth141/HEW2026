@@ -494,16 +494,15 @@ void EditorUI::DrawToolbar(SceneManager& sceneManager)
 		ImGui::EndDisabled();
 
 		ImGui::TextDisabled("F1：表示切替");
-		if (mode == Mode::EDIT || !isPaused)
+		if (mode == Mode::EDIT)
 		{
 			ImGui::TextDisabled("クリックで選択／ドラッグで移動");
 		}
-		else
+		else if (isPaused)
 		{
 			ImGui::TextDisabled("一時停止中：クリックで選択／ドラッグで移動");
 		}
 
-		
 	}
 
 	ImGui::End();
@@ -581,7 +580,7 @@ void EditorUI::DrawLayoutSave(SceneManager& sceneManager)
 	}
 
 	ImGui::EndDisabled();
-	if (!isPaused)
+	if (mode != Mode::EDIT)
 	{
 		ImGui::SameLine();
 		ImGui::TextDisabled("編集モードのみ");
