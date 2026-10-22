@@ -2,9 +2,8 @@
  "version": 1,
  "scene": "Game",
  "objects": [
-  {"prefab":"player","name":"player","position":[-19.0,205.0,1.0],"rotation":0.0,"scale":[64.0,64.0,1.0]},
-  {"prefab":"enemy","name":"enemy","position":[116.0,79.0,1.0],"rotation":0.0,"scale":[48.0,48.0,1.0]},
   {"prefab":"enemy","name":"enemy","position":[-9.0,-59.0,1.0],"rotation":0.0,"scale":[48.0,48.0,1.0]},
-  {"prefab":"enemy","name":"enemy","position":[235.0,-3.0,1.0],"rotation":0.0,"scale":[48.0,48.0,1.0]}
+  {"prefab":"enemy","name":"enemy","position":[235.0,-3.0,1.0],"rotation":0.0,"scale":[48.0,48.0,1.0]},
+  {"prefab":"player","name":"player","position":[0.0,0.0,1.0],"rotation":0.0,"scale":[64.0,64.0,1.0]}
   ]
 }

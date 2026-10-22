@@ -10,6 +10,12 @@ class SceneManager;
 class EditorUI
 {
 public:
+	enum class Mode
+	{
+		EDIT,
+		PLAY
+	};
+
 	void Draw(SceneManager& sceneManager, Camera2D& camera);
 	void ToggleVisible();
 
@@ -25,6 +31,15 @@ public:
 
 	bool ShouldTick();
 
+	Mode GetMode() const
+	{
+		return mode;
+	}
+
+	bool IsEditMode() const
+	{
+		return mode == Mode::EDIT;
+	}
 
 private:
 	// UI widgets
@@ -41,6 +56,14 @@ private:
 
 	GameObject* Pick(Scene& scene, const Camera2D& camera, DirectX::XMFLOAT2 mousePosScreen);
 
+	void EnterPlayMode(SceneManager& sceneManager);
+	void EnterEditMode(SceneManager& sceneManager);
+
+	bool CanEditViewport() const
+	{
+		return mode == Mode::EDIT || isPaused;
+	}
+
 private:
 	bool isVisible = false;
 	bool isPaused = false;
@@ -55,4 +78,7 @@ private:
 
 	std::string saveMessage;
 	bool saveValid = true;
+
+	Mode mode = Mode::PLAY;
+	std::string playModeStartScene;
 };
