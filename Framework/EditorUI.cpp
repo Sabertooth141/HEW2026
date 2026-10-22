@@ -141,14 +141,20 @@ void EditorUI::ToggleVisible()
 	{
 		isPaused = false;
 		isDragging = false;
+		stepRequested = false;
 		return;
 	}
 	isPaused = true;
-	
 }
 
 bool EditorUI::ShouldTick()
 {
+	if (mode == Mode::EDIT)
+	{
+		stepRequested = false;
+		return false;
+	}
+
 	if (!isPaused)
 	{
 		return true;
@@ -170,7 +176,6 @@ void EditorUI::ValidateSelection(Scene& scene)
 		lastScene = &scene;
 		selectedObject = nullptr;
 		isDragging = false;
-		saveMessage.clear();
 		return;
 	}
 
@@ -400,6 +405,53 @@ void EditorUI::DrawToolbar(SceneManager& sceneManager)
 	{
 		ImGui::Text("%.1f fps", ImGui::GetIO().Framerate);
 
+		const bool isTransitioning = sceneManager.IsTransitioning();
+
+		ImGui::BeginDisabled(isTransitioning);
+		if (mode == Mode::EDIT)
+		{
+			ImGui::PushStyleColor(ImGuiCol_Button, {0.2f, 0.55f, 0.25f, 1.f});
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.2f, 0.65f, 0.3f, 1.f });
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.15f, 0.45f, 0.2f, 1.f });
+			
+			const bool isPlayPressed = ImGui::Button("プレイ", { 90.f, 0.f });
+			ImGui::PopStyleColor(3);
+
+			if (isPlayPressed)
+			{
+				EnterPlayMode(sceneManager);
+			}
+
+			ImGui::SameLine();
+			ImGui::TextColored({ 0.6f, 0.85f, 1.f, 1.f }, "編集モード中");
+		}
+		else
+		{
+			ImGui::PushStyleColor(ImGuiCol_Button, { 0.6f, 0.25f, 0.2f, 1.f });
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.7f, 0.3f, 0.25f, 1.f });
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.5f, 0.2f, 0.15f, 1.f });
+
+			const bool isStopPressed = ImGui::Button("編集モード", { 90.f, 0.f });
+			ImGui::PopStyleColor(3);
+
+			if (isStopPressed)
+			{
+				EnterEditMode(sceneManager);
+			}
+
+			ImGui::SameLine();
+			if (isPaused)
+			{
+				ImGui::TextColored({ 1.f, 0.7f, 0.3f, 1.f }, "プレイ中（一時停止）");
+			}
+			else
+			{
+				ImGui::TextColored({ 1.f, 0.7f, 0.3f, 1.f }, "プレイ中");
+			}
+		}
+		ImGui::EndDisabled();
+
+		ImGui::BeginDisabled(mode != Mode::PLAY);
 		if (ImGui::Button(isPaused ? "再開" : "一時停止", {90.f, 0.f,}))
 		{
 			isPaused = !isPaused;
@@ -413,8 +465,9 @@ void EditorUI::DrawToolbar(SceneManager& sceneManager)
 			stepRequested = true;
 		}
 		ImGui::EndDisabled();
+		ImGui::EndDisabled();
 
-		ImGui::BeginDisabled(sceneManager.IsTransitioning());
+		ImGui::BeginDisabled(isTransitioning);
 		const std::string currScene = sceneManager.GetCurrSceneName();
 		if (ImGui::BeginCombo("シーン", currScene.c_str()))
 		{
@@ -433,10 +486,24 @@ void EditorUI::DrawToolbar(SceneManager& sceneManager)
 			sceneManager.RequestChange(currScene);
 		}
 
+		if (mode == Mode::EDIT && ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("保存していない変更は破棄されます");
+		}
+
 		ImGui::EndDisabled();
 
 		ImGui::TextDisabled("F1：表示切替");
-		ImGui::TextDisabled("一時停止中：クリックで選択／ドラッグで移動");
+		if (mode == Mode::EDIT || !isPaused)
+		{
+			ImGui::TextDisabled("クリックで選択／ドラッグで移動");
+		}
+		else
+		{
+			ImGui::TextDisabled("一時停止中：クリックで選択／ドラッグで移動");
+		}
+
+		
 	}
 
 	ImGui::End();
@@ -445,7 +512,7 @@ void EditorUI::DrawToolbar(SceneManager& sceneManager)
 void EditorUI::HandleViewportMouse(Scene& scene, Camera2D& camera)
 {
 	// 選択・ドラッグは一時停止中のみ（ゲームのクリック操作と競合させない）
-	if (!isPaused)
+	if (!CanEditViewport())
 	{
 		isDragging = false;
 		return;
@@ -505,7 +572,7 @@ void EditorUI::DrawLayoutSave(SceneManager& sceneManager)
 
 	Scene* scene = sceneManager.GetCurrScene();
 
-	ImGui::BeginDisabled(!scene || !isPaused || sceneManager.IsTransitioning());
+	ImGui::BeginDisabled(!scene || mode != Mode::EDIT || sceneManager.IsTransitioning());
 	if (ImGui::Button("シーンを保存"))
 	{
 		const SceneLayout::Result result = SceneLayout::Save(*scene, sceneManager.GetCurrSceneName());
@@ -517,36 +584,36 @@ void EditorUI::DrawLayoutSave(SceneManager& sceneManager)
 	if (!isPaused)
 	{
 		ImGui::SameLine();
-		ImGui::TextDisabled("一時停止中のみ");
+		ImGui::TextDisabled("編集モードのみ");
 	}
 
 	const auto drawStatus = [](bool isValid, const std::string& logMessage, bool highlight = false)
+	{
+		ImVec4 color = {1.f, 0.4f, 0.4f, 1.f};
+
+		if (isValid)
 		{
-			ImVec4 color = { 1.f, 0.4f, 0.4f, 1.f };
-
-			if (isValid)
+			if (highlight)
 			{
-				if (highlight)
-				{
-					color = { 0.4f, 0.9f, 0.4f, 1.f };
-				}
-				else
-				{
-					color = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
-				}
+				color = {0.4f, 0.9f, 0.4f, 1.f};
 			}
+			else
+			{
+				color = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
+			}
+		}
 
-			ImGui::PushStyleColor(ImGuiCol_Text, color);
-			ImGui::TextWrapped("%s", logMessage.c_str());
-			ImGui::PopStyleColor();
-		};
+		ImGui::PushStyleColor(ImGuiCol_Text, color);
+		ImGui::TextWrapped("%s", logMessage.c_str());
+		ImGui::PopStyleColor();
+	};
 
 	const SceneLayout::Result& load = sceneManager.GetLastLayoutLoad();
 	if (!load.message.empty())
 	{
 		drawStatus(load.valid && load.skippedCount == 0, load.message);
 	}
-	
+
 	if (!saveMessage.empty())
 	{
 		drawStatus(saveValid, saveMessage, true);
@@ -557,14 +624,24 @@ void EditorUI::DrawLayoutSave(SceneManager& sceneManager)
 
 void EditorUI::DrawPrefabPalette(Scene& scene, const Camera2D& camera)
 {
-	ImGui::SetNextWindowSize({ 200.f, 250.f }, ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize({200.f, 250.f}, ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowPos({10.f, 420.f}, ImGuiCond_FirstUseEver);
 
 	if (ImGui::Begin("プレハブ"))
 	{
-		ImGui::TextDisabled("クリックで画面中央に配置");
+		const bool canPlace = mode == Mode::EDIT;
+		if (canPlace)
+		{
+			ImGui::TextDisabled("クリックで画面中央に配置");
+		}
+		else
+		{
+			ImGui::TextDisabled("編集モードのみ配置できます");
+		}
+		
 		ImGui::Separator();
 
+		ImGui::BeginDisabled(!canPlace);
 		for (const std::string& prefabName : PrefabRegistry::Instance().GetPrefabNames())
 		{
 			if (ImGui::Selectable(prefabName.c_str()))
@@ -579,6 +656,7 @@ void EditorUI::DrawPrefabPalette(Scene& scene, const Camera2D& camera)
 				}
 			}
 		}
+		ImGui::EndDisabled();
 	}
 
 	ImGui::End();
@@ -663,4 +741,74 @@ GameObject* EditorUI::Pick(Scene& scene, const Camera2D& camera, const DirectX::
 	}
 
 	return nullptr;
+}
+
+void EditorUI::EnterPlayMode(SceneManager& sceneManager)
+{
+	Scene* scene = sceneManager.GetCurrScene();
+	if (!scene || sceneManager.IsTransitioning())
+	{
+		return;
+	}
+
+	const std::string sceneName = sceneManager.GetCurrSceneName();
+	const SceneLayout::Result& load = sceneManager.GetLastLayoutLoad();
+
+	const bool hasLayoutObj = std::ranges::any_of(scene->GetObjects(), [scene](const auto& obj)
+	{
+		return obj->IsLayoutObject() && !scene->IsPendingDestroy(obj.get());
+	});
+
+	if (!load.valid || load.skippedCount > 0)
+	{
+		saveValid = false;
+		saveMessage = "自動保存をスキップ（" + sceneName + "）：読み込みエラー／スキップがあるため、ファイルを上書きしません";
+	}
+	else if (load.fileFound || hasLayoutObj)
+	{
+		const SceneLayout::Result result = SceneLayout::Save(*scene, sceneName);
+		saveValid = result.valid;
+		saveMessage = result.message;
+
+		if (!result.valid)
+		{
+			return;
+		}
+	}
+
+	playModeStartScene = sceneName;
+	mode = Mode::PLAY;
+	isPaused = false;
+	stepRequested = false;
+	isDragging = false;
+	selectedObject = nullptr;
+
+	sceneManager.RequestChange(sceneName);
+}
+
+void EditorUI::EnterEditMode(SceneManager& sceneManager)
+{
+	if (sceneManager.IsTransitioning())
+	{
+		return;
+	}
+
+	mode = Mode::EDIT;
+	isPaused = false;
+	stepRequested = false;
+	isDragging = false;
+	selectedObject = nullptr;
+
+	std::string tgtScene;
+
+	if (sceneManager.IsRegistered(playModeStartScene))
+	{
+		tgtScene = playModeStartScene;
+	}
+	else
+	{
+		tgtScene = sceneManager.GetCurrSceneName();
+	}
+
+	sceneManager.RequestChange(tgtScene);
 }

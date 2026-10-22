@@ -145,6 +145,10 @@ void App::DebugTextRender(Scene& scene, float deltaTime)
 	textRenderer.DebugLine("scene %s", sceneManager.GetCurrSceneName().c_str());
 	textRenderer.DebugLine("objects %zu", scene.GetObjects().size());
 	textRenderer.DebugLine(TextColor::Cyan, "cam y %.0f", camera.GetPosition().y);
+	if (editor.IsEditMode())
+	{
+		textRenderer.DebugLine(TextColor::Yellow, "EDIT MODE - game stopped (F1 > Play)");
+	}
 }
 
 void App::DrawTextLabels(Scene& scene)
