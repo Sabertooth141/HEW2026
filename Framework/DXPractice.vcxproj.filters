@@ -484,6 +484,9 @@
     <ClInclude Include="TextLabel.h">
       <Filter>Header Files\Text</Filter>
     </ClInclude>
+    <ClInclude Include="PlatformLayoutComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="PixelShader.hlsl">
