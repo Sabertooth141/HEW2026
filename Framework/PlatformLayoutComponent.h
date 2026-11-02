@@ -1,0 +1,64 @@
+#pragma once
+
+#include <array>
+#include <vector>
+
+#include "BoxCollider2D.h"
+#include "GameObject.h"
+#include "MonoBehavior.h"
+#include "Rigidbody2DComponent.h"
+#include "Scene.h"
+
+struct PlatformData
+{
+	DirectX::XMFLOAT3 position;
+	DirectX::XMFLOAT3 scale;
+};
+
+class PlatformLayoutComponent :public MonoBehavior
+{
+public:
+	void Start() override
+	{
+		for (const PlatformData& platformData : platformDataList)
+		{
+			CreatePlatform(platformData);
+		}
+	}
+
+private:
+	void CreatePlatform(const PlatformData& platformData)
+	{
+		GameObject* platformObj = owner->GetContext().gameScene->Add2DObject();
+		if (platformObj == nullptr)
+		{
+			return;
+		}
+
+		platformObj->SetName("Platform");
+		platformObj->SetTag(ObjectTag::GROUND);
+		platformObj->GetTransform()->SetPosition(platformData.position);
+		platformObj->GetTransform()->SetScale(platformData.scale);
+
+		auto& platformRb = platformObj->AddComponent<Rigidbody2DComponent>(*platformObj->GetTransform(), 1.0f);
+		platformRb.SetGravity(0.0f);
+		platformRb.SetIsStatic(true);
+
+		platformObj->AddComponent<BoxCollider2D>(
+			DirectX::XMFLOAT2(0.5f, 0.5f),
+			DirectX::XMFLOAT2(0.0f, 0.0f),
+			false,
+			*platformObj->GetTransform());
+
+		platformObjects.push_back(platformObj);
+	}
+
+	const std::array<PlatformData, 3> platformDataList =
+	{
+		PlatformData{ { 1.5f, -240.f, 1.f },{ 3000.f, 80.f, 1.f } }, // 地面
+		PlatformData{ { 1510.f, -20.f, 1.f },{ 40.f, 480.f, 1.f } }, // 壁
+		PlatformData{ { 1330.f, 200.f, 1.f },{ 320.f, 40.f, 1.f } } // 天井
+	};
+
+	std::vector<GameObject*> platformObjects;
+};
