@@ -9,6 +9,7 @@
 #include "PlayerController.h"
 #include "Rigidbody2DComponent.h"
 #include "TextLabel.h"
+#include "PlatformLayoutComponent.h"
 
 void RegisterPrefabs()
 {
@@ -94,4 +95,10 @@ void RegisterPrefabs()
 
 		object.AddComponent<PhysicsTest>();
 	});
+
+	//プラットフォーム
+	PrefabRegistry::Instance().Register("platform_layout", [](GameObject& object)
+		{
+			object.AddComponent<PlatformLayoutComponent>();
+		});
 }

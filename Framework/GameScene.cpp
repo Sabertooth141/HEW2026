@@ -12,6 +12,8 @@
 void GameScene::OnEnter()
 {
 	Scene::OnEnter();
+	//2Dプラットフォーム
+	Instantiate("platform_layout", { 0.0f,0.0f,1.0f });
 
 	// enemies (prefab)
 	Instantiate("enemy", {200.f, -100.f, 1.f});
