@@ -7,7 +7,8 @@
 	X(ENEMY)				\
 	X(PLAYER)				\
 	X(BLOCK)				\
-	X(GROUND)
+	X(GROUND)				\
+	X(CHECKPOINT)
 
 enum class ObjectTag : uint8_t
 {

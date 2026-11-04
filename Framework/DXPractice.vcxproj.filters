@@ -487,6 +487,12 @@
     <ClInclude Include="PlatformLayoutComponent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CheckpointComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CheckpointLayoutComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="PixelShader.hlsl">

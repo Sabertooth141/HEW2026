@@ -16,6 +16,13 @@ public:
 
 	void OnCollisionEnter2D(const GameObject& other) override;
 
+	//チェックポイント
+	void SetCheckpoint(const DirectX::XMFLOAT3& position, bool addStack);
+	DirectX::XMFLOAT3 GetCheckpointPosition() const
+	{
+		return lastCheckpointPosition;
+	}
+
 	float GetHP() const { return hp; }
 	float GetMaxHP() const { return maxHP; }
 	bool IsDead() const { return hp <= 0.f; }
@@ -29,6 +36,8 @@ private:
 	void HandleMovement();
 	void HandleAnimation();
 	void HandleHUD();
+
+	DirectX::XMFLOAT3 lastCheckpointPosition = {};
 
 	Rigidbody2DComponent* rb = nullptr;
 	AnimatorComponent* anim = nullptr;

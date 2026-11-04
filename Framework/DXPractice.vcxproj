@@ -219,6 +219,8 @@
     <ClInclude Include="BoxCollider2D.h" />
     <ClInclude Include="Camera2D.h" />
     <ClInclude Include="CameraController.h" />
+    <ClInclude Include="CheckpointComponent.h" />
+    <ClInclude Include="CheckpointLayoutComponent.h" />
     <ClInclude Include="Collider2D.h" />
     <ClInclude Include="CollisionDispatch.h" />
     <ClInclude Include="CollisionTests.h" />
