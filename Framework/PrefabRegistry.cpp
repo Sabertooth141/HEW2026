@@ -24,9 +24,9 @@ void RegisterPrefabs()
 		// physics
 		auto& playerRb = object.AddComponent<Rigidbody2DComponent>(*object.GetTransform(), 1.f);
 		playerRb.SetFreezeRotation(true);
-		playerRb.SetGravity(0.f);
+		playerRb.SetGravity(800.f);
 		object.AddComponent<BoxCollider2D>(
-			DirectX::XMFLOAT2(1.f, 1.f), DirectX::XMFLOAT2(0.f, 0.f), true, *object.GetTransform());
+			DirectX::XMFLOAT2(1.f, 1.f), DirectX::XMFLOAT2(0.f, 0.f), false, *object.GetTransform());
 
 		// animation
 		auto& anim = object.AddComponent<AnimatorComponent>(object.GetRenderer());

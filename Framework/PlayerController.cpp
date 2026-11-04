@@ -34,6 +34,7 @@ void PlayerController::Update(float deltaTime)
 	HandleMovement();
 	HandleAnimation();
 	HandleHUD();
+	HandleJump();
 
 	playTimer += deltaTime;
 	if (IsDead())
@@ -51,8 +52,7 @@ void PlayerController::HandleInput()
 
 	if (keyboard->KeyIsPressed('D')) inputX += 1.f;
 	if (keyboard->KeyIsPressed('A')) inputX -= 1.f;
-	if (keyboard->KeyIsPressed('W')) inputY += 1.f;
-	if (keyboard->KeyIsPressed('S')) inputY -= 1.f;
+	
 }
 
 void PlayerController::HandleMovement()
@@ -73,7 +73,7 @@ void PlayerController::HandleMovement()
 		dirY /= length;
 	}
 
-	rb->SetVelocity({dirX * moveSpeed, dirY * moveSpeed});
+	rb->SetVelocity({ dirX * moveSpeed, rb->GetVelocity().y });
 }
 
 void PlayerController::HandleAnimation()
@@ -126,7 +126,17 @@ void PlayerController::OnCollisionEnter2D(const GameObject& other)
 
 	hp = std::max(0.f, hp - static_cast<float>(enemy->GetAttackPower()));
 	invulnerabilityTimer = invulnerabilityDuration;
+
+	// 地面に接触したら接地状態にする
+	if (other.GetTag() == ObjectTag::GROUND)
+	{
+		if (rb != nullptr && rb->GetVelocity().y <= 0.f)
+		{
+			isGrounded = true;
+		}
+	}
 }
+
 
 //プレイヤーが最後に触ったチェックポイント
 void PlayerController::SetCheckpoint(
@@ -135,3 +145,40 @@ void PlayerController::SetCheckpoint(
 {
 	lastCheckpointPosition = position;
 }
+
+void PlayerController::HandleJump()
+{
+	if (rb == nullptr)
+	{
+		return;
+	}
+
+	// 地面にいるときだけジャンプできる
+	if (isGrounded && keyboard->KeyIsTriggered(' '))
+	{
+		DirectX::XMFLOAT2 velocity = rb->GetVelocity();
+		velocity.y = jumpPower;
+
+		rb->SetVelocity(velocity);
+		isGrounded = false;
+	}
+}
+
+void PlayerController::OnCollisionStay2D(const GameObject& other)
+{
+	if (other.GetTag() == ObjectTag::GROUND &&
+		rb != nullptr &&
+		rb->GetVelocity().y <= 0.f)
+	{
+		isGrounded = true;
+	}
+}
+
+void PlayerController::OnCollisionExit2D(const GameObject& other)
+{
+	if (other.GetTag() == ObjectTag::GROUND)
+	{
+		isGrounded = false;
+	}
+}
+
