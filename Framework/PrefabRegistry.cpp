@@ -13,6 +13,7 @@
 #include "AnimatorComponent.h"
 #include "CheckpointComponent.h"
 #include "CheckpointLayoutComponent.h"
+#include "RetryTransitionComponent.h"
 
 void RegisterPrefabs()
 {
@@ -41,6 +42,9 @@ void RegisterPrefabs()
 		auto& controller = object.AddComponent<PlayerController>();
 		controller.SetInput(object.GetContext().keyboard, object.GetContext().mouse);
 		object.AddComponent<CameraController>();
+
+		//トランジション
+		object.AddComponent<RetryTransitionComponent>();
 
 		auto& label = object.AddComponent<TextLabel>();
 		label.posOffset = { 10.f, 0.f };
