@@ -20,6 +20,8 @@ void PlayerController::Awake()
 	anim = owner->GetComponent<AnimatorComponent>();
 	hp = maxHP;
 	playTimer = owner->GetContext().globalContext.playTime;
+
+	lastCheckpointPosition = owner->GetTransform()->GetPosition();
 }
 
 void PlayerController::Update(float deltaTime)
@@ -124,4 +126,12 @@ void PlayerController::OnCollisionEnter2D(const GameObject& other)
 
 	hp = std::max(0.f, hp - static_cast<float>(enemy->GetAttackPower()));
 	invulnerabilityTimer = invulnerabilityDuration;
+}
+
+//プレイヤーが最後に触ったチェックポイント
+void PlayerController::SetCheckpoint(
+	const DirectX::XMFLOAT3& position,
+	bool addStack)
+{
+	lastCheckpointPosition = position;
 }

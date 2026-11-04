@@ -10,6 +10,9 @@
 #include "Rigidbody2DComponent.h"
 #include "TextLabel.h"
 #include "PlatformLayoutComponent.h"
+#include "AnimatorComponent.h"
+#include "CheckpointComponent.h"
+#include "CheckpointLayoutComponent.h"
 
 void RegisterPrefabs()
 {
@@ -100,5 +103,37 @@ void RegisterPrefabs()
 	PrefabRegistry::Instance().Register("platform_layout", [](GameObject& object)
 		{
 			object.AddComponent<PlatformLayoutComponent>();
+		});
+
+	//チェックポイント
+	PrefabRegistry::Instance().Register("checkpoint", [](GameObject& object)
+		{
+			object.SetTag(ObjectTag::CHECKPOINT);
+
+			//仮の表示画像
+			auto& anim = object.AddComponent<AnimatorComponent>(object.GetRenderer());
+			anim.SetRenderLayer(RenderLayer::Default);
+			anim.SetSortOrder(1);
+			anim.SetStatic(L"../../assets/flag.png");
+
+			//表示サイズと判定の大きさ
+			object.GetTransform()->SetScale({ 72.0f,72.0f,1.0f });
+
+			auto& checkpointRb = object.AddComponent<Rigidbody2DComponent>(*object.GetTransform(), 1.0f);
+			checkpointRb.SetGravity(0.0f);
+			checkpointRb.SetIsStatic(true);
+
+			object.AddComponent<BoxCollider2D>(
+				DirectX::XMFLOAT2(0.5f, 0.5f),
+				DirectX::XMFLOAT2(0.0f, 0.0f),
+				true,
+				*object.GetTransform());
+
+			object.AddComponent<CheckpointComponent>();
+		});
+
+	PrefabRegistry::Instance().Register("checkpoint_layout", [](GameObject& object)
+		{
+			object.AddComponent<CheckpointLayoutComponent>();
 		});
 }
