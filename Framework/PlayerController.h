@@ -22,6 +22,8 @@ public:
 	{
 		return lastCheckpointPosition;
 	}
+	//復帰処理
+	void RespawnAtCheckPoint();
 
 	float GetHP() const { return hp; }
 	float GetMaxHP() const { return maxHP; }

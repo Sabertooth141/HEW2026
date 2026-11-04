@@ -11,6 +11,7 @@
 #include "Rigidbody2DComponent.h"
 #include "SceneManager.h"
 #include "TextLabel.h"
+#include "RetryTransitionComponent.h"
 
 void PlayerController::Awake()
 {
@@ -28,6 +29,9 @@ void PlayerController::Update(float deltaTime)
 {
 	MonoBehavior::Update(deltaTime);
 
+	auto* retryTransition =
+		owner->GetComponent<RetryTransitionComponent>();
+
 	invulnerabilityTimer = std::max(0.f, invulnerabilityTimer - deltaTime);
 
 	HandleInput();
@@ -36,12 +40,53 @@ void PlayerController::Update(float deltaTime)
 	HandleHUD();
 
 	playTimer += deltaTime;
+
+	//トランジションが終わったタイミングで復帰
+	if (retryTransition != nullptr && retryTransition->ConsumeRespawnRequest())
+	{
+		RespawnAtCheckPoint();
+	}
+
+	//死亡中はspace入力を待つ
 	if (IsDead())
 	{
-		owner->GetContext().globalContext.playTime = playTimer;
-		owner->GetContext().sceneManager->RequestChange("Result");
-		DestroySelf();
+		if (rb != nullptr)
+		{
+			rb->SetVelocity({ 0.0f,0.0f });
+		}
+
+		if (retryTransition != nullptr &&
+			!retryTransition->IsRunning() &&
+			keyboard != nullptr &&
+			keyboard->KeyIsTriggered(' '))
+		{
+			retryTransition->Begin();
+		}
+
+		HandleHUD();
+		return;
 	}
+
+	//復帰処理でトランジション（暗転）中はプレイヤーの操作を受け付けない
+	if (retryTransition != nullptr && retryTransition->IsRunning())
+	{
+		if (rb != nullptr)
+		{
+			rb->SetVelocity({ 0.0f,0.0f });
+		}
+
+		HandleHUD();
+		return;
+	}
+
+	invulnerabilityTimer = std::max(0.0f, invulnerabilityTimer - deltaTime);
+
+	HandleInput();
+	HandleMovement();
+	HandleAnimation();
+	HandleHUD();
+
+	playTimer += deltaTime;
 }
 
 void PlayerController::HandleInput()
@@ -134,4 +179,18 @@ void PlayerController::SetCheckpoint(
 	bool addStack)
 {
 	lastCheckpointPosition = position;
+	(void)addStack;
+}
+
+void PlayerController::RespawnAtCheckPoint()
+{
+	owner->GetTransform()->SetPosition(lastCheckpointPosition);
+
+	if (rb != nullptr)
+	{
+		rb->SetVelocity({ 0.0f,0.0f });
+	}
+
+	hp = maxHP;
+	invulnerabilityTimer = invulnerabilityDuration;
 }
