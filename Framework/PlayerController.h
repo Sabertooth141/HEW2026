@@ -1,5 +1,6 @@
 #pragma once
 #include "MonoBehavior.h"
+#include "SpeedBoostComponent.h"
 
 class Rigidbody2DComponent;
 class AnimatorComponent;
@@ -17,11 +18,13 @@ public:
 	void OnCollisionEnter2D(const GameObject& other) override;
 
 	//チェックポイント
-	void SetCheckpoint(const DirectX::XMFLOAT3& position, bool addStack);
+	void SetCheckpoint(const DirectX::XMFLOAT3& position, const GameObject* checkpoint);
 	DirectX::XMFLOAT3 GetCheckpointPosition() const
 	{
 		return lastCheckpointPosition;
 	}
+	//復帰処理
+	void RespawnAtCheckPoint();
 
 	float GetHP() const { return hp; }
 	float GetMaxHP() const { return maxHP; }
@@ -65,4 +68,7 @@ private:
 	float invulnerabilityTimer = 0.f;
 
 	float playTimer = 0.f;
+
+	
+	SpeedBoostComponent* speedBoost = nullptr;
 };

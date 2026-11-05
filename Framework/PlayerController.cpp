@@ -12,6 +12,7 @@
 #include "SceneManager.h"
 #include "TextLabel.h"
 #include "BoxCollider2D.h"
+#include "RetryTransitionComponent.h"
 
 void PlayerController::Awake()
 {
@@ -22,6 +23,7 @@ void PlayerController::Awake()
 	hp = maxHP;
 	playTimer = owner->GetContext().globalContext.playTime;
 
+	//最後に触れたチェックポイントを取得
 	lastCheckpointPosition = owner->GetTransform()->GetPosition();
 
 	auto* playerCollider = owner->GetComponent<BoxCollider2D>();
@@ -33,6 +35,8 @@ void PlayerController::Awake()
 		previousPlayerLeft = aabb.min.x;//プレイヤーの左端のX座標
 		previousPlayerRight = aabb.max.x;//プレイヤーの右端のX座標
 	}
+	//加速
+	speedBoost = owner->GetComponent<SpeedBoostComponent>();
 }
 
 void PlayerController::Update(float deltaTime)
@@ -60,6 +64,54 @@ void PlayerController::Update(float deltaTime)
 		previousPlayerRight = aabb.max.x;
 	}
 	invulnerabilityTimer = std::max(0.f, invulnerabilityTimer - deltaTime);
+	auto* retryTransition =
+		owner->GetComponent<RetryTransitionComponent>();
+
+	//トランジションが終わったタイミングで復帰
+	if (retryTransition != nullptr && retryTransition->ConsumeRespawnRequest())
+	{
+		RespawnAtCheckPoint();
+	}
+
+	//死亡中はspace入力を待つ
+	if (IsDead())
+	{
+		if (speedBoost != nullptr)
+		{
+			speedBoost->ResetBoost();
+		}
+
+		if (rb != nullptr)
+		{
+			rb->SetVelocity({ 0.0f,0.0f });
+		}
+
+		if (retryTransition != nullptr &&
+			!retryTransition->IsRunning() &&
+			keyboard != nullptr &&
+			keyboard->KeyIsTriggered(' '))
+		{
+			retryTransition->Begin();
+		}
+
+		HandleHUD();
+		return;
+	}
+
+	//復帰処理でトランジション（暗転）中はプレイヤーの操作を受け付けない
+	if (retryTransition != nullptr && retryTransition->IsRunning())
+	{
+		if (rb != nullptr)
+		{
+			rb->SetVelocity({ 0.0f,0.0f });
+		}
+
+		HandleHUD();
+		return;
+	}
+
+
+
 
 	HandleInput();
 	HandleMovement();
@@ -99,7 +151,14 @@ void PlayerController::HandleMovement()
 		dirY /= length;
 	}
 
-	rb->SetVelocity({ dirX * moveSpeed, rb->GetVelocity().y });
+const float currentMoveSpeed = speedBoost != nullptr
+    ? speedBoost->GetMoveSpeed(moveSpeed)
+    : moveSpeed;
+
+rb->SetVelocity({
+    dirX * currentMoveSpeed,
+    rb->GetVelocity().y
+});
 }
 
 void PlayerController::HandleAnimation()
@@ -201,9 +260,27 @@ void PlayerController::OnCollisionEnter2D(const GameObject& other)
 //プレイヤーが最後に触ったチェックポイント
 void PlayerController::SetCheckpoint(
 	const DirectX::XMFLOAT3& position,
-	bool addStack)
+	const GameObject* checkpoint)
 {
 	lastCheckpointPosition = position;
+	
+	if (speedBoost != nullptr)
+	{
+		speedBoost->TryAddStack(checkpoint);
+	}
+}
+
+void PlayerController::RespawnAtCheckPoint()
+{
+	owner->GetTransform()->SetPosition(lastCheckpointPosition);
+
+	if (rb != nullptr)
+	{
+		rb->SetVelocity({ 0.0f,0.0f });
+	}
+
+	hp = maxHP;
+	invulnerabilityTimer = invulnerabilityDuration;
 }
 
 void PlayerController::HandleJump()

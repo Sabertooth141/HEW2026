@@ -13,6 +13,8 @@
 #include "AnimatorComponent.h"
 #include "CheckpointComponent.h"
 #include "CheckpointLayoutComponent.h"
+#include "RetryTransitionComponent.h"
+#include "SpeedBoostComponent.h"
 
 void RegisterPrefabs()
 {
@@ -37,10 +39,16 @@ void RegisterPrefabs()
 		                  L"../../assets/PlayerCharacterMove.json");
 		anim.SetCurrAnimation("CharIdle");
 
+		//加速
+		object.AddComponent<SpeedBoostComponent>();
+
 		// script
 		auto& controller = object.AddComponent<PlayerController>();
 		controller.SetInput(object.GetContext().keyboard, object.GetContext().mouse);
 		object.AddComponent<CameraController>();
+
+		//トランジション
+		object.AddComponent<RetryTransitionComponent>();
 
 		auto& label = object.AddComponent<TextLabel>();
 		label.posOffset = { 10.f, 0.f };

@@ -266,6 +266,9 @@
     <ClCompile Include="SceneLayout.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SpeedBoostComponent.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Win.h">
@@ -491,6 +494,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CheckpointLayoutComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RetryTransitionComponent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
