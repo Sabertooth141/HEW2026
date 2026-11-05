@@ -14,6 +14,7 @@
 #include "CheckpointComponent.h"
 #include "CheckpointLayoutComponent.h"
 #include "RetryTransitionComponent.h"
+#include "SpeedBoostComponent.h"
 
 void RegisterPrefabs()
 {
@@ -37,6 +38,9 @@ void RegisterPrefabs()
 		anim.AddAnimation("CharMove", L"../../assets/PlayerCharacterMove.png",
 		                  L"../../assets/PlayerCharacterMove.json");
 		anim.SetCurrAnimation("CharIdle");
+
+		//加速
+		object.AddComponent<SpeedBoostComponent>();
 
 		// script
 		auto& controller = object.AddComponent<PlayerController>();

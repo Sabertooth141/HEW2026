@@ -263,6 +263,7 @@
     <ClInclude Include="SceneLayout.h" />
     <ClInclude Include="SceneManager.h" />
     <ClInclude Include="ScriptSystem.h" />
+    <ClInclude Include="SpeedBoostComponent.h" />
     <ClInclude Include="SpriteAnimatorComponent.h" />
     <ClInclude Include="SpriteRendererComponent.h" />
     <ClInclude Include="SpriteRenderSystem.h" />

@@ -22,7 +22,11 @@ void PlayerController::Awake()
 	hp = maxHP;
 	playTimer = owner->GetContext().globalContext.playTime;
 
+	//最後に触れたチェックポイントを取得
 	lastCheckpointPosition = owner->GetTransform()->GetPosition();
+
+	//加速
+	speedBoost = owner->GetComponent<SpeedBoostComponent>();
 }
 
 void PlayerController::Update(float deltaTime)
@@ -31,15 +35,6 @@ void PlayerController::Update(float deltaTime)
 
 	auto* retryTransition =
 		owner->GetComponent<RetryTransitionComponent>();
-
-	invulnerabilityTimer = std::max(0.f, invulnerabilityTimer - deltaTime);
-
-	HandleInput();
-	HandleMovement();
-	HandleAnimation();
-	HandleHUD();
-
-	playTimer += deltaTime;
 
 	//トランジションが終わったタイミングで復帰
 	if (retryTransition != nullptr && retryTransition->ConsumeRespawnRequest())
@@ -50,6 +45,11 @@ void PlayerController::Update(float deltaTime)
 	//死亡中はspace入力を待つ
 	if (IsDead())
 	{
+		if (speedBoost != nullptr)
+		{
+			speedBoost->ResetBoost();
+		}
+
 		if (rb != nullptr)
 		{
 			rb->SetVelocity({ 0.0f,0.0f });
@@ -79,7 +79,10 @@ void PlayerController::Update(float deltaTime)
 		return;
 	}
 
-	invulnerabilityTimer = std::max(0.0f, invulnerabilityTimer - deltaTime);
+	// 通常プレイ中の更新
+	invulnerabilityTimer =
+		std::max(0.f, invulnerabilityTimer - deltaTime);
+
 
 	HandleInput();
 	HandleMovement();
@@ -118,7 +121,11 @@ void PlayerController::HandleMovement()
 		dirY /= length;
 	}
 
-	rb->SetVelocity({dirX * moveSpeed, dirY * moveSpeed});
+	const float currentMoveSpeed = speedBoost != nullptr
+		? speedBoost->GetMoveSpeed(moveSpeed)
+		: moveSpeed;
+
+	rb->SetVelocity({dirX * currentMoveSpeed, dirY * currentMoveSpeed});
 }
 
 void PlayerController::HandleAnimation()
@@ -176,10 +183,14 @@ void PlayerController::OnCollisionEnter2D(const GameObject& other)
 //プレイヤーが最後に触ったチェックポイント
 void PlayerController::SetCheckpoint(
 	const DirectX::XMFLOAT3& position,
-	bool addStack)
+	const GameObject* checkpoint)
 {
 	lastCheckpointPosition = position;
-	(void)addStack;
+	
+	if (speedBoost != nullptr)
+	{
+		speedBoost->TryAddStack(checkpoint);
+	}
 }
 
 void PlayerController::RespawnAtCheckPoint()
