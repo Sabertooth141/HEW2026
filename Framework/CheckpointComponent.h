@@ -21,13 +21,9 @@ public:
 			return;
 		}
 
-		const DirectX::XMFLOAT3 checkpointPosition = owner->GetTransform()->GetPosition();
+		const DirectX::XMFLOAT3 checkpointPosition =
+			owner->GetTransform()->GetPosition();
 
-
-		playerController->SetCheckpoint(checkpointPosition, !isActivated);
-		isActivated = true;
+		playerController->SetCheckpoint(checkpointPosition, owner);
 	}
-
-private:
-	bool isActivated = false;
 };
