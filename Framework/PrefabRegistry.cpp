@@ -136,4 +136,24 @@ void RegisterPrefabs()
 		{
 			object.AddComponent<CheckpointLayoutComponent>();
 		});
+
+	// トゲ
+	PrefabRegistry::Instance().Register("spike", [](GameObject& object)
+		{
+			object.SetTag(ObjectTag::SPIKE);
+			object.GetTransform()->SetScale({ 48.f, 48.f, 1.f });
+		
+			auto& spikeRb = object.AddComponent<Rigidbody2DComponent>(
+				*object.GetTransform(), 1.0f);
+
+			spikeRb.SetGravity(0.0f);
+			spikeRb.SetIsStatic(true);
+
+			// 当たり判定
+			object.AddComponent<BoxCollider2D>(
+				DirectX::XMFLOAT2(0.5f, 0.5f),
+				DirectX::XMFLOAT2(0.0f, 0.0f),
+				true,
+				*object.GetTransform());
+		});
 }
