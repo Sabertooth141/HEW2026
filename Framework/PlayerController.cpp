@@ -12,6 +12,7 @@
 #include "SceneManager.h"
 #include "TextLabel.h"
 #include "RetryTransitionComponent.h"
+#include "CameraController.h"
 
 void PlayerController::Awake()
 {
@@ -196,6 +197,13 @@ void PlayerController::SetCheckpoint(
 void PlayerController::RespawnAtCheckPoint()
 {
 	owner->GetTransform()->SetPosition(lastCheckpointPosition);
+
+	auto* cameraConroller = owner->GetComponent<CameraController>();
+
+	if (cameraConroller != nullptr)
+	{
+		cameraConroller->SnapToTarget();
+	}
 
 	if (rb != nullptr)
 	{
