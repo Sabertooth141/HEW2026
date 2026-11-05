@@ -34,11 +34,27 @@ public:
 	float maxHP = 100.f;
 	float invulnerabilityDuration = 1.f;
 
+	void OnCollisionStay2D(const GameObject& other) override;
+	void OnCollisionExit2D(const GameObject& other) override;
+
 private:
 	void HandleInput();
 	void HandleMovement();
 	void HandleAnimation();
 	void HandleHUD();
+	void HandleJump();       // ジャンプ処理
+	void Respawn();
+
+	bool isGrounded = false;
+	float jumpPower = 500.f;
+
+	// トゲに触れて死亡しているか
+	bool isDead = false;
+
+	// プレイヤーの足元のY座標
+	float previousPlayerBottom = 0.f;
+	float previousPlayerLeft = 0.f;
+	float previousPlayerRight = 0.f;
 
 	DirectX::XMFLOAT3 lastCheckpointPosition = {};
 

@@ -11,6 +11,7 @@
 #include "Rigidbody2DComponent.h"
 #include "SceneManager.h"
 #include "TextLabel.h"
+#include "BoxCollider2D.h"
 #include "RetryTransitionComponent.h"
 #include "CameraController.h"
 
@@ -26,6 +27,15 @@ void PlayerController::Awake()
 	//最後に触れたチェックポイントを取得
 	lastCheckpointPosition = owner->GetTransform()->GetPosition();
 
+	auto* playerCollider = owner->GetComponent<BoxCollider2D>();
+	if (playerCollider != nullptr)
+	{
+		auto aabb = playerCollider->GetWorldAABB();//プレイヤーの当たり判定の四隅の位置
+
+		previousPlayerBottom = aabb.min.y;//プレイヤーの足元のY座標
+		previousPlayerLeft = aabb.min.x;//プレイヤーの左端のX座標
+		previousPlayerRight = aabb.max.x;//プレイヤーの右端のX座標
+	}
 	//加速
 	speedBoost = owner->GetComponent<SpeedBoostComponent>();
 }
@@ -34,6 +44,27 @@ void PlayerController::Update(float deltaTime)
 {
 	MonoBehavior::Update(deltaTime);
 
+	// 死亡中はSpaceキーを押すまで待機
+	if (isDead)
+	{
+		if (keyboard->KeyIsTriggered(' '))
+		{
+			Respawn();
+		}
+
+		return;
+	}
+	//プレイヤーの足元を記録
+	auto* playerCollider = owner->GetComponent<BoxCollider2D>();
+	if (playerCollider != nullptr)
+	{
+		auto aabb = playerCollider->GetWorldAABB();
+
+		previousPlayerBottom = aabb.min.y;
+		previousPlayerLeft = aabb.min.x;
+		previousPlayerRight = aabb.max.x;
+	}
+	invulnerabilityTimer = std::max(0.f, invulnerabilityTimer - deltaTime);
 	auto* retryTransition =
 		owner->GetComponent<RetryTransitionComponent>();
 
@@ -80,17 +111,17 @@ void PlayerController::Update(float deltaTime)
 		return;
 	}
 
-	// 通常プレイ中の更新
-	invulnerabilityTimer =
-		std::max(0.f, invulnerabilityTimer - deltaTime);
+
 
 
 	HandleInput();
 	HandleMovement();
 	HandleAnimation();
 	HandleHUD();
+	HandleJump();
 
 	playTimer += deltaTime;
+	
 }
 
 void PlayerController::HandleInput()
@@ -100,8 +131,7 @@ void PlayerController::HandleInput()
 
 	if (keyboard->KeyIsPressed('D')) inputX += 1.f;
 	if (keyboard->KeyIsPressed('A')) inputX -= 1.f;
-	if (keyboard->KeyIsPressed('W')) inputY += 1.f;
-	if (keyboard->KeyIsPressed('S')) inputY -= 1.f;
+	
 }
 
 void PlayerController::HandleMovement()
@@ -122,11 +152,14 @@ void PlayerController::HandleMovement()
 		dirY /= length;
 	}
 
-	const float currentMoveSpeed = speedBoost != nullptr
-		? speedBoost->GetMoveSpeed(moveSpeed)
-		: moveSpeed;
+const float currentMoveSpeed = speedBoost != nullptr
+    ? speedBoost->GetMoveSpeed(moveSpeed)
+    : moveSpeed;
 
-	rb->SetVelocity({dirX * currentMoveSpeed, dirY * currentMoveSpeed});
+rb->SetVelocity({
+    dirX * currentMoveSpeed,
+    rb->GetVelocity().y
+});
 }
 
 void PlayerController::HandleAnimation()
@@ -165,6 +198,40 @@ void PlayerController::OnCollisionEnter2D(const GameObject& other)
 {
 	MonoBehavior::OnCollisionEnter2D(other);
 
+	// 針に上から落ちてきた場合だけ死亡
+	if (other.GetTag() == ObjectTag::SPIKE)
+	{
+		auto* playerCollider = owner->GetComponent<BoxCollider2D>();
+		auto* spikeCollider = other.GetComponent<BoxCollider2D>();
+
+		if (playerCollider != nullptr && spikeCollider != nullptr && rb != nullptr)
+		{
+			//プレイヤーとトゲの現在の当たり判定の範囲
+			const auto spikeAABB = spikeCollider->GetWorldAABB();
+			const auto playerAABB = playerCollider->GetWorldAABB();
+
+			const float spikeTop = spikeAABB.max.y; // 針の一番上のY座標を取得
+
+			const float playerBottom = playerAABB.min.y;//プレイヤーの足元のY座標の取得
+
+			const bool horizontalOverlap =
+				previousPlayerRight > spikeAABB.min.x &&
+				previousPlayerLeft < spikeAABB.max.x;
+			// 上から落下して接触したか
+			const bool landedOnSpike =
+				rb->GetVelocity().y < 0.f &&//下方向の落下
+				previousPlayerBottom >= spikeTop - 1.f &&//前フレームでは針より上にいたか
+				playerBottom < spikeTop;
+
+			if (horizontalOverlap && landedOnSpike)
+			{
+				isDead = true;
+				rb->SetVelocity({ 0.f, 0.f });
+			}
+		}
+		return;
+	}
+
 	// 無敵時間中、または敵以外との接触ではダメージを受けない
 	if (invulnerabilityTimer > 0.f || other.GetTag() != ObjectTag::ENEMY)
 	{
@@ -179,7 +246,17 @@ void PlayerController::OnCollisionEnter2D(const GameObject& other)
 
 	hp = std::max(0.f, hp - static_cast<float>(enemy->GetAttackPower()));
 	invulnerabilityTimer = invulnerabilityDuration;
+
+	// 地面に接触したら接地状態にする
+	if (other.GetTag() == ObjectTag::GROUND)
+	{
+		if (rb != nullptr && rb->GetVelocity().y <= 0.f)
+		{
+			isGrounded = true;
+		}
+	}
 }
+
 
 //プレイヤーが最後に触ったチェックポイント
 void PlayerController::SetCheckpoint(
@@ -212,4 +289,64 @@ void PlayerController::RespawnAtCheckPoint()
 
 	hp = maxHP;
 	invulnerabilityTimer = invulnerabilityDuration;
+}
+
+void PlayerController::HandleJump()
+{
+	if (rb == nullptr)
+	{
+		return;
+	}
+
+	// 地面にいるときだけジャンプできる
+	if (isGrounded && keyboard->KeyIsTriggered(' '))
+	{
+		DirectX::XMFLOAT2 velocity = rb->GetVelocity();
+		velocity.y = jumpPower;
+
+		rb->SetVelocity(velocity);
+		isGrounded = false;
+	}
+}
+
+void PlayerController::OnCollisionStay2D(const GameObject& other)
+{
+	if (other.GetTag() == ObjectTag::GROUND &&
+		rb != nullptr &&
+		rb->GetVelocity().y <= 0.f)
+	{
+		isGrounded = true;
+	}
+}
+
+void PlayerController::OnCollisionExit2D(const GameObject& other)
+{
+	if (other.GetTag() == ObjectTag::GROUND)
+	{
+		isGrounded = false;
+	}
+}
+
+
+void PlayerController::Respawn()
+{
+	owner->GetTransform()->SetPosition(lastCheckpointPosition);
+
+	if (rb != nullptr)
+	{
+		rb->SetVelocity({ 0.f, 0.f });
+		rb->SetAngularVel(0.f);
+		rb->Wake();
+	}
+	isGrounded = false;
+	isDead = false;
+	auto* playerCollider = owner->GetComponent<BoxCollider2D>();
+	if (playerCollider != nullptr)
+	{
+		auto aabb = playerCollider->GetWorldAABB();
+
+		previousPlayerBottom = aabb.min.y;
+		previousPlayerLeft = aabb.min.x;
+		previousPlayerRight = aabb.max.x;
+	}
 }

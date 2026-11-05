@@ -16,6 +16,9 @@ void GameScene::OnEnter()
 	//2Dプラットフォーム
 	Instantiate("platform_layout", { 0.0f,0.0f,1.0f });
 
+	//針
+    Instantiate("spike", { -500.f, -160.f, 1.f });
+
 	// enemies (prefab)
 	Instantiate("enemy", {200.f, -100.f, 1.f});
 	Instantiate("enemy", {-300.f, 150.f, 1.f});
