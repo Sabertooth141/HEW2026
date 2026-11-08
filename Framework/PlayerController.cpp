@@ -5,7 +5,6 @@
 #include <format>
 
 #include "AnimatorComponent.h"
-#include "EnemyController.h"
 #include "GameObject.h"
 #include "Keyboard.h"
 #include "Rigidbody2DComponent.h"
@@ -14,6 +13,7 @@
 #include "BoxCollider2D.h"
 #include "Collider2D.h"
 #include "RetryTransitionComponent.h"
+#include "CameraController.h"
 
 
 void PlayerController::Awake()
@@ -487,7 +487,6 @@ void PlayerController::HandleAnimation()
 
 void PlayerController::OnCollisionEnter2D(const GameObject& other)
 {
-	MonoBehavior::OnCollisionEnter2D(other);
 
 	// 針に上から落ちてきた場合だけ死亡
 	if (other.GetTag() == ObjectTag::SPIKE)
@@ -523,33 +522,9 @@ void PlayerController::OnCollisionEnter2D(const GameObject& other)
 		return;
 	}
 
-
-
-	// 無敵時間中、または敵以外との接触ではダメージを受けない
-	if (invulnerabilityTimer > 0.f || other.GetTag() != ObjectTag::ENEMY)
-	{
-		return;
-	}
-
-	const auto* enemy = other.GetComponent<EnemyController>();
-	if (enemy == nullptr || enemy->IsDead())
-	{
-		return;
-	}
-
-	hp = std::max(0.f, hp - static_cast<float>(enemy->GetAttackPower()));
-	invulnerabilityTimer = invulnerabilityDuration;
-
-	// 地面に接触したら接地状態にする
-	if (other.GetTag() == ObjectTag::GROUND)
-	{
-		if (rb != nullptr && rb->GetVelocity().y <= 0.f)
-		{
-			isGrounded = true;
-		}
-	}
 }
 
+	
 void PlayerController::OnCollisionEnter2D(
 	const GameObject& other,
 	const CollisionManifold& manifold)
@@ -585,6 +560,13 @@ void PlayerController::SetCheckpoint(
 void PlayerController::RespawnAtCheckPoint()
 {
 	owner->GetTransform()->SetPosition(lastCheckpointPosition);
+
+	auto* cameraConroller = owner->GetComponent<CameraController>();
+
+	if (cameraConroller != nullptr)
+	{
+		cameraConroller->SnapToTarget();
+	}
 
 	if (rb != nullptr)
 	{

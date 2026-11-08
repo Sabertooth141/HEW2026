@@ -4,7 +4,6 @@
 
 #define OBJECT_TAG_LIST(X)	\
 	X(DEFAULT)				\
-	X(ENEMY)				\
 	X(PLAYER)				\
 	X(BLOCK)				\
 	X(GROUND)				\
