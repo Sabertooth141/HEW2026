@@ -16,6 +16,7 @@
 class Rigidbody2DComponent;
 class PhysicsSystem;
 struct GameContext;
+struct CollisionManifold;
 class ModelReader;
 class Renderer;
 
@@ -89,6 +90,10 @@ public:
 	void NotifyColliderEnter2D(const GameObject& other) const;
 	void NotifyColliderStay2D(const GameObject& other) const;
 	void NotifyColliderLeave2D(const GameObject& other) const;
+
+	void NotifyColliderEnter2D(const GameObject& other,const CollisionManifold& manifold) const;
+
+	void NotifyColliderStay2D(const GameObject& other,const CollisionManifold& manifold) const;
 
 	Renderer& GetRenderer() const
 	{

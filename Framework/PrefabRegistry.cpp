@@ -25,9 +25,9 @@ void RegisterPrefabs()
 		// physics
 		auto& playerRb = object.AddComponent<Rigidbody2DComponent>(*object.GetTransform(), 1.f);
 		playerRb.SetFreezeRotation(true);
-		playerRb.SetGravity(0.f);
+		playerRb.SetGravity(800.f);
 		object.AddComponent<BoxCollider2D>(
-			DirectX::XMFLOAT2(1.f, 1.f), DirectX::XMFLOAT2(0.f, 0.f), true, *object.GetTransform());
+			DirectX::XMFLOAT2(1.f, 1.f), DirectX::XMFLOAT2(0.f, 0.f), false, *object.GetTransform());
 
 		// animation
 		auto& anim = object.AddComponent<AnimatorComponent>(object.GetRenderer());
@@ -114,5 +114,25 @@ void RegisterPrefabs()
 	PrefabRegistry::Instance().Register("checkpoint_layout", [](GameObject& object)
 		{
 			object.AddComponent<CheckpointLayoutComponent>();
+		});
+
+	//針
+	PrefabRegistry::Instance().Register("spike", [](GameObject& object)
+		{
+			object.SetTag(ObjectTag::SPIKE);
+			object.GetTransform()->SetScale({ 64.f, 64.f, 1.f });
+		
+			auto& spikeRb = object.AddComponent<Rigidbody2DComponent>(
+				*object.GetTransform(), 1.0f);
+
+			spikeRb.SetGravity(0.0f);
+			spikeRb.SetIsStatic(true);
+
+			// 当たり判定
+			object.AddComponent<BoxCollider2D>(
+				DirectX::XMFLOAT2(0.5f, 0.5f),
+				DirectX::XMFLOAT2(0.0f, 0.0f),
+				true,
+				*object.GetTransform());
 		});
 }

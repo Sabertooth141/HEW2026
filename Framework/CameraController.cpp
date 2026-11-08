@@ -19,7 +19,7 @@ void CameraController::Awake()
 	SnapToTarget();
 }
 
-void CameraController::LateUpdate(float deltaTime)
+void CameraController::LateUpdate(float deltaTime)//プレイヤーを追っているカメラ
 {
 	if (camera == nullptr)
 	{

@@ -16,6 +16,10 @@ void GameScene::OnEnter()
 	//2Dプラットフォーム
 	Instantiate("platform_layout", { 0.0f,0.0f,1.0f });
 
+	//針
+    Instantiate("spike", { -500.f, -160.f, 1.f });
+
+	
 	//チェックポイント
 	Instantiate("checkpoint_layout", { 0.0f,0.0f,1.0f });
 }

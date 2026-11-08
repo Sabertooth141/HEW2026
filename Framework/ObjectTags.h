@@ -7,7 +7,8 @@
 	X(PLAYER)				\
 	X(BLOCK)				\
 	X(GROUND)				\
-	X(CHECKPOINT)
+	X(CHECKPOINT)           \
+    X(SPIKE)
 
 enum class ObjectTag : uint8_t
 {

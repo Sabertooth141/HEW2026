@@ -64,6 +64,15 @@ void GameObject::NotifyColliderEnter2D(const GameObject& other) const
 		comp.second->OnCollisionEnter2D(other);
 	}
 }
+void GameObject::NotifyColliderEnter2D(
+	const GameObject& other,
+	const CollisionManifold& manifold) const
+{
+	for (const auto& comp : components)
+	{
+		comp.second->OnCollisionEnter2D(other, manifold);
+	}
+}
 
 void GameObject::NotifyColliderStay2D(const GameObject& other) const
 {
@@ -72,7 +81,15 @@ void GameObject::NotifyColliderStay2D(const GameObject& other) const
 		comp.second->OnCollisionStay2D(other);
 	}
 }
-
+void GameObject::NotifyColliderStay2D(
+	const GameObject& other,
+	const CollisionManifold& manifold) const
+{
+	for (const auto& comp : components)
+	{
+		comp.second->OnCollisionStay2D(other, manifold);
+	}
+}
 void GameObject::NotifyColliderLeave2D(const GameObject& other) const
 {
 	for (const auto& comp : components)
