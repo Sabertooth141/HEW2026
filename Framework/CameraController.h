@@ -29,7 +29,7 @@ private:
 	float viewHeight = 768.0f;
 
 	float transitionTimer = 0.0f;
-	float transitionDuration = 0.45f;
+	float transitionDuration = 0.60f;
 
 	bool isTransitioning = false;
 };
