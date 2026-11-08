@@ -172,7 +172,6 @@
     <ClCompile Include="DebugRenderer.cpp" />
     <ClCompile Include="Drawable.cpp" />
     <ClCompile Include="EditorUI.cpp" />
-    <ClCompile Include="EnemyController.cpp" />
     <ClCompile Include="GameObject.cpp" />
     <ClCompile Include="GameScene.cpp" />
     <ClCompile Include="ImGuiLayer.cpp" />
@@ -226,7 +225,6 @@
     <ClInclude Include="CollisionTests.h" />
     <ClInclude Include="DebugRenderer.h" />
     <ClInclude Include="EditorUI.h" />
-    <ClInclude Include="EnemyController.h" />
     <ClInclude Include="GameContext.h" />
     <ClInclude Include="GameScene.h" />
     <ClInclude Include="PlatformLayoutComponent.h" />

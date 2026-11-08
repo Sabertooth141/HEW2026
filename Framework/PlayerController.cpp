@@ -5,7 +5,6 @@
 #include <format>
 
 #include "AnimatorComponent.h"
-#include "EnemyController.h"
 #include "GameObject.h"
 #include "Keyboard.h"
 #include "Rigidbody2DComponent.h"
@@ -163,22 +162,7 @@ void PlayerController::HandleHUD()
 
 void PlayerController::OnCollisionEnter2D(const GameObject& other)
 {
-	MonoBehavior::OnCollisionEnter2D(other);
 
-	// 無敵時間中、または敵以外との接触ではダメージを受けない
-	if (invulnerabilityTimer > 0.f || other.GetTag() != ObjectTag::ENEMY)
-	{
-		return;
-	}
-
-	const auto* enemy = other.GetComponent<EnemyController>();
-	if (enemy == nullptr || enemy->IsDead())
-	{
-		return;
-	}
-
-	hp = std::max(0.f, hp - static_cast<float>(enemy->GetAttackPower()));
-	invulnerabilityTimer = invulnerabilityDuration;
 }
 
 //プレイヤーが最後に触ったチェックポイント
