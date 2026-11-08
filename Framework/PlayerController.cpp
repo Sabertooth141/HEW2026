@@ -149,7 +149,16 @@ void PlayerController::HandleMovement(float deltaTime)
 
 	const AABB playerAABB = playerCollider->GetWorldAABB();
 
+	// 壁上端への移動中に足場との接触がなくなったら通常移動に戻す
+	if (isWallTopTransitioning && !isTouchingGround)
+	{
+		isWallTopTransitioning = false;
+		hasWallTop = false;
+	}
+
 	for (const auto& contact : groundContacts)//接触中の地形を調べる
+
+
 	{
 		const DirectX::XMFLOAT2 normal = contact.second;//接触面の法線
 
@@ -160,19 +169,22 @@ void PlayerController::HandleMovement(float deltaTime)
 
 		if (std::abs(normal.x) > 0.5f)//壁に接しているか
 		{
-			isTouchingWall = true;
+			isTouchingWall = true;		
 			wallNormal = normal;
 
 			const GameObject* wall = contact.first;//壁の上橋到達で、足場でいどう
 			const auto* wallCollider =
 				wall->GetComponent<BoxCollider2D>();
-
-			if (wallCollider != nullptr && inputX < 0.f)
+			if (wallCollider != nullptr)
 			{
 				const AABB wallAABB = wallCollider->GetWorldAABB();
 
-				// プレイヤーの足元が壁の上端に到達した
-				if (playerAABB.min.y >= wallAABB.max.y - 2.f)
+				// 壁の上端位置を記憶する
+				wallTopY = wallAABB.max.y;
+				hasWallTop = true;
+
+				// 左方向への入力中に壁の上端へ到達したら横移動へ切り替える
+				if (inputX < 0.f && playerAABB.min.y >= wallTopY - 2.f)
 				{
 					isWallTopTransitioning = true;
 				}
@@ -197,9 +209,17 @@ void PlayerController::HandleMovement(float deltaTime)
 				if (distance < 8.f)
 				{
 					isWallTopTransitioning = false;
+					hasWallTop = false;
 				}
 			}
 		}
+	}
+	// 壁との接触が切れても、記憶した上端位置で判定する
+	if (hasWallTop &&
+		inputX < 0.f &&
+		playerAABB.min.y >= wallTopY - 2.f)
+	{
+		isWallTopTransitioning = true;
 	}
 
 	// 天井に接触した瞬間だけノックバック
@@ -353,6 +373,7 @@ DirectX::XMFLOAT2 PlayerController::SelectSurfaceNormal() const
 	}
 
 	const AABB playerAABB = playerCollider->GetWorldAABB();//現在のプレイヤーの当たり判定の範囲を取得
+
 
 	// 進行方向にある壁を探す
 	for (const auto& contact : groundContacts)
