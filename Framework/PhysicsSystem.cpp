@@ -249,15 +249,31 @@ void PhysicsSystem::ProcessPairs(const std::vector<EntryPair>& candidates)
 		currentOverlaps.insert(colliderPair);
 
 		// event handling
+
+		// B側に渡す法線を反転する
+		CollisionManifold manifoldForB = *manifold;
+		manifoldForB.normal.x = -manifoldForB.normal.x;
+		manifoldForB.normal.y = -manifoldForB.normal.y;
+
 		if (!previousOverlaps.contains(colliderPair))
 		{
-			pair.a->gameObject->NotifyColliderEnter2D(*pair.b->gameObject);
-			pair.b->gameObject->NotifyColliderEnter2D(*pair.a->gameObject);
+			// A側には元の法線を渡す
+			pair.a->gameObject->NotifyColliderEnter2D(
+				*pair.b->gameObject, *manifold);
+
+			// B側には反転した法線を渡す
+			pair.b->gameObject->NotifyColliderEnter2D(
+				*pair.a->gameObject, manifoldForB);
 		}
 		else
 		{
-			pair.a->gameObject->NotifyColliderStay2D(*pair.b->gameObject);
-			pair.b->gameObject->NotifyColliderStay2D(*pair.a->gameObject);
+			// A側には元の法線を渡す
+			pair.a->gameObject->NotifyColliderStay2D(
+				*pair.b->gameObject, *manifold);
+
+			// B側には反転した法線を渡す
+			pair.b->gameObject->NotifyColliderStay2D(
+				*pair.a->gameObject, manifoldForB);
 		}
 
 		// if either collider is trigger -> skips physics
@@ -321,7 +337,28 @@ void PhysicsSystem::BuildConstraint(Entry* entryA, Entry* entryB, const Collisio
 	constraint.a = a;
 	constraint.b = b;
 	constraint.manifold = manifold;
-	constraint.friction = std::sqrt(a->GetFriction() * b->GetFriction());
+	// プレイヤーと地面の接触か確認する。
+	// 壁もGROUNDタグで管理されているため、接触方向も確認する。
+	const bool isPlayerGroundContact =
+		(entryA->gameObject->GetTag() == ObjectTag::PLAYER &&
+			entryB->gameObject->GetTag() == ObjectTag::GROUND) ||
+		(entryA->gameObject->GetTag() == ObjectTag::GROUND &&
+			entryB->gameObject->GetTag() == ObjectTag::PLAYER);
+
+	// 接触法線のX成分が大きい場合、壁との接触と判定する。
+	const bool isWallContact = std::abs(manifold.normal.x) > 0.5f;
+
+	if (isPlayerGroundContact && isWallContact)
+	{
+		// 壁に向かって入力し続けても、摩擦で壁に張り付かないようにする。
+		// これにより、ブーストしていない状態では重力によって落下できる。
+		constraint.friction = 0.f;
+	}
+	else
+	{
+		// プレイヤーと壁以外の接触は、従来どおり摩擦を計算する。
+		constraint.friction = std::sqrt(a->GetFriction() * b->GetFriction());
+	}
 	constraint.restitution = std::min(a->GetRestitution(), b->GetRestitution());
 
 	const DirectX::XMFLOAT3 posA = a->GetTransformComp().GetPosition();

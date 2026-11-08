@@ -22,8 +22,9 @@ public:
 	}
 
 private:
-	const std::array<DirectX::XMFLOAT3, 3> checkpointPositions =
+	const std::array<DirectX::XMFLOAT3, 4> checkpointPositions =
 	{
+		DirectX::XMFLOAT3{ -900.0f,  -160.f, 1.f },
 		DirectX::XMFLOAT3{ -300.0f,  -160.f, 1.f },
 		DirectX::XMFLOAT3{ 300.f,  -160.f, 1.f },
 		DirectX::XMFLOAT3{ 1400.f,  -160.f, 1.f }

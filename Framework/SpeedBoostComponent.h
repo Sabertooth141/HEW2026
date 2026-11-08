@@ -72,6 +72,29 @@ public:
 		return stackCount;
 	}
 
+	enum class BoostAbility
+	{
+		WallClimb // 壁登り
+	};
+
+	// スタック数に応じて能力が使用可能か確認する
+	bool HasAbility(BoostAbility ability) const
+	{
+		// 加速時間が切れていたら能力は使えない
+		if (remainingTime <= 0.f)
+		{
+			return false;
+		}
+
+		switch (ability)
+		{
+		case BoostAbility::WallClimb:
+			return stackCount >= wallClimbRequiredStacks;
+		}
+
+		return false;
+	}
+
 	float GetRemainingTime() const
 	{
 		return remainingTime;
@@ -89,6 +112,8 @@ public:
 		remainingTime = 0.f;
 	}
 
+
+
 private:
 	int stackCount = 0;
 	float  remainingTime = 0.0f;
@@ -99,4 +124,7 @@ private:
 	bool isPaused = false;
 
 	std::unordered_set<const GameObject*> usedCheckpoints;
+
+	// 壁登りを解放するために必要なスタック数
+	int wallClimbRequiredStacks = 2;
 };

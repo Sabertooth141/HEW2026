@@ -145,11 +145,11 @@ void RegisterPrefabs()
 			object.AddComponent<CheckpointLayoutComponent>();
 		});
 
-	// トゲ
+	//針
 	PrefabRegistry::Instance().Register("spike", [](GameObject& object)
 		{
 			object.SetTag(ObjectTag::SPIKE);
-			object.GetTransform()->SetScale({ 48.f, 48.f, 1.f });
+			object.GetTransform()->SetScale({ 64.f, 64.f, 1.f });
 		
 			auto& spikeRb = object.AddComponent<Rigidbody2DComponent>(
 				*object.GetTransform(), 1.0f);

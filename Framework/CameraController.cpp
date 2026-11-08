@@ -11,7 +11,7 @@ void CameraController::Awake()
 	camera = &owner->GetContext().camera;
 }
 
-void CameraController::LateUpdate(float deltaTime)
+void CameraController::LateUpdate(float deltaTime)//プレイヤーを追っているカメラ
 {
 	if (camera == nullptr || followSpeed <= 0.f)
 	{
@@ -19,6 +19,7 @@ void CameraController::LateUpdate(float deltaTime)
 	}
 
 	DirectX::XMFLOAT2 camPos = camera->GetPosition();
+
 	const DirectX::XMFLOAT3 targetPos = owner->GetTransform()->GetPosition();
 
 	// フレームレートに依存しない指数補間
