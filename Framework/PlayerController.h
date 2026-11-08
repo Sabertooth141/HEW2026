@@ -109,6 +109,8 @@ private:
 
 	// 壁の上端から上側の足場へ移動中か
 	bool isWallTopTransitioning = false;
-
+	// 壁の上端位置を記憶する
+	float wallTopY = 0.f;
+	bool hasWallTop = false;
 	SpeedBoostComponent* speedBoost = nullptr;
 };
