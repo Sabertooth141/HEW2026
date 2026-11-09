@@ -57,7 +57,8 @@ private:
 	void FreeCursor();
 	void ShowCursor();
 	void HideCursor();
-
+private:
+	POINTS ClientToLogic(POINTS pt) const;
 
 private:
 	bool cursorEnabled = true;
@@ -66,5 +67,7 @@ private:
 	HWND hWnd;
 	int width;
 	int height;
+	int clientW;
+	int clientH;
 	std::optional<Renderer> renderer;
 };
