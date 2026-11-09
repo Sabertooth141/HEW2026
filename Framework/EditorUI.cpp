@@ -17,9 +17,24 @@ namespace
 		return anim && anim->IsScreenSpaceEnabled();
 	}
 
+	DirectX::XMFLOAT2 LogicPerClientPixel()
+	{
+		const ImVec2 display = ImGui::GetIO().DisplaySize;
+		if (display.x <= 0.f || display.y <= 0.f)
+		{
+			return {1.f, 1.f};
+		}
+
+		return {static_cast<float>(WIN_WIDTH) / display.x, static_cast<float>(WIN_HEIGHT) / display.y};
+	}
+
 	// スクリーン座標（左上原点・+Y 下）→ ワールド座標（画面中央原点・+Y 上）
 	DirectX::XMFLOAT2 ScreenToWorld(DirectX::XMFLOAT2 screen, DirectX::XMFLOAT2 cam, bool screenSpace)
 	{
+		const DirectX::XMFLOAT2 ratio = LogicPerClientPixel();
+		screen.x *= ratio.x;
+		screen.y *= ratio.y;
+
 		const float x = screen.x - static_cast<float>(WIN_WIDTH) * 0.5f;
 		const float y = static_cast<float>(WIN_HEIGHT) * 0.5f - screen.y;
 		if (screenSpace)
@@ -37,7 +52,9 @@ namespace
 			world.x -= cam.x;
 			world.y -= cam.y;
 		}
-		return {world.x + WIN_WIDTH * 0.5f, WIN_HEIGHT * 0.5f - world.y};
+
+		const DirectX::XMFLOAT2 ratio = LogicPerClientPixel();
+		return {(world.x + WIN_WIDTH * 0.5f) / ratio.x, (WIN_HEIGHT * 0.5f - world.y) / ratio.y};
 	}
 
 	// スプライトは -0.5〜0.5 の四角形を Transform でスケール・回転したもの
@@ -411,10 +428,10 @@ void EditorUI::DrawToolbar(SceneManager& sceneManager)
 		if (mode == Mode::EDIT)
 		{
 			ImGui::PushStyleColor(ImGuiCol_Button, {0.2f, 0.55f, 0.25f, 1.f});
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.2f, 0.65f, 0.3f, 1.f });
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.15f, 0.45f, 0.2f, 1.f });
-			
-			const bool isPlayPressed = ImGui::Button("プレイ", { 90.f, 0.f });
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, {0.2f, 0.65f, 0.3f, 1.f});
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, {0.15f, 0.45f, 0.2f, 1.f});
+
+			const bool isPlayPressed = ImGui::Button("プレイ", {90.f, 0.f});
 			ImGui::PopStyleColor(3);
 
 			if (isPlayPressed)
@@ -423,15 +440,15 @@ void EditorUI::DrawToolbar(SceneManager& sceneManager)
 			}
 
 			ImGui::SameLine();
-			ImGui::TextColored({ 0.6f, 0.85f, 1.f, 1.f }, "編集モード中");
+			ImGui::TextColored({0.6f, 0.85f, 1.f, 1.f}, "編集モード中");
 		}
 		else
 		{
-			ImGui::PushStyleColor(ImGuiCol_Button, { 0.6f, 0.25f, 0.2f, 1.f });
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.7f, 0.3f, 0.25f, 1.f });
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.5f, 0.2f, 0.15f, 1.f });
+			ImGui::PushStyleColor(ImGuiCol_Button, {0.6f, 0.25f, 0.2f, 1.f});
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, {0.7f, 0.3f, 0.25f, 1.f});
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, {0.5f, 0.2f, 0.15f, 1.f});
 
-			const bool isStopPressed = ImGui::Button("編集モード", { 90.f, 0.f });
+			const bool isStopPressed = ImGui::Button("編集モード", {90.f, 0.f});
 			ImGui::PopStyleColor(3);
 
 			if (isStopPressed)
@@ -442,11 +459,11 @@ void EditorUI::DrawToolbar(SceneManager& sceneManager)
 			ImGui::SameLine();
 			if (isPaused)
 			{
-				ImGui::TextColored({ 1.f, 0.7f, 0.3f, 1.f }, "プレイ中（一時停止）");
+				ImGui::TextColored({1.f, 0.7f, 0.3f, 1.f}, "プレイ中（一時停止）");
 			}
 			else
 			{
-				ImGui::TextColored({ 1.f, 0.7f, 0.3f, 1.f }, "プレイ中");
+				ImGui::TextColored({1.f, 0.7f, 0.3f, 1.f}, "プレイ中");
 			}
 		}
 		ImGui::EndDisabled();
@@ -502,7 +519,6 @@ void EditorUI::DrawToolbar(SceneManager& sceneManager)
 		{
 			ImGui::TextDisabled("一時停止中：クリックで選択／ドラッグで移動");
 		}
-
 	}
 
 	ImGui::End();
@@ -637,7 +653,7 @@ void EditorUI::DrawPrefabPalette(Scene& scene, const Camera2D& camera)
 		{
 			ImGui::TextDisabled("編集モードのみ配置できます");
 		}
-		
+
 		ImGui::Separator();
 
 		ImGui::BeginDisabled(!canPlace);

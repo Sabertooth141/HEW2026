@@ -24,7 +24,7 @@ public:
 	int screenWidth;
 	int screenHeight;
 
-	Renderer(HWND hWnd, int width, int height);
+	Renderer(HWND hWnd, int width, int height, int bufferWidth, int bufferHeight);
 	Renderer(const Renderer&) = default;
 	Renderer& operator =(const Renderer&) = default;
 	~Renderer() = default;
