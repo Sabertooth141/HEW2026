@@ -11,6 +11,7 @@ public:
 	void OnEnter() override;
 	void OnUpdate(float deltaTime) override;
 	void OnDrawUI(TextRenderer& text) override;
+	void OnExit() override;
 
 private:
 	GameObject* playerObj = nullptr;

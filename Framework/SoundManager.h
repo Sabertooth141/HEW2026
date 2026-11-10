@@ -19,6 +19,13 @@ public:
 	//再生中のSEを確認し、再生が終わったVoiceを破棄
 	void Update();
 
+	//WAVデータをループ再生
+	//volumeは0.0が無音1.0が標準
+	bool PlayBGM(const std::shared_ptr<const WaveData>& sound, float volume = 0.5f);
+
+	//現在再生してるBGM停止
+	void StopBGM();
+
 	//WAVデータを一回再生
 	//ボリュームは0.0が無音、1.0が標準音量
 	bool PlaySE(const std::shared_ptr<const WaveData>& sound, float volume = 1.0f);
@@ -30,7 +37,15 @@ public:
 	~SoundManager();
 
 private:
-	struct PlayingSound
+	//再生中のSEを１つ保持
+	struct PlayingSE
+	{
+		IXAudio2SourceVoice* voice = nullptr;
+		std::shared_ptr<const WaveData> sound;
+	};
+
+	//再生中のBGMを1つ保持する
+	struct PlayingBGM
 	{
 		IXAudio2SourceVoice* voice = nullptr;
 		std::shared_ptr<const WaveData> sound;
@@ -42,8 +57,11 @@ private:
 	//音声を最終的に出力デバイスへ送るvoice
 	IXAudio2MasteringVoice* masteringVoice = nullptr;
 
-	//現在再生中のSE
-	std::vector<PlayingSound> playingSounds;
+	//同時再生中のSE
+	std::vector<PlayingSE> playingSEs;
+
+	//現在再生中のBGM
+	PlayingBGM playingBGM;
 
 	//COMを初期化したか
 	bool isComInitialized = false;

@@ -61,9 +61,9 @@ void SoundManager::Update()
 {
 	//再生が終わったSEのSource Voice破棄
 	//要素削除したとき未確認の要素番号のずれが発生しないよう後ろから走査
-	for (std::size_t i = playingSounds.size();i > 0;--i)
+	for (std::size_t i = playingSEs.size();i > 0;--i)
 	{
-		PlayingSound& playingSound = playingSounds[i - 1];
+		PlayingSE& playingSound = playingSEs[i - 1];
 
 		XAUDIO2_VOICE_STATE voiceState{};
 		playingSound.voice->GetState(&voiceState, 0);
@@ -72,7 +72,7 @@ void SoundManager::Update()
 		if (voiceState.BuffersQueued == 0)
 		{
 			playingSound.voice->DestroyVoice();
-			playingSounds.erase(playingSounds.begin() + (i - 1));
+			playingSEs.erase(playingSEs.begin() + (i - 1));
 		}
 	}
 }
@@ -128,15 +128,17 @@ bool SoundManager::PlaySE(const std::shared_ptr<const WaveData>& sound, float vo
 	}
 
 	//再生が終わるまでWaveDataを保持
-	playingSounds.push_back({ sourceVoice,sound });
+	playingSEs.push_back({ sourceVoice,sound });
 
 	return true;
 }
 
 void SoundManager::Shutdown()
 {
+	StopBGM();
+
 	//SEのSourceVoiceをすべて破棄
-	for (PlayingSound& playingSound : playingSounds)
+	for (PlayingSE& playingSound : playingSEs)
 	{
 		if (playingSound.voice != nullptr)
 		{
@@ -146,7 +148,7 @@ void SoundManager::Shutdown()
 	}
 
 	//再生中データへのshared_ptrもここで解放する
-	playingSounds.clear();
+	playingSEs.clear();
 
 	if (masteringVoice != nullptr)
 	{
@@ -165,4 +167,83 @@ void SoundManager::Shutdown()
 		CoUninitialize();
 		isComInitialized = false;
 	}
+}
+
+bool SoundManager::PlayBGM(
+	const std::shared_ptr<const WaveData>& sound,
+	float volume)
+{
+	// XAudio2の初期化前、またはWAVの読み込み失敗時は再生しない
+	if (xAudio == nullptr || !sound || !sound->IsLoaded())
+	{
+		return false;
+	}
+
+	// すでにBGMが鳴っていたら、先に停止する
+	StopBGM();
+
+	IXAudio2SourceVoice* sourceVoice = nullptr;
+
+	// WAVの音声形式に合ったSource Voiceを作る
+	HRESULT result =
+		xAudio->CreateSourceVoice(&sourceVoice, &sound->GetFormat());
+
+	if (FAILED(result))
+	{
+		return false;
+	}
+
+	// 音量を0.0～1.0の範囲に収める
+	const float clampedVolume = std::clamp(volume, 0.0f, 1.0f);
+
+	result = sourceVoice->SetVolume(clampedVolume);
+	if (FAILED(result))
+	{
+		sourceVoice->DestroyVoice();
+		return false;
+	}
+
+	// XAudio2へ渡す音声バッファを設定する
+	XAUDIO2_BUFFER buffer{};
+	buffer.Flags = XAUDIO2_END_OF_STREAM;
+	buffer.AudioBytes =
+		static_cast<UINT32>(sound->GetAudioData().size());
+	buffer.pAudioData = sound->GetAudioData().data();
+
+	// 音声データ全体を無限にループする
+	buffer.LoopCount = XAUDIO2_LOOP_INFINITE;
+
+	result = sourceVoice->SubmitSourceBuffer(&buffer);
+	if (FAILED(result))
+	{
+		sourceVoice->DestroyVoice();
+		return false;
+	}
+
+	result = sourceVoice->Start();
+	if (FAILED(result))
+	{
+		sourceVoice->DestroyVoice();
+		return false;
+	}
+
+	// BGMが鳴っている間、VoiceとWAVデータを保持する
+	playingBGM.voice = sourceVoice;
+	playingBGM.sound= sound;
+
+	return true;
+}
+
+
+void SoundManager::StopBGM()
+{
+	if (playingBGM.voice != nullptr)
+	{
+		playingBGM.voice->Stop();
+		playingBGM.voice->FlushSourceBuffers();
+		playingBGM.voice->DestroyVoice();
+		playingBGM.voice = nullptr;
+	}
+
+	playingBGM.sound.reset();
 }
