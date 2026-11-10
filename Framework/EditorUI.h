@@ -51,6 +51,7 @@ private:
 	void DrawLayoutSave(SceneManager& sceneManager);
 	void DrawPrefabPalette(Scene& scene, const Camera2D& camera);
 	void DrawPhysicsDebug(PhysicsSystem& physics);
+	void HandleCamPan(Camera2D& camera);
 
 	void ValidateSelection(Scene& scene);
 
@@ -81,4 +82,6 @@ private:
 
 	Mode mode = Mode::PLAY;
 	std::string playModeStartScene;
+
+	bool isPanning = false;
 };

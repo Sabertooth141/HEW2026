@@ -24,6 +24,7 @@
     <ProjectGuid>{772275f9-a366-4078-9cb3-f40baa3b3aa2}</ProjectGuid>
     <RootNamespace>DXPractice</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>HEW2026</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
