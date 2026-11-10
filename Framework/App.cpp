@@ -15,22 +15,26 @@
 #include "TitleScene.h"
 #include "WindowSettings.h"
 
+#include <Windows.h>
+#include <memory>
+
 App::App(const std::string& cmdLine) : cmdLine(cmdLine),
-                                       wnd(WIN_WIDTH, WIN_HEIGHT, L"DXPractice"),
-                                       renderer(wnd.GetRenderer()), debugRenderer(renderer),
-                                       textRenderer(renderer, L"Consolas", 18),
-                                       renderSystem(RenderSystem(renderer)),
-                                       gameContext{
-	                                       renderer, physicsSystem, scriptSystem, animationSystem, renderSystem, camera,
-	                                       wnd.keyboard, wnd.mouse
-                                       },
-                                       sceneManager(gameContext)
+wnd(WIN_WIDTH, WIN_HEIGHT, L"DXPractice"),
+renderer(wnd.GetRenderer()), debugRenderer(renderer),
+textRenderer(renderer, L"Consolas", 18),
+renderSystem(RenderSystem(renderer)),
+gameContext{
+	renderer, physicsSystem, scriptSystem, animationSystem, renderSystem, camera,
+	wnd.keyboard, wnd.mouse,soundManager,wnd
+},
+sceneManager(gameContext)
 {
 	gameContext.sceneManager = &sceneManager;
 }
 
 App::~App()
 {
+	soundManager.Shutdown();
 }
 
 int App::Run()
@@ -56,6 +60,16 @@ int App::Run()
 
 void App::Init()
 {
+	//XAudio2と音声出力先を初期化
+	const HRESULT soundResult = soundManager.Initialize();
+	if (FAILED(soundResult))
+	{
+		OutputDebugStringA("SoundManagerの初期化に失敗しました");
+	}
+
+	RegisterPrefabs();
+	RegisterCollisionTests();
+
 	RegisterPrefabs();
 	RegisterCollisionTests();
 
@@ -70,6 +84,8 @@ void App::Init()
 
 void App::Update(float deltaTime)
 {
+	soundManager.Update();
+
 	Scene* scene = sceneManager.GetCurrScene();
 	if (scene && !sceneManager.IsTransitioning())
 	{
@@ -85,6 +101,7 @@ void App::Update(float deltaTime)
 		scene->FlushPending();
 	}
 	sceneManager.Update(deltaTime); // switch happens here
+	
 }
 
 void App::HandleInput(float deltaTime)
@@ -95,6 +112,7 @@ void App::HandleInput(float deltaTime)
 		editor.ToggleVisible();
 	}
 #endif
+
 }
 
 void App::Draw(float deltaTime)

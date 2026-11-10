@@ -14,7 +14,7 @@
 #include "Collider2D.h"
 #include "RetryTransitionComponent.h"
 #include "CameraController.h"
-
+#include "PlayerAudioComponent.h"
 
 void PlayerController::Awake()
 {
@@ -22,6 +22,7 @@ void PlayerController::Awake()
 
 	rb = owner->GetComponent<Rigidbody2DComponent>();
 	anim = owner->GetComponent<AnimatorComponent>();
+	playerAudio = owner->GetComponent<PlayerAudioComponent>();
 	if (rb != nullptr)
 	{
 		normalGravity = rb->GetGravity();
@@ -617,6 +618,13 @@ void PlayerController::HandleJump()
 		velocity.y = jumpPower;
 
 		rb->SetVelocity(velocity);
+
+		//ジャンプ時にジャンプ音を鳴らす
+		if (playerAudio != nullptr)
+		{
+			playerAudio->PlayJump();
+		}
+
 		isGrounded = false;
 	}
 }

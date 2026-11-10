@@ -217,8 +217,6 @@ void Renderer::Set2DMode()
 	activeProj = orthoMatrix;
 }
 
-
-
 void Renderer::BeginFrame(float r, float g, float b)
 {
 	const float color[] = {r, g, b, 1};

@@ -15,6 +15,9 @@
 #include "ImGuiLayer.h"
 #include "SceneManager.h"
 #include "TextRenderer.h"
+#include "SoundManager.h"
+
+#include <memory>
 
 class GameObject;
 class ModelReader;
@@ -53,12 +56,15 @@ private:
 	PhysicsSystem physicsSystem;
 	Camera2D camera;
 
+	SoundManager soundManager;
+
 	GameContext gameContext;
 	SceneManager sceneManager;
 	ImGuiLayer imGui;
 	EditorUI editor;
 
 	std::unique_ptr<LightCBuffer> lightCBuffer;
-
+	
+	
 	float sensitivity = 0.004f;
 };
