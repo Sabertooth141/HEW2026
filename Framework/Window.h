@@ -40,6 +40,8 @@ public:
 	void DisableCursor();
 	bool CursorEnabled() const;
 
+	void GetClientSize(int& outWidth, int& outHeight)const;
+
 	Renderer& GetRenderer();
 
 	HWND GetHwnd() const;

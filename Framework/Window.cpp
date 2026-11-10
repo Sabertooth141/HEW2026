@@ -41,23 +41,27 @@ Window::Window(int width, int height, const wchar_t* name) :
 	width(width),
 	height(height)
 {
-	RECT wr;
-	wr.left = 100;
-	wr.right = width + wr.left;
-	wr.top = 100;
-	wr.bottom = wr.top + height;
+	// widthとheightは、タイトルバーを除いた描画領域のサイズ。
+	const DWORD windowStyle =
+		WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
 
-	AdjustWindowRect(&wr, WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, FALSE);
+	RECT windowRect{ 0, 0, width, height };
+
+	// クライアント領域が指定サイズになるよう、枠とタイトルバー分を加える。
+	AdjustWindowRect(&windowRect, windowStyle, FALSE);
 
 	WIN_CALL(hWnd = CreateWindowW(
 		WindowClass::GetName(),
 		name,
-		WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU,
+		windowStyle,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
-		wr.right - wr.left,
-		wr.bottom - wr.top,
-		nullptr, nullptr, WindowClass::GetInstance(), this
+		windowRect.right - windowRect.left,
+		windowRect.bottom - windowRect.top,
+		nullptr,
+		nullptr,
+		WindowClass::GetInstance(),
+		this
 	));
 
 	ShowWindow(hWnd, SW_SHOWDEFAULT);
@@ -80,6 +84,23 @@ Renderer& Window::GetRenderer()
 HWND Window::GetHwnd() const
 {
 	return hWnd;
+}
+
+void Window::GetClientSize(int& outWidth, int& outHeight) const
+{
+	RECT clientRect{};
+
+	//Windows APIからクライアント領域の幅と高さを取得
+	if (!GetClientRect(hWnd, &clientRect))
+	{
+		//取得失敗時はウィンドウ作成時のサイズを返す
+		outWidth = width;
+		outHeight = height;
+		return;
+	}
+
+	outWidth = clientRect.right - clientRect.left;
+	outHeight = clientRect.bottom - clientRect.top;
 }
 
 void Window::SetTitle(const std::string& title)

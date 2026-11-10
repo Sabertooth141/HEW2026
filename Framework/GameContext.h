@@ -10,6 +10,8 @@ class Scene;
 class Keyboard;
 class Mouse;
 class SceneManager;
+class SoundManager;
+class Window;
 
 struct GlobalContext
 {
@@ -26,6 +28,8 @@ struct GameContext
     Camera2D& camera;
     Keyboard& keyboard;
     Mouse& mouse;
+    SoundManager& soundManager;
+    Window& window;
 
     Scene* gameScene = nullptr;
     SceneManager* sceneManager = nullptr;
