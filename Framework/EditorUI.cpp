@@ -142,6 +142,7 @@ void EditorUI::Draw(SceneManager& sceneManager, Camera2D& camera)
 
 	if (!isTransitioning)
 	{
+		HandleCamPan(camera);
 		HandleViewportMouse(*scene, camera);
 	}
 
@@ -159,6 +160,7 @@ void EditorUI::ToggleVisible()
 		isPaused = false;
 		isDragging = false;
 		stepRequested = false;
+		isPanning = false;
 		return;
 	}
 	isPaused = true;
@@ -193,6 +195,7 @@ void EditorUI::ValidateSelection(Scene& scene)
 		lastScene = &scene;
 		selectedObject = nullptr;
 		isDragging = false;
+		isPanning = false;
 		return;
 	}
 
@@ -440,7 +443,7 @@ void EditorUI::DrawToolbar(SceneManager& sceneManager)
 			}
 
 			ImGui::SameLine();
-			ImGui::TextColored({0.6f, 0.85f, 1.f, 1.f}, "編集モード中");
+			ImGui::TextColored({0.6f, 0.85f, 1.f, 1.f}, "編集モード中：右ドラッグでカメラ移動");
 		}
 		else
 		{
@@ -708,6 +711,35 @@ void EditorUI::DrawPhysicsDebug(PhysicsSystem& physics)
 	ImGui::End();
 }
 
+void EditorUI::HandleCamPan(Camera2D& camera)
+{
+	if (!IsEditMode())
+	{
+		isPanning = false;
+		return;
+	}
+
+	const ImGuiIO& io = ImGui::GetIO();
+
+	if (!io.WantCaptureMouse && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+	{
+		isPanning = true;
+	}
+
+	if (!isPanning)
+	{
+		return;
+	}
+
+	if (!ImGui::IsMouseDown(ImGuiMouseButton_Right))
+	{
+		isPanning = false;
+		return;
+	}
+
+	camera.Move({-io.MouseDelta.x, io.MouseDelta.y});
+}
+
 GameObject* EditorUI::Pick(Scene& scene, const Camera2D& camera, const DirectX::XMFLOAT2 mousePosScreen)
 {
 	const DirectX::XMFLOAT2 camPos = camera.GetPosition();
@@ -796,6 +828,7 @@ void EditorUI::EnterPlayMode(SceneManager& sceneManager)
 	isPaused = false;
 	stepRequested = false;
 	isDragging = false;
+	isPanning = false;
 	selectedObject = nullptr;
 
 	sceneManager.RequestChange(sceneName);
@@ -812,6 +845,7 @@ void EditorUI::EnterEditMode(SceneManager& sceneManager)
 	isPaused = false;
 	stepRequested = false;
 	isDragging = false;
+	isPanning = false;
 	selectedObject = nullptr;
 
 	std::string tgtScene;
