@@ -4,10 +4,11 @@
 
 #define OBJECT_TAG_LIST(X)	\
 	X(DEFAULT)				\
-	X(ENEMY)				\
 	X(PLAYER)				\
 	X(BLOCK)				\
-	X(GROUND)
+	X(GROUND)				\
+	X(CHECKPOINT)           \
+    X(SPIKE)
 
 enum class ObjectTag : uint8_t
 {

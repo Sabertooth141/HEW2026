@@ -260,9 +260,6 @@
     <ClCompile Include="EditorUI.cpp">
       <Filter>Source Files\EditorUI</Filter>
     </ClCompile>
-    <ClCompile Include="EnemyController.cpp">
-      <Filter>Source Files\Scripts</Filter>
-    </ClCompile>
     <ClCompile Include="SceneLayout.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -475,14 +472,26 @@
     <ClInclude Include="ObjectTags.h">
       <Filter>Header Files\GameObject</Filter>
     </ClInclude>
-    <ClInclude Include="EnemyController.h">
-      <Filter>Header Files\Scripts</Filter>
-    </ClInclude>
     <ClInclude Include="SceneLayout.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="TextLabel.h">
       <Filter>Header Files\Text</Filter>
+    </ClInclude>
+    <ClInclude Include="PlatformLayoutComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CheckpointComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CheckpointLayoutComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RetryTransitionComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SpeedBoostComponent.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -20,6 +20,12 @@ public:
 
 	void SetVelocity(const DirectX::XMFLOAT2 vel)
 	{
+		// 休止中に移動速度が設定されたら、物理演算を再開する
+		if (isSleeping && (vel.x != 0.f || vel.y != 0.f))
+		{
+			Wake();
+		}
+
 		velocity = vel;
 	}
 

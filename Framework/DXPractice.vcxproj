@@ -173,7 +173,6 @@
     <ClCompile Include="DebugRenderer.cpp" />
     <ClCompile Include="Drawable.cpp" />
     <ClCompile Include="EditorUI.cpp" />
-    <ClCompile Include="EnemyController.cpp" />
     <ClCompile Include="GameObject.cpp" />
     <ClCompile Include="GameScene.cpp" />
     <ClCompile Include="ImGuiLayer.cpp" />
@@ -220,14 +219,17 @@
     <ClInclude Include="BoxCollider2D.h" />
     <ClInclude Include="Camera2D.h" />
     <ClInclude Include="CameraController.h" />
+    <ClInclude Include="CheckpointComponent.h" />
+    <ClInclude Include="CheckpointLayoutComponent.h" />
     <ClInclude Include="Collider2D.h" />
     <ClInclude Include="CollisionDispatch.h" />
     <ClInclude Include="CollisionTests.h" />
     <ClInclude Include="DebugRenderer.h" />
     <ClInclude Include="EditorUI.h" />
-    <ClInclude Include="EnemyController.h" />
     <ClInclude Include="GameContext.h" />
     <ClInclude Include="GameScene.h" />
+    <ClInclude Include="PlatformLayoutComponent.h" />
+    <ClInclude Include="RetryTransitionComponent.h" />
     <ClInclude Include="TextLabel.h" />
     <ClInclude Include="IComponent.h" />
     <ClInclude Include="ConstantBuffer.h" />
@@ -260,6 +262,7 @@
     <ClInclude Include="SceneLayout.h" />
     <ClInclude Include="SceneManager.h" />
     <ClInclude Include="ScriptSystem.h" />
+    <ClInclude Include="SpeedBoostComponent.h" />
     <ClInclude Include="SpriteAnimatorComponent.h" />
     <ClInclude Include="SpriteRendererComponent.h" />
     <ClInclude Include="SpriteRenderSystem.h" />
