@@ -443,7 +443,7 @@ void EditorUI::DrawToolbar(SceneManager& sceneManager)
 			}
 
 			ImGui::SameLine();
-			ImGui::TextColored({0.6f, 0.85f, 1.f, 1.f}, "編集モード中：右ドラッグでカメラ移動");
+			ImGui::TextColored({0.6f, 0.85f, 1.f, 1.f}, "編集モード中");
 		}
 		else
 		{
@@ -517,6 +517,7 @@ void EditorUI::DrawToolbar(SceneManager& sceneManager)
 		if (mode == Mode::EDIT)
 		{
 			ImGui::TextDisabled("クリックで選択／ドラッグで移動");
+			ImGui::TextDisabled("右ドラッグでカメラ移動");
 		}
 		else if (isPaused)
 		{
