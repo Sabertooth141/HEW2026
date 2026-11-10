@@ -69,6 +69,7 @@ Window::Window(int width, int height, const wchar_t* name) :
 	width(width),
 	height(height)
 {
+
 	const SIZE fitted = FitClientToWorkArea(width, height);
 
 	RECT wr = {0, 0, fitted.cx, fitted.cy};
@@ -84,7 +85,7 @@ Window::Window(int width, int height, const wchar_t* name) :
 	WIN_CALL(hWnd = CreateWindowW(
 		WindowClass::GetName(),
 		name,
-		WINDOW_STYLE,
+                WINDOW_STYLE,
 		winX, winY, winW, winH,
 		nullptr, nullptr, WindowClass::GetInstance(), this
 	));
@@ -114,6 +115,23 @@ Renderer& Window::GetRenderer()
 HWND Window::GetHwnd() const
 {
 	return hWnd;
+}
+
+void Window::GetClientSize(int& outWidth, int& outHeight) const
+{
+	RECT clientRect{};
+
+	//Windows APIからクライアント領域の幅と高さを取得
+	if (!GetClientRect(hWnd, &clientRect))
+	{
+		//取得失敗時はウィンドウ作成時のサイズを返す
+		outWidth = width;
+		outHeight = height;
+		return;
+	}
+
+	outWidth = clientRect.right - clientRect.left;
+	outHeight = clientRect.bottom - clientRect.top;
 }
 
 void Window::SetTitle(const std::string& title)

@@ -5,7 +5,7 @@
 
 class Rigidbody2DComponent;
 class AnimatorComponent;
-
+class PlayerAudioComponent;
 
 // サンプル用の基本的なプレイヤー操作
 // WASDで上下左右に移動し、敵に触れるとHPが減る
@@ -83,6 +83,7 @@ private:
 
 	Rigidbody2DComponent* rb = nullptr;
 	AnimatorComponent* anim = nullptr;
+	PlayerAudioComponent* playerAudio = nullptr;
 
 	float normalGravity = 0.f;
 

@@ -14,6 +14,7 @@
 #include "CheckpointLayoutComponent.h"
 #include "RetryTransitionComponent.h"
 #include "SpeedBoostComponent.h"
+#include "PlayerAudioComponent.h"
 
 void RegisterPrefabs()
 {
@@ -40,6 +41,9 @@ void RegisterPrefabs()
 
 		//加速
 		object.AddComponent<SpeedBoostComponent>();
+
+		//プレイヤーのSE管理
+		object.AddComponent<PlayerAudioComponent>();
 
 		// script
 		auto& controller = object.AddComponent<PlayerController>();

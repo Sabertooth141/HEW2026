@@ -189,6 +189,7 @@
     <ClCompile Include="PhysicsSystem.cpp" />
     <ClCompile Include="PhysicsTest.cpp" />
     <ClCompile Include="PixelShader.cpp" />
+    <ClCompile Include="PlayerAudioComponent.cpp" />
     <ClCompile Include="PlayerController.cpp" />
     <ClCompile Include="PrefabRegistry.cpp" />
     <ClCompile Include="Renderer.cpp" />
@@ -198,6 +199,7 @@
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="SceneLayout.cpp" />
     <ClCompile Include="SceneManager.cpp" />
+    <ClCompile Include="SoundManager.cpp" />
     <ClCompile Include="SpriteAnimatorComponent.cpp" />
     <ClCompile Include="SpriteRendererComponent.cpp" />
     <ClCompile Include="TextRenderer.cpp" />
@@ -207,6 +209,7 @@
     <ClCompile Include="TransformCBuffer.cpp" />
     <ClCompile Include="TransformComponent.cpp" />
     <ClCompile Include="VertexShader.cpp" />
+    <ClCompile Include="WaveData.cpp" />
     <ClCompile Include="Window.cpp" />
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
@@ -229,7 +232,9 @@
     <ClInclude Include="GameContext.h" />
     <ClInclude Include="GameScene.h" />
     <ClInclude Include="PlatformLayoutComponent.h" />
+    <ClInclude Include="PlayerAudioComponent.h" />
     <ClInclude Include="RetryTransitionComponent.h" />
+    <ClInclude Include="SoundManager.h" />
     <ClInclude Include="TextLabel.h" />
     <ClInclude Include="IComponent.h" />
     <ClInclude Include="ConstantBuffer.h" />
@@ -284,6 +289,7 @@
     <ClInclude Include="Vertex.h" />
     <ClInclude Include="VertexBuffer.h" />
     <ClInclude Include="VertexShader.h" />
+    <ClInclude Include="WaveData.h" />
     <ClInclude Include="Win.h" />
     <ClInclude Include="Window.h" />
     <ClInclude Include="WindowSettings.h" />
