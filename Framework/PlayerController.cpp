@@ -114,6 +114,17 @@ void PlayerController::Update(float deltaTime)
 	HandleAnimation();
 	HandleJump();
 
+	// 接地中に横方向へ実際に移動している場合だけ、歩行音を鳴らす
+	if (playerAudio != nullptr && rb != nullptr)
+	{
+		const bool isWalking =
+			isGrounded &&
+			std::abs(inputX) > 0.1f &&
+			std::abs(rb->GetVelocity().x) > 10.0f;
+
+		playerAudio->UpdateWalk(deltaTime, isWalking);
+	}
+
 	playTimer += deltaTime;
 	
 }
@@ -555,10 +566,17 @@ void PlayerController::OnCollisionEnter2D(
 
 	if (other.GetTag() == ObjectTag::GROUND)
 	{
+
 		DirectX::XMFLOAT2 normal = {
 			-manifold.normal.x,
 			-manifold.normal.y
 		};
+
+		// 上向きの地面に触れたときだけ着地音を鳴らす
+		if (normal.y > 0.5f && playerAudio != nullptr)
+		{
+			playerAudio->PlayLand();
+		}
 
 		groundContacts[&other] = normal;
 		collisionNormal = normal;

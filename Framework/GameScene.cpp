@@ -29,7 +29,7 @@ void GameScene::OnEnter()
 		OutputDebugStringA(errorMessage.c_str());
 		OutputDebugStringA("\n");
 	}
-	else if (!context.soundManager.PlayBGM(gameBgm, 0.5f))
+	else if (!context.soundManager.PlayBGM(gameBgm, 0.3f))
 	{
 		OutputDebugStringA("Game_BGM.wavの再生に失敗しました\n");
 	}
