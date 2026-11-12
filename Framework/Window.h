@@ -40,6 +40,8 @@ public:
 	void DisableCursor();
 	bool CursorEnabled() const;
 
+	void GetClientSize(int& outWidth, int& outHeight)const;
+
 	Renderer& GetRenderer();
 
 	HWND GetHwnd() const;
@@ -57,7 +59,8 @@ private:
 	void FreeCursor();
 	void ShowCursor();
 	void HideCursor();
-
+private:
+	POINTS ClientToLogic(POINTS pt) const;
 
 private:
 	bool cursorEnabled = true;
@@ -66,5 +69,7 @@ private:
 	HWND hWnd;
 	int width;
 	int height;
+	int clientW;
+	int clientH;
 	std::optional<Renderer> renderer;
 };

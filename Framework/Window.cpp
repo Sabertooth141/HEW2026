@@ -1,5 +1,33 @@
+#include "Window.h"
+
 #include <imgui.h>
 #include "Window.h"
+
+namespace
+{
+	constexpr DWORD WINDOW_STYLE = WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU;
+
+	SIZE FitClientToWorkArea(int width, int height)
+	{
+		RECT work;
+		SystemParametersInfoW(SPI_GETWORKAREA, 0, &work, 0);
+
+		RECT frame = {0, 0, 0, 0};
+		AdjustWindowRect(&frame, WINDOW_STYLE, FALSE);
+		const int frameW = frame.right - frame.left;
+		const int frameH = frame.bottom - frame.top;
+
+		const float maxW = static_cast<float>(work.right - work.left - frameW);
+		const float maxH = static_cast<float>(work.bottom - work.top - frameH);
+		const float scale = std::min({1.0f, maxW / width, maxH / height});
+
+		return
+		{
+			std::max(1, static_cast<int>(width * scale)),
+			std::max(1, static_cast<int>(height * scale))
+		};
+	}
+}
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM, LPARAM);
 
@@ -41,28 +69,35 @@ Window::Window(int width, int height, const wchar_t* name) :
 	width(width),
 	height(height)
 {
-	RECT wr;
-	wr.left = 100;
-	wr.right = width + wr.left;
-	wr.top = 100;
-	wr.bottom = wr.top + height;
 
-	AdjustWindowRect(&wr, WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, FALSE);
+	const SIZE fitted = FitClientToWorkArea(width, height);
+
+	RECT wr = {0, 0, fitted.cx, fitted.cy};
+	AdjustWindowRect(&wr, WINDOW_STYLE, FALSE);
+	const int winW = wr.right - wr.left;
+	const int winH = wr.bottom - wr.top;
+
+	RECT work;
+	SystemParametersInfoW(SPI_GETWORKAREA, 0, &work, 0);
+	const int winX = work.left + std::max(0, static_cast<int>(work.right - work.left - winW) / 2);
+	const int winY = work.top + std::max(0, static_cast<int>(work.bottom - work.top - winH) / 2);
 
 	WIN_CALL(hWnd = CreateWindowW(
 		WindowClass::GetName(),
 		name,
-		WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU,
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		wr.right - wr.left,
-		wr.bottom - wr.top,
+                WINDOW_STYLE,
+		winX, winY, winW, winH,
 		nullptr, nullptr, WindowClass::GetInstance(), this
 	));
 
 	ShowWindow(hWnd, SW_SHOWDEFAULT);
 
-	renderer.emplace(hWnd, width, height);
+	RECT client;
+	GetClientRect(hWnd, &client);
+	clientW = std::max(1L, client.right - client.left);
+	clientH = std::max(1L, client.bottom - client.top);
+
+	renderer.emplace(hWnd, width, height, clientW, clientH);
 
 	RAWINPUTDEVICE rid;
 	rid.usUsagePage = 0x01;
@@ -80,6 +115,23 @@ Renderer& Window::GetRenderer()
 HWND Window::GetHwnd() const
 {
 	return hWnd;
+}
+
+void Window::GetClientSize(int& outWidth, int& outHeight) const
+{
+	RECT clientRect{};
+
+	//Windows APIからクライアント領域の幅と高さを取得
+	if (!GetClientRect(hWnd, &clientRect))
+	{
+		//取得失敗時はウィンドウ作成時のサイズを返す
+		outWidth = width;
+		outHeight = height;
+		return;
+	}
+
+	outWidth = clientRect.right - clientRect.left;
+	outHeight = clientRect.bottom - clientRect.top;
 }
 
 void Window::SetTitle(const std::string& title)
@@ -188,156 +240,161 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 	// mouse msg
 	case WM_MOUSEMOVE:
-	{
-		const POINTS pt = MAKEPOINTS(lParam);
-
-		if (!cursorEnabled)
 		{
-			if (!mouse.isInWindow)
+			const POINTS pt = MAKEPOINTS(lParam);
+
+			if (!cursorEnabled)
 			{
-				SetCapture(hWnd);
-				mouse.OnMouseEnter();
-				HideCursor();
+				if (!mouse.isInWindow)
+				{
+					SetCapture(hWnd);
+					mouse.OnMouseEnter();
+					HideCursor();
+				}
+				break;
+			}
+
+			const POINTS lp = ClientToLogic(pt);
+
+			// in client region -> log move first | in client region NOW but not BEFORE -> log enter + focus on window
+			if (pt.x >= 0 && pt.x < clientW && pt.y >= 0 && pt.y < clientH)
+			{
+				mouse.OnMouseMove(lp.x, lp.y);
+				if (!mouse.IsInWindow())
+				{
+					SetCapture(hWnd);
+					mouse.OnMouseEnter();
+				}
+			}
+			// for out-of-window tracking - if button down still log move | if not release
+			else
+			{
+				if (wParam & (MK_LBUTTON | MK_RBUTTON))
+				{
+					mouse.OnMouseMove(lp.x, lp.y);
+				}
+				else
+				{
+					ReleaseCapture();
+					mouse.OnMouseLeave();
+				}
 			}
 			break;
 		}
-		// in client region -> log move first | in client region NOW but not BEFORE -> log enter + focus on window
-		if (pt.x >= 0 && pt.x < width && pt.y >= 0 && pt.y < height)
+	case WM_LBUTTONDOWN:
 		{
-			mouse.OnMouseMove(pt.x, pt.y);
-			if (!mouse.IsInWindow())
+			if (editorMouse)
 			{
-				SetCapture(hWnd);
-				mouse.OnMouseEnter();
+				break;
 			}
+
+			SetForegroundWindow(hWnd);
+			if (!cursorEnabled)
+			{
+				ConfineCursor();
+				HideCursor();
+			}
+
+			const POINTS pt = MAKEPOINTS(lParam);
+			mouse.OnLeftPressed(pt.x, pt.y);
+			break;
 		}
-		// for out-of-window tracking - if button down still log move | if not release
-		else
+	case WM_RBUTTONDOWN:
 		{
-			if (wParam & (MK_LBUTTON | MK_RBUTTON))
+			if (editorMouse)
 			{
-				mouse.OnMouseMove(pt.x, pt.y);
+				break;
 			}
-			else
+
+			const POINTS pt = MAKEPOINTS(lParam);
+			mouse.OnRightPressed(pt.x, pt.y);
+			break;
+		}
+	case WM_LBUTTONUP:
+		{
+			const POINTS pt = MAKEPOINTS(lParam);
+			const POINTS lp = ClientToLogic(pt);
+
+			mouse.OnLeftReleased(pt.x, pt.y);
+			// release mouse if outside window
+			if (pt.x < 0 || pt.x >= clientW || pt.y < 0 || pt.y >= clientH)
 			{
 				ReleaseCapture();
 				mouse.OnMouseLeave();
 			}
-		}
-		break;
-	}
-	case WM_LBUTTONDOWN:
-	{
-		if (editorMouse)
-		{
 			break;
 		}
-
-		SetForegroundWindow(hWnd);
-		if (!cursorEnabled)
-		{
-			ConfineCursor();
-			HideCursor();
-		}
-
-		const POINTS pt = MAKEPOINTS(lParam);
-		mouse.OnLeftPressed(pt.x, pt.y);
-		break;
-	}
-	case WM_RBUTTONDOWN:
-	{
-		if (editorMouse)
-		{
-			break;
-		}
-
-		const POINTS pt = MAKEPOINTS(lParam);
-		mouse.OnRightPressed(pt.x, pt.y);
-		break;
-	}
-	case WM_LBUTTONUP:
-	{
-		const POINTS pt = MAKEPOINTS(lParam);
-		mouse.OnLeftReleased(pt.x, pt.y);
-		// release mouse if outside window
-		if (pt.x < 0 || pt.x >= width || pt.y < 0 || pt.y >= height)
-		{
-			ReleaseCapture();
-			mouse.OnMouseLeave();
-		}
-		break;
-	}
 	case WM_RBUTTONUP:
-	{
-		const POINTS pt = MAKEPOINTS(lParam);
-		mouse.OnRightReleased(pt.x, pt.y);
-		// release mouse if outside window
-		if (pt.x < 0 || pt.x >= width || pt.y < 0 || pt.y >= height)
 		{
-			ReleaseCapture();
-			mouse.OnMouseLeave();
-		}
-		break;
-	}
-	case WM_MOUSEWHEEL:
-	{
-		if (editorMouse)
-		{
+			const POINTS pt = MAKEPOINTS(lParam);
+			mouse.OnRightReleased(pt.x, pt.y);
+			// release mouse if outside window
+			if (pt.x < 0 || pt.x >= width || pt.y < 0 || pt.y >= height)
+			{
+				ReleaseCapture();
+				mouse.OnMouseLeave();
+			}
 			break;
 		}
+	case WM_MOUSEWHEEL:
+		{
+			if (editorMouse)
+			{
+				break;
+			}
 
-		const POINTS pt = MAKEPOINTS(lParam);
-		const int delta = GET_WHEEL_DELTA_WPARAM(wParam);
-		mouse.OnWheelDelta(pt.x, pt.y, delta);
-		break;
-	}
+			const POINTS pt = MAKEPOINTS(lParam);
+			const int delta = GET_WHEEL_DELTA_WPARAM(wParam);
+			mouse.OnWheelDelta(pt.x, pt.y, delta);
+			break;
+		}
 
 	// raw mouse msg
 	case WM_INPUT:
-	{
-		if (editorMouse)
 		{
+			if (editorMouse)
+			{
+				break;
+			}
+
+			if (!mouse.rawEnabled)
+			{
+				break;
+			}
+
+			UINT size;
+			// first get size
+			if (GetRawInputData(
+				reinterpret_cast<HRAWINPUT>(lParam),
+				RID_INPUT,
+				nullptr,
+				&size,
+				sizeof(RAWINPUTHEADER)) == -1)
+			{
+				// bail if err
+				break;
+			}
+			rawBuffer.resize(size);
+
+			// read input data
+			if ((GetRawInputData(
+				reinterpret_cast<HRAWINPUT>(lParam),
+				RID_INPUT,
+				rawBuffer.data(),
+				&size,
+				sizeof(RAWINPUTHEADER)) != size))
+			{
+				// bail if err
+				break;
+			}
+
+			const auto& ri = reinterpret_cast<const RAWINPUT&>(*rawBuffer.data());
+			if (ri.header.dwType == RIM_TYPEMOUSE && (ri.data.mouse.lLastX != 0 || ri.data.mouse.lLastY != 0))
+			{
+				mouse.OnRawDelta(ri.data.mouse.lLastX, ri.data.mouse.lLastY);
+			}
 			break;
 		}
-
-		if (!mouse.rawEnabled)
-		{
-			break;
-		}
-
-		UINT size;
-		// first get size
-		if (GetRawInputData(
-			reinterpret_cast<HRAWINPUT>(lParam),
-			RID_INPUT,
-			nullptr,
-			&size,
-			sizeof(RAWINPUTHEADER)) == -1)
-		{
-			// bail if err
-			break;
-		}
-		rawBuffer.resize(size);
-
-		// read input data
-		if ((GetRawInputData(
-			reinterpret_cast<HRAWINPUT>(lParam),
-			RID_INPUT,
-			rawBuffer.data(),
-			&size,
-			sizeof(RAWINPUTHEADER)) != size))
-		{
-			// bail if err
-			break;
-		}
-
-		const RAWINPUT& ri = reinterpret_cast<const RAWINPUT&>(*rawBuffer.data());
-		if (ri.header.dwType == RIM_TYPEMOUSE && (ri.data.mouse.lLastX != 0 || ri.data.mouse.lLastY != 0))
-		{
-			mouse.OnRawDelta(ri.data.mouse.lLastX, ri.data.mouse.lLastY);
-		}
-		break;
-	}
 	default:
 		break;
 	}
@@ -382,4 +439,13 @@ void Window::ShowCursor()
 void Window::HideCursor()
 {
 	while (::ShowCursor(FALSE) < 0);
+}
+
+POINTS Window::ClientToLogic(POINTS pt) const
+{
+	return
+	{
+		static_cast<SHORT>(pt.x * width / clientW),
+		static_cast<SHORT>(pt.y * height / clientH)
+	};
 }

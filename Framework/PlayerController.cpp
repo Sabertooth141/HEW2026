@@ -16,6 +16,7 @@
 #include "CameraController.h"
 #include "BreakableObjectComponent.h"
 
+#include "PlayerAudioComponent.h"
 
 void PlayerController::Awake()
 {
@@ -23,6 +24,7 @@ void PlayerController::Awake()
 
 	rb = owner->GetComponent<Rigidbody2DComponent>();
 	anim = owner->GetComponent<AnimatorComponent>();
+	playerAudio = owner->GetComponent<PlayerAudioComponent>();
 	if (rb != nullptr)
 	{
 		normalGravity = rb->GetGravity();
@@ -114,6 +116,17 @@ void PlayerController::Update(float deltaTime)
 	HandleMovement(deltaTime);//地面や壁の状態で移動方法を決める
 	HandleAnimation();
 	HandleJump(deltaTime);
+
+	// 接地中に横方向へ実際に移動している場合だけ、歩行音を鳴らす
+	if (playerAudio != nullptr && rb != nullptr)
+	{
+		const bool isWalking =
+			isGrounded &&
+			std::abs(inputX) > 0.1f &&
+			std::abs(rb->GetVelocity().x) > 10.0f;
+
+		playerAudio->UpdateWalk(deltaTime, isWalking);
+	}
 
 	playTimer += deltaTime;
 	
@@ -639,6 +652,21 @@ void PlayerController::OnCollisionEnter2D(
 	{
 		isGrounded = true;
 		isDiving = false;
+
+		DirectX::XMFLOAT2 normal = {
+			-manifold.normal.x,
+			-manifold.normal.y
+		};
+
+		// 上向きの地面に触れたときだけ着地音を鳴らす
+		if (normal.y > 0.5f && playerAudio != nullptr)
+		{
+			playerAudio->PlayLand();
+		}
+
+		groundContacts[&other] = normal;
+		collisionNormal = normal;
+		isTouchingGround = true;
 	}
 }
 
@@ -705,6 +733,12 @@ void PlayerController::HandleJump(float deltaTime)
 		velocity.y = jumpPower;
 
 		rb->SetVelocity(velocity);
+
+		//ジャンプ時にジャンプ音を鳴らす
+		if (playerAudio != nullptr)
+		{
+			playerAudio->PlayJump();
+		}
 
 		isGrounded = false;
 		coyoteTimer = 0.f;

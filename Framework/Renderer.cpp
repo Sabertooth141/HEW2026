@@ -2,15 +2,15 @@
 
 #pragma comment(lib, "d3d11.lib")
 
-Renderer::Renderer(HWND hWnd, int width, int height)
+Renderer::Renderer(HWND hWnd, int width, int height, int bufferWidth, int bufferHeight)
 {
 	screenWidth = width;
 	screenHeight = height;
 
 	// device & swap chain
 	DXGI_SWAP_CHAIN_DESC sd = {};
-	sd.BufferDesc.Width = width;
-	sd.BufferDesc.Height = height;
+	sd.BufferDesc.Width = bufferWidth;
+	sd.BufferDesc.Height = bufferHeight;
 	sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	sd.BufferDesc.RefreshRate.Numerator = 0;
 	sd.BufferDesc.RefreshRate.Denominator = 0;
@@ -67,8 +67,8 @@ Renderer::Renderer(HWND hWnd, int width, int height)
 
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> pDepthStencil;
 	D3D11_TEXTURE2D_DESC dtDesc = {};
-	dtDesc.Width = width;
-	dtDesc.Height = height;
+	dtDesc.Width = bufferWidth;
+	dtDesc.Height = bufferHeight;
 	dtDesc.MipLevels = 1;
 	dtDesc.ArraySize = 1;
 	dtDesc.Format = DXGI_FORMAT_D32_FLOAT;
@@ -101,8 +101,8 @@ Renderer::Renderer(HWND hWnd, int width, int height)
 	D3D11_VIEWPORT vp = {};
 	vp.TopLeftX = 0;
 	vp.TopLeftY = 0;
-	vp.Width = static_cast<float>(width);
-	vp.Height = static_cast<float>(height);
+	vp.Width = static_cast<float>(bufferWidth);
+	vp.Height = static_cast<float>(bufferHeight);
 	vp.MinDepth = 0;
 	vp.MaxDepth = 1;
 	pContext->RSSetViewports(1, &vp);
@@ -216,8 +216,6 @@ void Renderer::Set2DMode()
 	SetAlphaEnabled(true);
 	activeProj = orthoMatrix;
 }
-
-
 
 void Renderer::BeginFrame(float r, float g, float b)
 {
