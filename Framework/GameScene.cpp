@@ -44,6 +44,13 @@ void GameScene::OnEnter()
 	
 	//チェックポイント
 	Instantiate("checkpoint_layout", { 0.0f,0.0f,1.0f });
+
+
+	// 壊せるオブジェクト
+	Instantiate("breakable_layout", { 0.0f, 0.0f, 1.0f });
+
+	Instantiate("one_way_platform_layout", { 0.f, 0.f, 1.f });
+
 }
 
 void GameScene::OnUpdate(float deltaTime)

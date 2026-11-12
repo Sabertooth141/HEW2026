@@ -14,6 +14,8 @@
 #include "Collider2D.h"
 #include "RetryTransitionComponent.h"
 #include "CameraController.h"
+#include "BreakableObjectComponent.h"
+
 #include "PlayerAudioComponent.h"
 
 void PlayerController::Awake()
@@ -110,9 +112,10 @@ void PlayerController::Update(float deltaTime)
 
 
 	HandleInput();//キー入力取得
+	HandleDive();
 	HandleMovement(deltaTime);//地面や壁の状態で移動方法を決める
 	HandleAnimation();
-	HandleJump();
+	HandleJump(deltaTime);
 
 	// 接地中に横方向へ実際に移動している場合だけ、歩行音を鳴らす
 	if (playerAudio != nullptr && rb != nullptr)
@@ -138,6 +141,40 @@ void PlayerController::HandleInput()//キー入力
 	if (keyboard->KeyIsPressed('A')) inputX -= 1.f;
 	
 }
+
+// 空中でSキーを押すと急降下する
+void PlayerController::HandleDive()
+{
+	if (rb == nullptr || keyboard == nullptr || speedBoost == nullptr)
+	{
+		return;
+	}
+
+	// 加速スタックが3のときだけ急降下できる
+	if (speedBoost->GetStackCount() < 3)
+	{
+		return;
+	}
+
+	// 地面や壁に接触している間は急降下できない
+	if (isTouchingGround || isGrounded)
+	{
+		return;
+	}
+
+	if (keyboard->KeyIsTriggered('S'))
+	{
+		isDiving = true;
+
+		DirectX::XMFLOAT2 velocity = rb->GetVelocity();
+
+		// 下方向へ強い速度を与える
+		velocity.y = -moveSpeed * 2.f;
+
+		rb->SetVelocity(velocity);
+	}
+}
+
 
 void PlayerController::HandleMovement(float deltaTime)
 {
@@ -557,15 +594,64 @@ void PlayerController::OnCollisionEnter2D(const GameObject& other)
 
 }
 
-	
 void PlayerController::OnCollisionEnter2D(
 	const GameObject& other,
 	const CollisionManifold& manifold)
 {
+	// 既存のトゲとの衝突処理
 	OnCollisionEnter2D(other);
 
-	if (other.GetTag() == ObjectTag::GROUND)
+	if (other.GetTag() != ObjectTag::GROUND &&
+		other.GetTag() != ObjectTag::ONE_WAY_PLATFORM)
 	{
+		return;
+	}
+
+	DirectX::XMFLOAT2 normal =
+	{
+		-manifold.normal.x,
+		-manifold.normal.y
+	};
+
+	const auto* breakable =
+		other.GetComponent<BreakableObjectComponent>();
+
+
+	if (breakable != nullptr)
+	{
+		// 加速スタックが2以上で、壊れる壁に横からぶつかった場合
+		if (breakable->GetBreakType() ==
+			BreakableObjectComponent::BreakType::Boost &&
+			speedBoost != nullptr &&
+			speedBoost->GetStackCount() >= 2 &&
+			std::abs(normal.x) > 0.5f)
+		{
+			breakable->Break();
+			return;
+		}
+
+		// 急降下中に、壊れる床へ上からぶつかった場合
+		if (breakable->GetBreakType() ==
+			BreakableObjectComponent::BreakType::Dive &&
+			isDiving &&
+			normal.y > 0.5f)
+		{
+			breakable->Break();
+			isDiving = false;
+			return;
+		}
+	}
+
+
+	// 通常の地形との接触処理
+	groundContacts[&other] = normal;
+	collisionNormal = normal;
+	isTouchingGround = true;
+
+	if (normal.y > 0.5f)
+	{
+		isGrounded = true;
+		isDiving = false;
 
 		DirectX::XMFLOAT2 normal = {
 			-manifold.normal.x,
@@ -622,15 +708,26 @@ void PlayerController::RespawnAtCheckPoint()
 	invulnerabilityTimer = invulnerabilityDuration;
 }
 
-void PlayerController::HandleJump()
+void PlayerController::HandleJump(float deltaTime)
 {
-	if (rb == nullptr)
+	if (rb == nullptr || keyboard == nullptr)
 	{
 		return;
 	}
 
-	// 地面にいるときだけジャンプできる
-	if (isGrounded && keyboard->KeyIsTriggered(' '))
+	// 地面にいる間はジャンプ猶予時間をリセット
+	if (isGrounded)
+	{
+		coyoteTimer = coyoteTime;
+	}
+	else
+	{
+		// 空中にいる間は猶予時間を減らす
+		coyoteTimer = std::max(0.f, coyoteTimer - deltaTime);
+	}
+
+	// 猶予時間内ならジャンプできる
+	if (coyoteTimer > 0.f && keyboard->KeyIsTriggered(' '))
 	{
 		DirectX::XMFLOAT2 velocity = rb->GetVelocity();
 		velocity.y = jumpPower;
@@ -644,8 +741,10 @@ void PlayerController::HandleJump()
 		}
 
 		isGrounded = false;
+		coyoteTimer = 0.f;
 	}
 }
+
 
 void PlayerController::OnCollisionStay2D(const GameObject& other)
 {
@@ -655,33 +754,32 @@ void PlayerController::OnCollisionStay2D(
 	const GameObject& other,
 	const CollisionManifold& manifold)
 {
-	// 床に接触している場合だけ接地状態にする
-	if (other.GetTag() == ObjectTag::GROUND)
+	if (other.GetTag() != ObjectTag::GROUND &&
+		other.GetTag() != ObjectTag::ONE_WAY_PLATFORM)
 	{
-		DirectX::XMFLOAT2 normal = {
-			-manifold.normal.x,
-			-manifold.normal.y
-		};
-
-		isGrounded = normal.y > 0.5f;
+		return;
 	}
 
-	if (other.GetTag() == ObjectTag::GROUND)
+	DirectX::XMFLOAT2 normal =
 	{
-		DirectX::XMFLOAT2 normal = {
-			-manifold.normal.x,
-			-manifold.normal.y
-		};
+		-manifold.normal.x,
+		-manifold.normal.y
+	};
 
-		groundContacts[&other] = normal;
-		collisionNormal = normal;
-		isTouchingGround = true;
-		isGrounded = normal.y > 0.5f;
+	groundContacts[&other] = normal;
+	collisionNormal = normal;
+	isTouchingGround = true;
+	isGrounded = normal.y > 0.5f;
+
+	if (isGrounded)
+	{
+		isDiving = false;
 	}
 }
 void PlayerController::OnCollisionExit2D(const GameObject& other)
 {
-	if (other.GetTag() == ObjectTag::GROUND)
+	if (other.GetTag() == ObjectTag::GROUND ||
+		other.GetTag() == ObjectTag::ONE_WAY_PLATFORM)
 	{
 		groundContacts.erase(&other);
 

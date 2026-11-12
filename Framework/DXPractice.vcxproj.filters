@@ -502,6 +502,13 @@
     <ClInclude Include="SpeedBoostComponent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="BreakableLayoutComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BreakableObjectComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OneWayPlatformLayoutComponent.h">
     <ClInclude Include="SoundManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>

@@ -293,6 +293,9 @@
     <ClInclude Include="Win.h" />
     <ClInclude Include="Window.h" />
     <ClInclude Include="WindowSettings.h" />
+    <ClInclude Include="BreakableLayoutComponent.h" />
+    <ClInclude Include="BreakableObjectComponent.h" />
+    <ClInclude Include="OneWayPlatformLayoutComponent.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="ColorPixelShader.hlsl">

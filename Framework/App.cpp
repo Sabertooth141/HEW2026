@@ -70,8 +70,6 @@ void App::Init()
 	RegisterPrefabs();
 	RegisterCollisionTests();
 
-	RegisterPrefabs();
-	RegisterCollisionTests();
 
 	sceneManager.Register<TitleScene>("Title");
 	sceneManager.Register<GameScene>("Game");

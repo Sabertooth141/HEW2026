@@ -61,12 +61,20 @@ private:
 	void HandleInput();
 	void HandleMovement(float deltaTime);
 	void HandleAnimation();
-	void HandleJump();       // ジャンプ処理
+	void HandleJump(float deltaTime);      // ジャンプ処理
 	void Respawn();
 
 	void HandleNormalMovement();
 
+	void HandleDive();
+
+	bool isDiving = false;
+
 	bool isGrounded = false;
+
+	// コヨーテタイム
+	float coyoteTime = 0.1f;
+	float coyoteTimer = 0.f;
 	float jumpPower = 500.f;
 
 	// トゲに触れて死亡しているか

@@ -245,8 +245,48 @@ void PhysicsSystem::ProcessPairs(const std::vector<EntryPair>& candidates)
 			continue;
 		}
 
+
+		// 片方向足場の判定
+		const bool aIsPlayer =
+			pair.a->gameObject->GetTag() == ObjectTag::PLAYER;
+
+		const bool bIsPlayer =
+			pair.b->gameObject->GetTag() == ObjectTag::PLAYER;
+
+		const bool aIsOneWay =
+			pair.a->gameObject->GetTag() == ObjectTag::ONE_WAY_PLATFORM;
+
+		const bool bIsOneWay =
+			pair.b->gameObject->GetTag() == ObjectTag::ONE_WAY_PLATFORM;
+
+		if ((aIsPlayer && bIsOneWay) || (bIsPlayer && aIsOneWay))
+		{
+			// プレイヤー側のEntryを取得
+			const Entry* player = aIsPlayer ? pair.a : pair.b;
+
+			// プレイヤーから足場に向かう法線を取得
+			DirectX::XMFLOAT2 playerToPlatformNormal =
+				aIsPlayer
+				? manifold->normal
+				: DirectX::XMFLOAT2{
+					-manifold->normal.x,
+					-manifold->normal.y
+			};
+
+			const float velocityY = player->rigidbody->GetVelocity().y;
+
+			// 足場の下側・横側からの接触、または上昇中は無視
+			if (playerToPlatformNormal.y > -0.5f || velocityY > 0.f)
+			{
+				continue;
+			}
+		}
+
 		const ColliderPair colliderPair = MakeCanonicalColliderPair(pair.a->gameObject, pair.b->gameObject);
 		currentOverlaps.insert(colliderPair);
+
+
+
 
 		// event handling
 

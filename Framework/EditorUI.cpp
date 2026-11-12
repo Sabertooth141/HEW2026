@@ -8,6 +8,7 @@
 #include "Scene.h"
 #include "SceneManager.h"
 #include "WindowSettings.h"
+#include "PlayerController.h"
 
 namespace
 {
@@ -369,7 +370,20 @@ void EditorUI::DrawInspector(Scene& scene)
 				rb->Wake();
 			}
 		}
+
+	
 	}
+
+// PlayerController
+if (auto* player = selectedObjRef.GetComponent<PlayerController>())
+{
+    float speed = player->moveSpeed;
+
+    if (ImGui::DragFloat("移動速度", &speed, 1.f))
+    {
+        player->moveSpeed = speed;
+    }
+}
 
 	// box collider
 	if (auto* col = selectedObjRef.GetComponent<BoxCollider2D>())
