@@ -16,7 +16,21 @@ public:
 	//ジャンプ音
 	void PlayJump();
 
+	//着地音
+	void PlayLand();
+
+	//歩行音
+	void UpdateWalk(float deltaTime, bool isWalking);
+
 private:
 	//読み込んだジャンプ音保持
 	std::shared_ptr<WaveData> jumpSound;
+	std::shared_ptr<WaveData> landSound;
+	std::shared_ptr<WaveData> walkSound;
+
+	//次の足音までの経過時間
+	float walkSoundTimer = 0.0f;
+
+	//足音の間隔
+	float walkSoundInterval = 0.35f;
 };
