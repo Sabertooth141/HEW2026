@@ -14,6 +14,9 @@
 #include "CheckpointLayoutComponent.h"
 #include "RetryTransitionComponent.h"
 #include "SpeedBoostComponent.h"
+#include "BreakableObjectComponent.h"
+#include "BreakableLayoutComponent.h"
+#include "OneWayPlatformLayoutComponent.h"
 
 void RegisterPrefabs()
 {
@@ -27,7 +30,7 @@ void RegisterPrefabs()
 		playerRb.SetFreezeRotation(true);
 		playerRb.SetGravity(800.f);
 		object.AddComponent<BoxCollider2D>(
-			DirectX::XMFLOAT2(1.f, 1.f), DirectX::XMFLOAT2(0.f, 0.f), false, *object.GetTransform());
+			DirectX::XMFLOAT2(0.5f, 0.5f), DirectX::XMFLOAT2(0.f, 0.f), false, *object.GetTransform());
 
 		// animation
 		auto& anim = object.AddComponent<AnimatorComponent>(object.GetRenderer());
@@ -116,6 +119,12 @@ void RegisterPrefabs()
 			object.AddComponent<CheckpointLayoutComponent>();
 		});
 
+	// 壊せるオブジェクトの配置
+	PrefabRegistry::Instance().Register("breakable_layout", [](GameObject& object)
+		{
+			object.AddComponent<BreakableLayoutComponent>();
+		});
+
 	//針
 	PrefabRegistry::Instance().Register("spike", [](GameObject& object)
 		{
@@ -135,4 +144,80 @@ void RegisterPrefabs()
 				true,
 				*object.GetTransform());
 		});
+
+
+
+
+	// 壊れる床
+	PrefabRegistry::Instance().Register("breakable_floor", [](GameObject& object)
+		{
+			object.SetTag(ObjectTag::GROUND);
+
+			auto& rb = object.AddComponent<Rigidbody2DComponent>(
+				*object.GetTransform(), 1.0f);
+
+			rb.SetGravity(0.0f);
+			rb.SetIsStatic(true);
+
+			object.AddComponent<BoxCollider2D>(
+				DirectX::XMFLOAT2(0.5f, 0.5f),
+				DirectX::XMFLOAT2(0.0f, 0.0f),
+				false,
+				*object.GetTransform());
+
+			auto& breakable = object.AddComponent<BreakableObjectComponent>();
+			breakable.SetBreakType(
+				BreakableObjectComponent::BreakType::Dive);
+		});
+
+	// 壊れる壁
+	PrefabRegistry::Instance().Register("breakable_wall", [](GameObject& object)
+		{
+			object.SetTag(ObjectTag::GROUND);
+
+			auto& rb = object.AddComponent<Rigidbody2DComponent>(
+				*object.GetTransform(), 1.0f);
+
+			rb.SetGravity(0.0f);
+			rb.SetIsStatic(true);
+
+			object.AddComponent<BoxCollider2D>(
+				DirectX::XMFLOAT2(0.5f, 0.5f),
+				DirectX::XMFLOAT2(0.0f, 0.0f),
+				false,
+				*object.GetTransform());
+
+			auto& breakable = object.AddComponent<BreakableObjectComponent>();
+			breakable.SetBreakType(
+				BreakableObjectComponent::BreakType::Boost);
+		});
+
+
+
+	// 片方向足場
+	PrefabRegistry::Instance().Register("one_way_platform",
+		[](GameObject& object)
+		{
+			object.SetTag(ObjectTag::ONE_WAY_PLATFORM);
+
+			auto& rb = object.AddComponent<Rigidbody2DComponent>(
+				*object.GetTransform(), 1.0f);
+
+			rb.SetGravity(0.0f);
+			rb.SetIsStatic(true);
+
+			object.AddComponent<BoxCollider2D>(
+				DirectX::XMFLOAT2(0.5f, 0.5f),
+				DirectX::XMFLOAT2(0.0f, 0.0f),
+				false,
+				*object.GetTransform());
+		});
+
+	// 片方向足場の配置
+	PrefabRegistry::Instance().Register("one_way_platform_layout",
+		[](GameObject& object)
+		{
+			object.AddComponent<OneWayPlatformLayoutComponent>();
+		});
 }
+

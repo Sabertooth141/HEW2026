@@ -493,6 +493,15 @@
     <ClInclude Include="SpeedBoostComponent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="BreakableLayoutComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BreakableObjectComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OneWayPlatformLayoutComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="PixelShader.hlsl">

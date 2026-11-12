@@ -14,15 +14,21 @@ public:
 
 	void Update(float deltaTime)
 	{
-		for (auto* script : pendingScripts)
+		// Start中に新しいスクリプトが登録されても
+// イテレータが無効にならないようにインデックスで処理する
+		for (size_t i = 0; i < pendingScripts.size(); ++i)
 		{
+			auto* script = pendingScripts[i];
+
 			if (script->IsEnabled())
 			{
 				script->Start();
 				script->SetStarted(true);
 			}
+
 			activeScripts.push_back(script);
 		}
+
 		pendingScripts.clear();
 
 		for (auto* script : activeScripts)

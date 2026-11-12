@@ -8,7 +8,8 @@
 	X(BLOCK)				\
 	X(GROUND)				\
 	X(CHECKPOINT)           \
-    X(SPIKE)
+    X(SPIKE)                \
+    X(ONE_WAY_PLATFORM) 
 
 enum class ObjectTag : uint8_t
 {
