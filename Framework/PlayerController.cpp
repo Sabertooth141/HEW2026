@@ -122,8 +122,8 @@ void PlayerController::Update(float deltaTime)
 	{
 		const bool isWalking =
 			isGrounded &&
-			std::abs(inputX) > 0.1f &&
-			std::abs(rb->GetVelocity().x) > 10.0f;
+			std::abs(inputX) > 0.5f &&
+			std::abs(rb->GetVelocity().x) > 0.1f;
 
 		playerAudio->UpdateWalk(deltaTime, isWalking);
 	}
@@ -653,16 +653,16 @@ void PlayerController::OnCollisionEnter2D(
 		isGrounded = true;
 		isDiving = false;
 
+		//地面の上に新しく接触したときに着地音を鳴らす
+		if (playerAudio != nullptr)
+		{
+			playerAudio->PlayLand();
+		}
+
 		DirectX::XMFLOAT2 normal = {
 			-manifold.normal.x,
 			-manifold.normal.y
 		};
-
-		// 上向きの地面に触れたときだけ着地音を鳴らす
-		if (normal.y > 0.5f && playerAudio != nullptr)
-		{
-			playerAudio->PlayLand();
-		}
 
 		groundContacts[&other] = normal;
 		collisionNormal = normal;

@@ -35,21 +35,23 @@ void GameScene::OnEnter()
 	}
 
 	Scene::OnEnter();
-	//2Dプラットフォーム
-	Instantiate("platform_layout", { 0.0f,0.0f,1.0f });
+	// プレハブを指定位置・サイズで生成する共通処理
+	const auto createObject =
+		[this](
+			const std::string& prefabName,
+			const std::string& objectName,
+			const DirectX::XMFLOAT3& position,
+			const DirectX::XMFLOAT3& scale)
+		{
+			GameObject* object = Instantiate(prefabName, position);
+			if (object == nullptr)
+			{
+				return;
+			}
 
-	//針
-    Instantiate("spike", { -500.f, -160.f, 1.f });
-
-	
-	//チェックポイント
-	Instantiate("checkpoint_layout", { 0.0f,0.0f,1.0f });
-
-
-	// 壊せるオブジェクト
-	Instantiate("breakable_layout", { 0.0f, 0.0f, 1.0f });
-
-	Instantiate("one_way_platform_layout", { 0.f, 0.f, 1.f });
+			object->SetName(objectName);
+			object->GetTransform()->SetScale(scale);
+		};
 
 }
 
