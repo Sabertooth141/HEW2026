@@ -2,6 +2,27 @@
  "version": 1,
  "scene": "Game",
  "objects": [
-  {"prefab":"player","name":"player","position":[0.0,0.0,1.0],"rotation":0.0,"scale":[64.0,64.0,1.0]}
+  {"prefab":"player","name":"player","position":[-28.872,51.058,1.0],"rotation":0.0,"scale":[64.0,64.0,1.0]},
+  {"prefab":"checkpoint","name":"checkpoint","position":[96.611,29.969,1.0],"rotation":0.0,"scale":[72.0,72.0,1.0]},
+  {"prefab":"platform","name":"platform","position":[-326.478,-224.114,1.0],"rotation":0.0,"scale":[4000.0,60.0,1.0]},
+  {"prefab":"platform","name":"platform","position":[1724.719,209.674,1.0],"rotation":90.0,"scale":[924.0,100.0,1.0]},
+  {"prefab":"platform","name":"platform","position":[1554.354,709.777,1.0],"rotation":0.0,"scale":[439.5,78.5,1.0]},
+  {"prefab":"platform","name":"platform","position":[-2359.547,133.938,1.0],"rotation":90.0,"scale":[778.5,63.5,1.0]},
+  {"prefab":"platform","name":"platform","position":[-2698.285,496.371,1.0],"rotation":0.0,"scale":[734.5,51.5,1.0]},
+  {"prefab":"breakable_floor","name":"breakable_floor","position":[437.525,49.949,1.0],"rotation":0.0,"scale":[164.5,73.5,1.0]},
+  {"prefab":"spike","name":"spike","position":[-555.234,-160.946,1.0],"rotation":0.0,"scale":[64.0,64.0,1.0]},
+  {"prefab":"checkpoint","name":"checkpoint","position":[-1901.921,-157.248,1.0],"rotation":0.0,"scale":[72.0,72.0,1.0]},
+  {"prefab":"checkpoint","name":"checkpoint","position":[-1015.637,-157.248,1.0],"rotation":0.0,"scale":[72.0,72.0,1.0]},
+  {"prefab":"platform","name":"platform","position":[-1469.658,-153.636,1.0],"rotation":0.0,"scale":[256.0,75.0,1.0]},
+  {"prefab":"checkpoint","name":"checkpoint","position":[464.172,123.031,1.0],"rotation":0.0,"scale":[72.0,72.0,1.0]},
+  {"prefab":"checkpoint","name":"checkpoint","position":[1329.227,-157.791,1.0],"rotation":0.0,"scale":[72.0,72.0,1.0]},
+  {"prefab":"platform","name":"platform","position":[-3102.425,830.207,1.0],"rotation":90.0,"scale":[720.5,72.0,1.0]},
+  {"prefab":"platform","name":"platform","position":[-3043.152,1220.642,1.0],"rotation":0.0,"scale":[441.0,57.5,1.0]},
+  {"prefab":"platform","name":"platform","position":[99.942,-41.069,1.0],"rotation":0.0,"scale":[145.5,76.0,1.0]},
+  {"prefab":"checkpoint","name":"checkpoint","position":[-376.164,-156.327,1.0],"rotation":0.0,"scale":[72.0,72.0,1.0]},
+  {"prefab":"checkpoint","name":"checkpoint","position":[1638.141,375.447,1.0],"rotation":90.0,"scale":[72.0,72.0,1.0]},
+  {"prefab":"checkpoint","name":"checkpoint","position":[-2512.779,558.597,1.0],"rotation":0.0,"scale":[72.0,72.0,1.0]},
+  {"prefab":"checkpoint","name":"checkpoint","position":[-2947.704,1161.953,1.0],"rotation":180.0,"scale":[72.0,72.0,1.0]},
+  {"prefab":"platform","name":"platform","position":[-1540.588,-0.839,1.0],"rotation":0.0,"scale":[113.5,62.5,1.0]}
   ]
 }

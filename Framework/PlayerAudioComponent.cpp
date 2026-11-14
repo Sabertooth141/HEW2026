@@ -67,7 +67,7 @@ void PlayerAudioComponent::PlayLand()
 	}
 
 	// 着地音をSEとして再生する
-	owner->GetContext().soundManager.PlaySE(landSound, 0.8f);
+	owner->GetContext().soundManager.PlaySE(landSound, 0.9f);
 }
 
 void PlayerAudioComponent::UpdateWalk(float deltaTime, bool isWalking)
