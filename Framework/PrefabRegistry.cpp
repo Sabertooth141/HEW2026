@@ -90,7 +90,36 @@ void RegisterPrefabs()
 		{
 			object.AddComponent<PlatformLayoutComponent>();
 		});
+	//編集モードで個別配置する地面
+	PrefabRegistry::Instance().Register("platform", [](GameObject& object)
+		{
+			object.SetTag(ObjectTag::GROUND);
 
+			////地面の表示画像
+			//auto& anim =
+			//	object.AddComponent<AnimatorComponent>(object.GetRenderer());
+			//anim.SetRenderLayer(RenderLayer::Default);
+			//anim.SetSortOrder(0);
+			////anim.SetStatic(L"../../assets/Ground.png");
+			//// 初期サイズ。編集モードのインスペクターから変更できる
+
+			object.GetTransform()->SetScale({ 256.0f, 40.0f, 1.0f });
+
+			// 動かない地面として設定
+			auto& platformRb =
+				object.AddComponent<Rigidbody2DComponent>(
+					*object.GetTransform(),
+					1.0f);
+			platformRb.SetGravity(0.0f);
+			platformRb.SetIsStatic(true);
+
+			// 通常の当たり判定。triggerはfalse
+			object.AddComponent<BoxCollider2D>(
+				DirectX::XMFLOAT2(0.5f, 0.5f),
+				DirectX::XMFLOAT2(0.0f, 0.0f),
+				false,
+				*object.GetTransform());
+		});
 	//チェックポイント
 	PrefabRegistry::Instance().Register("checkpoint", [](GameObject& object)
 		{

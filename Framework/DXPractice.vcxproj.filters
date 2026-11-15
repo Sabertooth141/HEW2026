@@ -509,6 +509,8 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="OneWayPlatformLayoutComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="SoundManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
