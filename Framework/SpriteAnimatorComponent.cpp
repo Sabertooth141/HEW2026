@@ -52,16 +52,41 @@ void SpriteAnimatorComponent::Update(float deltaTime)
 
 void SpriteAnimatorComponent::SetAnimation(int inStartFrame, int inEndFrame, float fps, bool inLoop)
 {
-	if (startFrame == inStartFrame && endFrame == inEndFrame)
+	// 不正なフレーム範囲や再生速度を受け付けない。
+	const int frameCount = animInfo.empty()
+		? cols * rows
+		: static_cast<int>(animInfo.size());
+
+	if (fps <= 0.0f ||
+		inStartFrame < 0 ||
+		inEndFrame < inStartFrame ||
+		inEndFrame >= frameCount)
 	{
 		return;
 	}
+
+	//if (startFrame == inStartFrame && endFrame == inEndFrame)
+	//{
+	//	return;
+	//}
 	startFrame = inStartFrame;
 	endFrame = inEndFrame;
 	currFrame = startFrame;
+
+	// ループ時に戻る範囲も、指定されたフレーム範囲に揃える。
+	loopStartFrame = inStartFrame;
+	loopEndFrame = inEndFrame;
+
 	frameDuration = 1.f / fps;
 	timer = 0.f;
 	loop = inLoop;
+	PushUV();
+}
+
+void SpriteAnimatorComponent::Restart()
+{
+	currFrame = startFrame;
+	timer = 0.0f;
 	PushUV();
 }
 
@@ -160,7 +185,8 @@ bool SpriteAnimatorComponent::ParseJson(const std::string& jsonString)
 		}
 		else
 		{
-			frame.duration = 0.1f;
+			// JSONに個別の再生時間がない場合は、SetAnimation() のFPS設定を使う。
+			frame.duration = 0.0f;
 		}
 
 		animInfo.push_back(frame);
