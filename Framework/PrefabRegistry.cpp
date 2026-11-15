@@ -37,10 +37,38 @@ void RegisterPrefabs()
 		auto& anim = object.AddComponent<AnimatorComponent>(object.GetRenderer());
 		anim.SetRenderLayer(RenderLayer::Player);
 		anim.SetSortOrder(0);
-		anim.AddAnimation("CharIdle", L"../../assets/PlayerCharacter.png", L"../../assets/PlayerCharacter.json");
-		anim.AddAnimation("CharMove", L"../../assets/PlayerCharacterMove.png",
-		                  L"../../assets/PlayerCharacterMove.json");
-		anim.SetCurrAnimation("CharIdle");
+		//待機中に表示する
+		anim.AddAnimation("StaticRight",L"../../assets/sprite_walk/sprite/spritesheet_right/spritesheet.png",L"../../assets/sprite_walk/sprite/spritesheet_right/spritesheet.json");
+
+		anim.AddAnimation("StaticLeft",L"../../assets/sprite_walk/sprite/spritesheet_left/spritesheet.png",L"../../assets/sprite_walk/sprite/spritesheet_left/spritesheet.json");
+		// 歩き。先頭の立ち姿を除き、歩きフレームをループする。
+		anim.AddAnimation("WalkRight",L"../../assets/sprite_walk/sprite/spritesheet_right/spritesheet.png",L"../../assets/sprite_walk/sprite/spritesheet_right/spritesheet.json");
+
+		anim.AddAnimation("WalkLeft",L"../../assets/sprite_walk/sprite/spritesheet_left/spritesheet.png",L"../../assets/sprite_walk/sprite/spritesheet_left/spritesheet.json");
+
+		// ジャンプ。左右のシートをそれぞれ一回再生する。
+		anim.AddAnimation("JumpRight",L"../../assets/sprite_jump/sprite_jump/spritesheet (3)/spritesheet.png",L"../../assets/sprite_jump/sprite_jump/spritesheet (3)/spritesheet.json");
+
+		anim.AddAnimation("JumpLeft",L"../../assets/sprite_jump/sprite_jump/spritesheet (2)/spritesheet.png",L"../../assets/sprite_jump/sprite_jump/spritesheet (2)/spritesheet.json");
+
+		// 静止絵は0番のまま止める。
+		anim.SetAnimationRange("StaticRight", 0, 0, 1.0f, false);
+		anim.SetAnimationRange("StaticLeft", 0, 0, 1.0f, false);
+
+		// 歩きは1〜30番を12 FPSでループする。
+		anim.SetAnimationRange("WalkRight", 1, 30, 12.0f, true);
+		anim.SetAnimationRange("WalkLeft", 1, 30, 12.0f, true);
+
+		// ジャンプは0〜29番を15 FPSで一度再生し、最後の絵で止める。
+		anim.SetAnimationRange("JumpRight", 0, 29, 15.0f, false);
+		anim.SetAnimationRange("JumpLeft", 0, 29, 15.0f, false);
+
+		// 最初に表示するアニメーションを決める。
+		anim.SetCurrAnimation("StaticRight");
+
+		// AddAnimation() が画像のフレーム寸法をScaleへ設定するため、
+		// 全アニメーションの登録後にプレイヤーの表示サイズを設定する。
+		object.GetTransform()->SetScale({ 64.0f, 64.0f, 1.0f });
 
 		//加速
 		object.AddComponent<SpeedBoostComponent>();
@@ -120,33 +148,47 @@ void RegisterPrefabs()
 				false,
 				*object.GetTransform());
 		});
-	//チェックポイント
+	// チェックポイント
 	PrefabRegistry::Instance().Register("checkpoint", [](GameObject& object)
 		{
 			object.SetTag(ObjectTag::CHECKPOINT);
 
-			//仮の表示画像
+			// チェックポイントの画像とアニメーションを管理する。
 			auto& anim = object.AddComponent<AnimatorComponent>(object.GetRenderer());
 			anim.SetRenderLayer(RenderLayer::Default);
 			anim.SetSortOrder(1);
+
+			// プレイヤーが触れるまでは、これまで使っていた静止画像を表示する。
 			anim.SetStatic(L"../../assets/flag.png");
 
-			//表示サイズと判定の大きさ
-			object.GetTransform()->SetScale({ 72.0f,72.0f,1.0f });
+			// プレイヤーが触れた後に再生する旗のアニメーションを登録する。
+			anim.AddAnimation(
+				"Activated",
+				L"../../assets/sprite_ship/sprite_ship/sprite_ship/spritesheet.png",
+				L"../../assets/sprite_ship/sprite_ship/sprite_ship/spritesheet.json");
 
-			auto& checkpointRb = object.AddComponent<Rigidbody2DComponent>(*object.GetTransform(), 1.0f);
+			// 30フレームを12 FPSで繰り返し再生する。
+			anim.SetAnimationRange("Activated", 0, 29, 12.0f, true);
+
+			// 静止画像・シート画像の登録で変わったサイズを、表示用の大きさに設定する。
+			object.GetTransform()->SetScale({ 72.0f, 72.0f, 1.0f });
+
+			// チェックポイントを物理的に動かない状態にする。
+			auto& checkpointRb =
+				object.AddComponent<Rigidbody2DComponent>(*object.GetTransform(), 1.0f);
 			checkpointRb.SetGravity(0.0f);
 			checkpointRb.SetIsStatic(true);
 
+			// プレイヤーが触れたことを検知するTrigger判定。
 			object.AddComponent<BoxCollider2D>(
 				DirectX::XMFLOAT2(0.5f, 0.5f),
 				DirectX::XMFLOAT2(0.0f, 0.0f),
 				true,
 				*object.GetTransform());
 
+			// 接触時の復帰地点登録と、アニメーション開始を担当する。
 			object.AddComponent<CheckpointComponent>();
 		});
-
 	PrefabRegistry::Instance().Register("checkpoint_layout", [](GameObject& object)
 		{
 			object.AddComponent<CheckpointLayoutComponent>();

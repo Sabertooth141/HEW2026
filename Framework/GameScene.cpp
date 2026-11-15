@@ -14,6 +14,9 @@
 #include "RetryTransitionComponent.h"
 #include "SoundManager.h"
 #include "WaveData.h"
+#include "AnimatorComponent.h"
+#include "GameObject.h"
+#include "RenderLayer.h"
 
 void GameScene::OnEnter()
 {
@@ -53,6 +56,26 @@ void GameScene::OnEnter()
 			object->GetTransform()->SetScale(scale);
 		};
 
+	// ステージ全体の背景画像を生成する。
+	// 背景なので、当たり判定やRigidbodyは付けない。
+	GameObject* background = Add2DObject();
+
+	if (background != nullptr)
+	{
+		background->SetName("StageBackground");
+
+		auto& animator =
+			background->AddComponent<AnimatorComponent>(background->GetRenderer());
+
+		animator.SetRenderLayer(RenderLayer::BackGround);
+		animator.SetSortOrder(0);
+		animator.SetStatic(L"../../assets/haikei.png");
+
+		// 5画面分の幅、2画面分の高さに合わせて配置する。
+		// ステージ1の画面中心が (0, 0) の場合の座標。
+		background->GetTransform()->SetPosition({ 3840.0f, -540.0f, 1.0f });
+		background->GetTransform()->SetScale({ 9600.0f, 2160.0f, 1.0f });
+	}
 }
 
 void GameScene::OnUpdate(float deltaTime)

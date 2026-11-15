@@ -33,6 +33,14 @@ public:
 	void SetRenderLayer(RenderLayer inLayer);
 	void SetSortOrder(int inOrder);
 
+	// 名前で指定したアニメーションの再生範囲・速度・ループを設定する。
+	bool SetAnimationRange(
+		const std::string& animName,
+		int startFrame,
+		int endFrame,
+		float fps,
+		bool loop = true);
+
 	RenderLayer GetRenderLayer() const
 	{
 		return renderLayer;

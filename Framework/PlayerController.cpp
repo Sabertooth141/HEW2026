@@ -17,6 +17,7 @@
 #include "BreakableObjectComponent.h"
 
 #include "PlayerAudioComponent.h"
+#include "CheckpointComponent.h"
 
 void PlayerController::Awake()
 {
@@ -150,8 +151,8 @@ void PlayerController::Update(float deltaTime)
 		return;
 	}
 
-	HandleAnimation();
 	HandleJump(deltaTime);
+	HandleAnimation();
 
 
 
@@ -617,24 +618,36 @@ void PlayerController::HandleAnimation()
 		return;
 	}
 
-	if (inputX > 0.f)
+	// 左右入力があるときだけ、向きを更新する。
+	if (inputX > 0.0f)
 	{
-		anim->SetFlipX(false);
+		isFacingRight = true;
 	}
-	else if (inputX < 0.f)
+	else if (inputX < 0.0f)
 	{
-		anim->SetFlipX(true);
+		isFacingRight = false;
 	}
 
-	const bool moving = inputX != 0.f || inputY != 0.f;
-	const char* next = moving ? "CharMove" : "CharIdle";
+	const char* nextAnimation = nullptr;
 
-	if (anim->GetCurrAnimName() != next)
+	if (!isGrounded)
 	{
-		anim->SetCurrAnimation(next);
+		nextAnimation = isFacingRight ? "JumpRight" : "JumpLeft";
+	}
+	else if (std::abs(inputX) > 0.01f)
+	{
+		nextAnimation = isFacingRight ? "WalkRight" : "WalkLeft";
+	}
+	else
+	{
+		nextAnimation = isFacingRight ? "StaticRight" : "StaticLeft";
+	}
+
+	if (anim->GetCurrAnimName() != nextAnimation)
+	{
+		anim->SetCurrAnimation(nextAnimation);
 	}
 }
-
 
 
 void PlayerController::OnCollisionEnter2D(const GameObject& other)
@@ -752,19 +765,51 @@ void PlayerController::OnCollisionEnter2D(
 	}
 }
 
-//プレイヤーが最後に触ったチェックポイント
+// プレイヤーが最後に触れたチェックポイントを登録する。
 void PlayerController::SetCheckpoint(
 	const DirectX::XMFLOAT3& position,
-	const GameObject* checkpoint)
+	GameObject* checkpoint)
 {
+	// 別のチェックポイントに触れたときだけ、旗の表示を切り替える。
+	if (lastCheckpointObject != checkpoint)
+	{
+		// 以前の旗があれば、アニメーションを止めて静止画像に戻す。
+		if (lastCheckpointObject != nullptr)
+		{
+			CheckpointComponent* previousCheckpoint =
+				lastCheckpointObject->GetComponent<CheckpointComponent>();
+
+			if (previousCheckpoint != nullptr)
+			{
+				previousCheckpoint->SetActivated(false);
+			}
+		}
+
+		// 今回触れた旗を、最後に触れたチェックポイントとして記録する。
+		lastCheckpointObject = checkpoint;
+
+		// 新しい旗だけアニメーションさせる。
+		if (lastCheckpointObject != nullptr)
+		{
+			CheckpointComponent* currentCheckpoint =
+				lastCheckpointObject->GetComponent<CheckpointComponent>();
+
+			if (currentCheckpoint != nullptr)
+			{
+				currentCheckpoint->SetActivated(true);
+			}
+		}
+	}
+
+	// 復帰時に使う座標を保存する。
 	lastCheckpointPosition = position;
-	
+
+	// 既存の加速処理。今回の旗を加速判定へ渡す。
 	if (speedBoost != nullptr)
 	{
 		speedBoost->TryAddStack(checkpoint);
 	}
 }
-
 void PlayerController::RespawnAtCheckPoint()
 {
 	owner->GetTransform()->SetPosition(lastCheckpointPosition);

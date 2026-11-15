@@ -2,7 +2,7 @@
  "version": 1,
  "scene": "Game",
  "objects": [
- {"prefab":"player","name":"player","position":[-28.872,51.058,1.0],"playerSettings":{"moveSpeed":300.0,"jumpPower":500.0,"abilities":[[true,false,false,false],[true,true,false,false],[true,true,true,false]]},"rotation":0.0,"scale":[64.0,64.0,1.0]},
+  {"prefab":"player","name":"player","position":[-63.296,495.046,1.0],"playerSettings":{"moveSpeed":300.0,"jumpPower":500.0,"abilities":[[true,false,false,false],[true,true,false,false],[true,true,true,false]]},"rotation":0.0,"scale":[64.0,64.0,1.0]},
   {"prefab":"checkpoint","name":"checkpoint","position":[96.611,29.969,1.0],"rotation":0.0,"scale":[72.0,72.0,1.0]},
   {"prefab":"platform","name":"platform","position":[-326.478,-224.114,1.0],"rotation":0.0,"scale":[4000.0,60.0,1.0]},
   {"prefab":"platform","name":"platform","position":[1724.719,209.674,1.0],"rotation":90.0,"scale":[924.0,100.0,1.0]},

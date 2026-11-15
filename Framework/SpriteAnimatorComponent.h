@@ -24,6 +24,9 @@ public:
 	bool ParseJson(const std::string& jsonString);
 	SpriteRendererComponent* GetSpriteRenderer() const;
 
+	// 設定済みのアニメーションを先頭フレームから再生し直す。
+	void Restart();
+
 	DirectX::XMFLOAT2 GetFrameSize() const { return {frameW, frameH}; }
 
 private:
