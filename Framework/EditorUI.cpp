@@ -9,6 +9,7 @@
 #include "SceneManager.h"
 #include "WindowSettings.h"
 #include "PlayerController.h"
+#include "SpeedBoostComponent.h"
 
 namespace
 {
@@ -374,16 +375,72 @@ void EditorUI::DrawInspector(Scene& scene)
 	
 	}
 
-// PlayerController
-if (auto* player = selectedObjRef.GetComponent<PlayerController>())
-{
-    float speed = player->moveSpeed;
+	// PlayerController
+	if (auto* player = selectedObjRef.GetComponent<PlayerController>())
+	{
+		float speed = player->moveSpeed;
 
-    if (ImGui::DragFloat("移動速度", &speed, 1.f))
-    {
-        player->moveSpeed = speed;
-    }
-}
+		if (ImGui::DragFloat("移動速度", &speed, 1.f))
+		{
+			player->moveSpeed = speed;
+		}
+
+		// ジャンプ力
+		float jumpPower = player->jumpPower;
+
+		if (ImGui::DragFloat("ジャンプ力", &jumpPower, 1.f))
+		{
+			player->jumpPower = jumpPower;
+		}
+
+		// スタック数ごとの能力設定
+		if (auto* speedBoost = selectedObjRef.GetComponent<SpeedBoostComponent>())
+		{
+			if (ImGui::CollapsingHeader("加速能力設定", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				const char* abilityNames[] =
+				{
+					"壁のぼり",
+					"壁破壊",
+					"急降下",
+					"空中走行"
+				};
+
+				const SpeedBoostComponent::BoostAbility abilities[] =
+				{
+					SpeedBoostComponent::BoostAbility::WallClimb,//壁のぼり
+					SpeedBoostComponent::BoostAbility::BreakWall,//壁破壊
+					SpeedBoostComponent::BoostAbility::Dive,//急降下
+					SpeedBoostComponent::BoostAbility::AirRun
+				};
+
+				for (int stack = 1; stack <= SpeedBoostComponent::MaxAbilityStack; ++stack)
+				{
+					ImGui::Text("%dスタック", stack);//スタック数
+
+					ImGui::Indent();
+
+					for (int i = 0; i < IM_ARRAYSIZE(abilities); ++i)
+					{
+						ImGui::PushID(stack * 10 + i);
+
+						bool enabled =
+							speedBoost->IsAbilityEnabledForStack(stack, abilities[i]);
+
+						if (ImGui::Checkbox(abilityNames[i], &enabled))//チェックが変更されたら保存
+						{
+							speedBoost->SetAbilityEnabled(stack, abilities[i], enabled);
+						}
+
+						ImGui::PopID();
+					}
+
+					ImGui::Unindent();
+					ImGui::Separator();
+				}
+			}
+		}
+	}
 
 	// box collider
 	if (auto* col = selectedObjRef.GetComponent<BoxCollider2D>())

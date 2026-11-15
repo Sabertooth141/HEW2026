@@ -1,13 +1,26 @@
+
 #pragma once
 
 #include <algorithm>
+#include <array>
+#include <cstddef>
 #include <unordered_set>
 
 #include "MonoBehavior.h"
 
-class SpeedBoostComponent :public MonoBehavior
+class SpeedBoostComponent : public MonoBehavior
 {
 public:
+	enum class BoostAbility
+	{
+		WallClimb,  // 壁のぼり
+		BreakWall,  // 壁破壊
+		Dive,        // 急降下
+		AirRun      // 空中走行
+	};
+
+	static constexpr int MaxAbilityStack = 3;
+
 	void Update(float deltaTime) override
 	{
 		if (isPaused || remainingTime <= 0.f)
@@ -72,27 +85,51 @@ public:
 		return stackCount;
 	}
 
-	enum class BoostAbility
+	// 指定したスタック数で能力が有効か確認する
+	bool IsAbilityEnabledForStack(
+		int targetStack,
+		BoostAbility ability) const
 	{
-		WallClimb // 壁登り
-	};
-
-	// スタック数に応じて能力が使用可能か確認する
-	bool HasAbility(BoostAbility ability) const
-	{
-		// 加速時間が切れていたら能力は使えない
-		if (remainingTime <= 0.f)
+		if (targetStack < 1 || targetStack > MaxAbilityStack)
 		{
 			return false;
 		}
 
-		switch (ability)
+		const int abilityIndex = static_cast<int>(ability);
+
+		return abilitySettings[targetStack - 1][abilityIndex];
+	}
+
+	// 指定したスタック数の能力設定を変更する
+	void SetAbilityEnabled(
+		int targetStack,
+		BoostAbility ability,
+		bool enabled)
+	{
+		if (targetStack < 1 || targetStack > MaxAbilityStack)
 		{
-		case BoostAbility::WallClimb:
-			return stackCount >= wallClimbRequiredStacks;
+			return;
 		}
 
-		return false;
+		const int abilityIndex = static_cast<int>(ability);
+
+		abilitySettings[targetStack - 1][abilityIndex] = enabled;
+	}
+
+	// 現在のスタック数で能力が使用可能か確認する
+	bool HasAbility(BoostAbility ability) const
+	{
+		// 加速時間が切れていたら能力は使えない
+		if (remainingTime <= 0.f || stackCount <= 0)
+		{
+			return false;
+		}
+
+		// 4スタック以上の場合は3スタックの設定を使用する
+		const int currentStack =
+			std::min(stackCount, MaxAbilityStack);
+
+		return IsAbilityEnabledForStack(currentStack, ability);
 	}
 
 	float GetRemainingTime() const
@@ -105,18 +142,16 @@ public:
 		isPaused = inPaused;
 	}
 
-	//死亡時に加速の制限時間、スタックリセット
+	// 死亡時に加速の制限時間、スタックをリセット
 	void ResetBoost()
 	{
 		stackCount = 0;
 		remainingTime = 0.f;
 	}
 
-
-
 private:
 	int stackCount = 0;
-	float  remainingTime = 0.0f;
+	float remainingTime = 0.0f;
 
 	float boostDuration = 5.0f;
 	float speedIncreasePerStack = 0.15f;
@@ -125,6 +160,13 @@ private:
 
 	std::unordered_set<const GameObject*> usedCheckpoints;
 
-	// 壁登りを解放するために必要なスタック数
-	int wallClimbRequiredStacks = 2;
+	// 各スタック数で使用できる能力を保存する
+	// 行：スタック数（1～3）
+	// 列：壁のぼり、壁破壊、急降下、空中走行
+		std::array<std::array<bool, 4>, 3> abilitySettings =
+	{ {
+		{ true,  false, false, false }, // 1スタック
+		{ true,  true,  false, false }, // 2スタック
+		{ true,  true,  true,  false }  // 3スタック
+	} };
 };

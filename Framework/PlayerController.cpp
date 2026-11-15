@@ -109,13 +109,52 @@ void PlayerController::Update(float deltaTime)
 	}
 
 
+	// 天井にぶつかった後、地面に着地するまで操作を禁止する
+	if (isCeilingKnockback)
+	{
+		// 地面に着地したら操作禁止を解除
+		if (isGrounded)
+		{
+			isCeilingKnockback = false;
+		}
+		else
+		{
+			// 落下中は操作・ジャンプを受け付けない
+			HandleAnimation();
 
+			if (playerAudio != nullptr)
+			{
+				playerAudio->UpdateWalk(deltaTime, false);
+			}
+
+			playTimer += deltaTime;
+			return;
+		}
+	}
 
 	HandleInput();//キー入力取得
 	HandleDive();
 	HandleMovement(deltaTime);//地面や壁の状態で移動方法を決める
+
+	// 今のフレームで天井にぶつかった場合も、ジャンプを処理しない
+	if (isCeilingKnockback)
+	{
+		HandleAnimation();
+
+		if (playerAudio != nullptr)
+		{
+			playerAudio->UpdateWalk(deltaTime, false);
+		}
+
+		playTimer += deltaTime;
+		return;
+	}
+
 	HandleAnimation();
 	HandleJump(deltaTime);
+
+
+
 
 	// 接地中に横方向へ実際に移動している場合だけ、歩行音を鳴らす
 	if (playerAudio != nullptr && rb != nullptr)
@@ -150,8 +189,7 @@ void PlayerController::HandleDive()
 		return;
 	}
 
-	// 加速スタックが3のときだけ急降下できる
-	if (speedBoost->GetStackCount() < 3)
+	if (!speedBoost->HasAbility(SpeedBoostComponent::BoostAbility::Dive))
 	{
 		return;
 	}
@@ -232,8 +270,12 @@ void PlayerController::HandleMovement(float deltaTime)
 				wallTopY = wallAABB.max.y;
 				hasWallTop = true;
 
-				// 左方向への入力中に壁の上端へ到達したら横移動へ切り替える
-				if (inputX < 0.f && playerAABB.min.y >= wallTopY - 2.f)
+				// 壁の位置から、上端を越えるときの移動方向を記憶する
+				wallTopDirection = wallNormal.x > 0.f ? -1.f : 1.f;
+
+				// 壁の上端に到達したら横移動へ切り替える
+				if (inputX == wallTopDirection &&
+					playerAABB.min.y >= wallTopY - 2.f)
 				{
 					isWallTopTransitioning = true;
 				}
@@ -265,7 +307,7 @@ void PlayerController::HandleMovement(float deltaTime)
 	}
 	// 壁との接触が切れても、記憶した上端位置で判定する
 	if (hasWallTop &&
-		inputX < 0.f &&
+		inputX == wallTopDirection &&
 		playerAABB.min.y >= wallTopY - 2.f)
 	{
 		isWallTopTransitioning = true;
@@ -274,7 +316,7 @@ void PlayerController::HandleMovement(float deltaTime)
 	// 天井に接触した瞬間だけノックバック
 	if (isTouchingCeiling && !wasTouchingCeiling)
 	{
-		ceilingKnockbackTimer = 1.5f;//ノックバックの継続時間
+		isCeilingKnockback = true;
 
 		rb->SetVelocity({
 			wallNormal.x * 250.f,
@@ -284,12 +326,7 @@ void PlayerController::HandleMovement(float deltaTime)
 
 	wasTouchingCeiling = isTouchingCeiling;
 
-	// ノックバック時間を更新
-	if (ceilingKnockbackTimer > 0.f)
-	{
-		ceilingKnockbackTimer =
-			std::max(0.f, ceilingKnockbackTimer - deltaTime);
-	}
+	
 
 	// 壁から離れる方向に入力しているか
 	const bool isMovingAwayFromWall =
@@ -311,22 +348,67 @@ void PlayerController::HandleMovement(float deltaTime)
 				)
 			);
 
-	if (useSurfaceMovement)//移動モードの切り替え
+	if (isLedgeGraceRunning)
 	{
-		movementMode = MovementMode::Loop;
-		rb->SetGravity(0.f);
-	}
-	else
-	{
-		movementMode = MovementMode::Normal;
-		rb->SetGravity(normalGravity);
+		// 飛び出した方向への入力がなくなったら落下開始
+		if (inputX != ledgeGraceDirection)//ledgeGraceDirectionは飛び出した時の方向
+		{
+			isLedgeGraceRunning = false;
+			rb->SetGravity(normalGravity);
+
+			//コヨーテタイムを開始
+			coyoteTimer = coyoteTime;
+		}
+		else//方向が変わっていない場合
+		{
+			const auto position = owner->GetTransform()->GetPosition();
+
+			//前回から移動した距離を加算
+			ledgeGraceDistanceTravelled +=//ledgeGraceDistanceTravelledは飛び出してから移動した距離
+				std::abs(position.x - ledgeGracePreviousX);
+
+			ledgeGracePreviousX = position.x;
+
+			//走り切ったら落下開始
+			if (ledgeGraceDistanceTravelled >= ledgeGraceLimit)
+			{
+				isLedgeGraceRunning = false;
+
+				rb->SetGravity(normalGravity);
+
+				//コヨーテタイムを開始
+				coyoteTimer = coyoteTime;
+			}
+			else
+			{
+				// 猶予走行中は高さを維持して横に進む
+				rb->SetGravity(0.f);
+
+				const float currentSpeed =
+					speedBoost != nullptr
+					? speedBoost->GetMoveSpeed(moveSpeed)
+					: moveSpeed;
+
+				rb->SetVelocity({
+					inputX * currentSpeed,
+					0.f
+					});
+
+				return;
+			}
+		}
 	}
 
-	if (ceilingKnockbackTimer > 0.f)
+	// 天井にぶつかった直後はノックバックの速度を維持する
+	if (isCeilingKnockback)
 	{
-		// ノックバック中は通常移動で速度を上書きしない
 		return;
 	}
+
+	// 壁のぼりが可能な状態なら地形に沿った移動に切り替える
+	movementMode = useSurfaceMovement
+		? MovementMode::Loop
+		: MovementMode::Normal;
 
 	switch (movementMode)
 	{
@@ -623,7 +705,7 @@ void PlayerController::OnCollisionEnter2D(
 		if (breakable->GetBreakType() ==
 			BreakableObjectComponent::BreakType::Boost &&
 			speedBoost != nullptr &&
-			speedBoost->GetStackCount() >= 2 &&
+			speedBoost->HasAbility(SpeedBoostComponent::BoostAbility::BreakWall) &&
 			std::abs(normal.x) > 0.5f)
 		{
 			breakable->Break();
@@ -720,9 +802,9 @@ void PlayerController::HandleJump(float deltaTime)
 	{
 		coyoteTimer = coyoteTime;
 	}
-	else
+	else if (!isLedgeGraceRunning)
 	{
-		// 空中にいる間は猶予時間を減らす
+		// 猶予走行が終わってからジャンプ猶予時間を減らす
 		coyoteTimer = std::max(0.f, coyoteTimer - deltaTime);
 	}
 
@@ -774,6 +856,8 @@ void PlayerController::OnCollisionStay2D(
 	if (isGrounded)
 	{
 		isDiving = false;
+		isLedgeGraceRunning = false;
+		ledgeGraceDistanceTravelled = 0.f;
 	}
 }
 void PlayerController::OnCollisionExit2D(const GameObject& other)
@@ -781,9 +865,25 @@ void PlayerController::OnCollisionExit2D(const GameObject& other)
 	if (other.GetTag() == ObjectTag::GROUND ||
 		other.GetTag() == ObjectTag::ONE_WAY_PLATFORM)
 	{
+		const bool wasGrounded = isGrounded;
+
 		groundContacts.erase(&other);
 
 		isTouchingGround = !groundContacts.empty();
+
+		// まだ足場に接触しているか調べる
+		bool hasFloorContact = false;
+
+		for (const auto& contact : groundContacts)
+		{
+			if (contact.second.y > 0.5f)
+			{
+				hasFloorContact = true;
+				break;
+			}
+		}
+
+		isGrounded = hasFloorContact;
 
 		if (isTouchingGround)
 		{
@@ -792,7 +892,37 @@ void PlayerController::OnCollisionExit2D(const GameObject& other)
 		else
 		{
 			collisionNormal = { 0.f, 0.f };
-			isGrounded = false;
+		}
+
+		// 最後の足場から離れたときだけ猶予走行を開始
+		if (wasGrounded && !isGrounded && !isLedgeGraceRunning)
+		{
+			const DirectX::XMFLOAT2 velocity = rb->GetVelocity();
+
+			// ジャンプ上昇中ではない場合に開始
+			if (velocity.y <= 0.f && inputX != 0.f)
+			{
+				const auto position = owner->GetTransform()->GetPosition();
+
+				ledgeGracePreviousX = position.x;
+				ledgeGraceDistanceTravelled = 0.f;
+
+				// 足場から飛び出した方向を記録
+				ledgeGraceDirection = inputX;
+
+				// 空中走行能力が有効ならそっちを優先、通常時は
+				ledgeGraceLimit = 64.f;
+
+				if (speedBoost != nullptr &&
+					speedBoost->HasAbility(
+						SpeedBoostComponent::BoostAbility::AirRun))
+				{
+					ledgeGraceLimit = 256.f;
+				}
+
+				isLedgeGraceRunning = true;
+				coyoteTimer = 0.f;
+			}
 		}
 	}
 }

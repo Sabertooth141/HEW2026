@@ -47,6 +47,7 @@ public:
 	void OnCollisionStay2D(const GameObject& other) override;
 	void OnCollisionExit2D(const GameObject& other) override;
 
+	float jumpPower = 500.f;
 private:
 
 	enum class MovementMode
@@ -75,7 +76,13 @@ private:
 	// コヨーテタイム
 	float coyoteTime = 0.1f;
 	float coyoteTimer = 0.f;
-	float jumpPower = 500.f;
+
+
+	bool isLedgeGraceRunning = false;
+	float ledgeGracePreviousX = 0.f;
+	float ledgeGraceDistanceTravelled = 0.f;
+	float ledgeGraceLimit = 64.f;
+	float ledgeGraceDirection = 0.f;
 
 	// トゲに触れて死亡しているか
 	bool isDead = false;
@@ -114,12 +121,15 @@ private:
 	bool isTouchingGround = false;
 
 	bool wasTouchingCeiling = false;
-	float ceilingKnockbackTimer = 0.f;
+	// 天井にぶつかった後、地面に着地するまで操作を禁止する
+	bool isCeilingKnockback = false;
 
 	// 壁の上端から上側の足場へ移動中か
 	bool isWallTopTransitioning = false;
 	// 壁の上端位置を記憶する
 	float wallTopY = 0.f;
+	// 壁の上端を越えるときの移動方向
+	float wallTopDirection = 0.f;
 	bool hasWallTop = false;
 	SpeedBoostComponent* speedBoost = nullptr;
 };
