@@ -14,6 +14,9 @@
 #include "RetryTransitionComponent.h"
 #include "SoundManager.h"
 #include "WaveData.h"
+#include "AnimatorComponent.h"
+#include "GameObject.h"
+#include "RenderLayer.h"
 
 void GameScene::OnEnter()
 {
@@ -53,6 +56,45 @@ void GameScene::OnEnter()
 			object->GetTransform()->SetScale(scale);
 		};
 
+	// 各ステージ画像と、カメラ一画面分の配置位置。
+	struct StageBackgroundData
+	{
+		const wchar_t* texturePath;
+		const char* objectName;
+		DirectX::XMFLOAT3 position;
+	};
+
+	const StageBackgroundData stageBackgroundDataList[] =
+	{
+		{ L"../../assets/mapdesign/1.png", "StageBackground1",{ 0.0f,     0.0f, 10.0f } },
+		{ L"../../assets/mapdesign/2.png", "StageBackground2",{ 1920.0f,     0.0f, 10.0f } },
+		{ L"../../assets/mapdesign/3.png", "StageBackground3",{ 3840.0f,     0.0f, 10.0f } },
+		{ L"../../assets/mapdesign/4.png", "StageBackground4",{ 3840.0f, -1080.0f, 10.0f } },
+		{ L"../../assets/mapdesign/5.png", "StageBackground5",{ 5760.0f, -1080.0f, 10.0f } },
+		{ L"../../assets/mapdesign/6.png", "StageBackground6",{ 5760.0f,     0.0f, 10.0f } },
+		{ L"../../assets/mapdesign/7.png", "StageBackground7",{ 7680.0f,     0.0f, 10.0f } },
+		{ L"../../assets/mapdesign/8.png", "StageBackground8",{ 7680.0f, -1080.0f, 10.0f } }
+	};
+
+	for (const StageBackgroundData& stageData : stageBackgroundDataList)
+	{
+		GameObject* background = Add2DObject();
+		if (background == nullptr)
+		{
+			continue;
+		}
+
+		background->SetName(stageData.objectName);
+		background->GetTransform()->SetPosition(stageData.position);
+		background->GetTransform()->SetScale({ 1920.0f, 1080.0f, 1.0f });
+
+		auto& animator =
+			background->AddComponent<AnimatorComponent>(background->GetRenderer());
+
+		animator.SetRenderLayer(RenderLayer::BackGround);
+		animator.SetSortOrder(0);
+		animator.SetStatic(stageData.texturePath);
+	}
 }
 
 void GameScene::OnUpdate(float deltaTime)
