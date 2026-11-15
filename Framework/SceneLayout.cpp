@@ -7,6 +7,8 @@
 #include "SceneLayout.h"
 #include "PrefabRegistry.h"
 #include "Scene.h"
+#include "PlayerController.h"
+#include "SpeedBoostComponent.h"
 
 namespace
 {
@@ -70,6 +72,59 @@ SceneLayout::Result SceneLayout::Save(const Scene& scene, const std::string& sce
 		entry["prefab"] = obj.GetPrefabName();
 		entry["name"] = obj.GetName();
 		entry["position"] = Float3ToJson(transform->GetPosition());
+
+
+		// プレイヤーの設定を保存する
+		if (const PlayerController* player =
+			obj.GetComponent<PlayerController>())
+		{
+			nlohmann::ordered_json playerSettings;
+
+			// 移動速度を保存
+			playerSettings["moveSpeed"] = Round3(player->moveSpeed);
+
+			// ジャンプ力を保存
+			playerSettings["jumpPower"] = Round3(player->jumpPower);
+
+			// 加速能力の設定を保存
+			if (const SpeedBoostComponent* speedBoost =
+				obj.GetComponent<SpeedBoostComponent>())
+			{
+				const SpeedBoostComponent::BoostAbility abilityList[] =
+				{
+					SpeedBoostComponent::BoostAbility::WallClimb,
+					SpeedBoostComponent::BoostAbility::BreakWall,
+					SpeedBoostComponent::BoostAbility::Dive,
+					SpeedBoostComponent::BoostAbility::AirRun
+				};
+
+				playerSettings["abilities"] =
+					nlohmann::ordered_json::array();
+
+				// 1～3スタックの設定を保存
+				for (int stack = 1;
+					stack <= SpeedBoostComponent::MaxAbilityStack;
+					++stack)
+				{
+					nlohmann::ordered_json stackAbilities =
+						nlohmann::ordered_json::array();
+
+					// 各能力のON/OFFを保存
+					for (const auto ability : abilityList)
+					{
+						stackAbilities.push_back(
+							speedBoost->IsAbilityEnabledForStack(
+								stack, ability));
+					}
+
+					playerSettings["abilities"].push_back(
+						std::move(stackAbilities));
+				}
+			}
+
+			entry["playerSettings"] = std::move(playerSettings);
+		}
+
 		entry["rotation"] = Round3(DirectX::XMConvertToDegrees(rot.z));
 		entry["scale"] = Float3ToJson(transform->GetScale());
 		objects.push_back(std::move(entry));
@@ -215,6 +270,90 @@ SceneLayout::Result SceneLayout::Load(Scene& scene, const std::string& sceneName
 		{
 			transform->SetScale(scale);
 		}
+
+
+		// 保存されているプレイヤー設定を読み込む
+		const auto playerSettingsIt = entry.find("playerSettings");
+
+		if (playerSettingsIt != entry.end() &&
+			playerSettingsIt->is_object())
+		{
+			if (PlayerController* player =
+				obj->GetComponent<PlayerController>())
+			{
+				// 移動速度を復元
+				const auto speedIt =
+					playerSettingsIt->find("moveSpeed");
+
+				if (speedIt != playerSettingsIt->end() &&
+					speedIt->is_number())
+				{
+					player->moveSpeed = speedIt->get<float>();
+				}
+
+				// ジャンプ力を復元
+				const auto jumpPowerIt =
+					playerSettingsIt->find("jumpPower");
+
+				if (jumpPowerIt != playerSettingsIt->end() &&
+					jumpPowerIt->is_number())
+				{
+					player->jumpPower = jumpPowerIt->get<float>();
+				}
+
+				// 加速能力の設定を復元
+				if (SpeedBoostComponent* speedBoost =
+					obj->GetComponent<SpeedBoostComponent>())
+				{
+					const SpeedBoostComponent::BoostAbility abilityList[] =
+					{
+						SpeedBoostComponent::BoostAbility::WallClimb,
+						SpeedBoostComponent::BoostAbility::BreakWall,
+						SpeedBoostComponent::BoostAbility::Dive,
+						SpeedBoostComponent::BoostAbility::AirRun
+					};
+
+					const auto abilitiesIt =
+						playerSettingsIt->find("abilities");
+
+					if (abilitiesIt != playerSettingsIt->end() &&
+						abilitiesIt->is_array() &&
+						abilitiesIt->size() >=
+						SpeedBoostComponent::MaxAbilityStack)
+					{
+						// 1～3スタックの設定を復元
+						for (int stackIndex = 0;
+							stackIndex < SpeedBoostComponent::MaxAbilityStack;
+							++stackIndex)
+						{
+							const auto& stackAbilities =
+								(*abilitiesIt)[stackIndex];
+
+							if (!stackAbilities.is_array() ||
+								stackAbilities.size() < 4)
+							{
+								continue;
+							}
+
+							// 各能力のON/OFFを復元
+							for (int abilityIndex = 0;
+								abilityIndex < 4;
+								++abilityIndex)
+							{
+								if (stackAbilities[abilityIndex].is_boolean())
+								{
+									speedBoost->SetAbilityEnabled(
+										stackIndex + 1,
+										abilityList[abilityIndex],
+										stackAbilities[abilityIndex].get<bool>());
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
 
 		result.objectCount += 1;
 	}

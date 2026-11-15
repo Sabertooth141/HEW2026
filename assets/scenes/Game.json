@@ -2,6 +2,9 @@
  "version": 1,
  "scene": "Game",
  "objects": [
-  {"prefab":"player","name":"player","position":[0.0,0.0,1.0],"rotation":0.0,"scale":[64.0,64.0,1.0]}
+  {"prefab":"player","name":"player","position":[11.105,-4.44,1.0],"playerSettings":{"moveSpeed":300.0,"jumpPower":500.0,"abilities":[[true,false,false,false],[true,true,false,false],[true,true,true,false]]},"rotation":0.0,"scale":[68.0,68.0,1.0]},
+  {"prefab":"checkpoint","name":"checkpoint","position":[0.0,0.0,1.0],"rotation":0.0,"scale":[72.0,72.0,1.0]},
+  {"prefab":"checkpoint_layout","name":"checkpoint_layout","position":[0.0,0.0,1.0],"rotation":0.0,"scale":[1.0,1.0,1.0]},
+  {"prefab":"breakable_wall","name":"breakable_wall","position":[-376.0,-50.0,1.0],"rotation":0.0,"scale":[138.5,109.5,1.0]}
   ]
 }
