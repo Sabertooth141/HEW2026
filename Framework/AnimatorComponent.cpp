@@ -1,9 +1,11 @@
 #include "AnimatorComponent.h"
 
+#include <cmath>
 #include <stdexcept>
 
 #include "GameObject.h"
 #include "PixelShader.h"
+#include "Renderer.h"
 #include "SpriteRendererComponent.h"
 #include "TextureCache.h"
 
@@ -12,7 +14,7 @@ AnimatorComponent::AnimatorComponent(Renderer& renderer) : renderer(renderer), c
 }
 
 void AnimatorComponent::AddAnimation(const std::string& animName, const std::wstring& spritePath,
-                                     const std::wstring& spriteJson)
+	const std::wstring& spriteJson)
 {
 	auto it = animations.find(animName);
 	// stop if animation name already exists
@@ -31,8 +33,8 @@ void AnimatorComponent::AddAnimation(const std::string& animName, const std::wst
 	auto spriteAnimator = std::make_unique<SpriteAnimatorComponent>(*spriteRenderer, spriteJson);
 	spriteAnimator->owner = owner;
 
-	owner->GetTransform()->SetScale({spriteAnimator->GetFrameSize().x, spriteAnimator->GetFrameSize().y, 1});
-	animations[animName] = {animName, std::move(spriteRenderer), std::move(spriteAnimator)};
+	owner->GetTransform()->SetScale({ spriteAnimator->GetFrameSize().x, spriteAnimator->GetFrameSize().y, 1 });
+	animations[animName] = { animName, std::move(spriteRenderer), std::move(spriteAnimator) };
 }
 
 void AnimatorComponent::SetStatic(const std::wstring& spritePath)
@@ -47,8 +49,8 @@ void AnimatorComponent::SetStatic(const std::wstring& spritePath)
 	auto spriteAnimator = std::make_unique<SpriteAnimatorComponent>(*spriteRenderer, 1, 1, 1);
 	spriteAnimator->owner = owner;
 
-	owner->GetTransform()->SetScale({spriteAnimator->GetFrameSize().x, spriteAnimator->GetFrameSize().y, 1});
-	animations["Static"] = {"Static", std::move(spriteRenderer), std::move(spriteAnimator)};
+	owner->GetTransform()->SetScale({ spriteAnimator->GetFrameSize().x, spriteAnimator->GetFrameSize().y, 1 });
+	animations["Static"] = { "Static", std::move(spriteRenderer), std::move(spriteAnimator) };
 
 	SetCurrAnimation("Static");
 }
@@ -105,6 +107,31 @@ void AnimatorComponent::Render()
 
 	currAnimation->spriteRenderer->Bind(renderer); // b1 UV, t0 texture, s0 sampler
 	currAnimation->spriteRenderer->Render();
+}
+
+bool AnimatorComponent::IsInView(const ViewRect2D& view) const
+{
+	// UI などスクリーン空間のものはカメラに関係なく常に描画する
+	if (isInScreenSpace || !owner)
+	{
+		return true;
+	}
+
+	const TransformComponent* transform = owner->GetTransform();
+	const DirectX::XMFLOAT3 pos = transform->GetPosition();
+	const DirectX::XMFLOAT3 rot = transform->GetRotation();
+	const DirectX::XMFLOAT3 scale = transform->GetScale();
+
+	// スプライトは -0.5〜0.5 の四角形をスケール・回転したもの。回転後の四角形を囲む AABB の半分の大きさを求める
+	const float halfX = std::abs(scale.x) * 0.5f;
+	const float halfY = std::abs(scale.y) * 0.5f;
+	const float c = std::abs(std::cos(rot.z));
+	const float s = std::abs(std::sin(rot.z));
+	const float extentX = halfX * c + halfY * s;
+	const float extentY = halfX * s + halfY * c;
+
+	return pos.x + extentX >= view.min.x && pos.x - extentX <= view.max.x &&
+		pos.y + extentY >= view.min.y && pos.y - extentY <= view.max.y;
 }
 
 void AnimatorComponent::SetEnabled(bool inEnabled)

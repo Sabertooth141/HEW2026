@@ -9,6 +9,7 @@
 #include "Scene.h"
 #include "PlayerController.h"
 #include "SpeedBoostComponent.h"
+#include "Rigidbody2DComponent.h"
 
 namespace
 {
@@ -23,7 +24,23 @@ namespace
 
 	nlohmann::ordered_json Float3ToJson(const DirectX::XMFLOAT3& v)
 	{
-		return nlohmann::ordered_json::array({Round3(v.x), Round3(v.y), Round3(v.z)});
+		return nlohmann::ordered_json::array({ Round3(v.x), Round3(v.y), Round3(v.z) });
+	}
+
+	nlohmann::ordered_json Float2ToJson(const DirectX::XMFLOAT2& v)
+	{
+		return nlohmann::ordered_json::array({ Round3(v.x), Round3(v.y) });
+	}
+
+	bool JsonToFloat2(const nlohmann::ordered_json& json, DirectX::XMFLOAT2& out)
+	{
+		if (!json.is_array() || json.size() != 2 || !json[0].is_number() || !json[1].is_number())
+		{
+			return false;
+		}
+
+		out = { json[0].get<float>(), json[1].get<float>() };
+		return true;
 	}
 
 	bool JsonToFloat3(const nlohmann::ordered_json& json, DirectX::XMFLOAT3& out)
@@ -41,7 +58,7 @@ namespace
 			}
 		}
 
-		out = {json[0].get<float>(), json[1].get<float>(), json[2].get<float>()};
+		out = { json[0].get<float>(), json[1].get<float>(), json[2].get<float>() };
 		return true;
 	}
 }
@@ -130,6 +147,16 @@ SceneLayout::Result SceneLayout::Save(const Scene& scene, const std::string& sce
 
 		entry["rotation"] = Round3(DirectX::XMConvertToDegrees(rot.z));
 		entry["scale"] = Float3ToJson(transform->GetScale());
+
+		// コライダーの形はプレハブから変更したときだけ保存する
+		if (const BoxCollider2D* col = obj.GetComponent<BoxCollider2D>(); col && col->IsShapeModified())
+		{
+			nlohmann::ordered_json collider;
+			collider["halfExtents"] = Float2ToJson(col->GetHalfExtents());
+			collider["offset"] = Float2ToJson(col->GetOffset());
+			entry["collider"] = std::move(collider);
+		}
+
 		objects.push_back(std::move(entry));
 	}
 
@@ -242,7 +269,7 @@ SceneLayout::Result SceneLayout::Load(Scene& scene, const std::string& sceneName
 			continue;
 		}
 
-		DirectX::XMFLOAT3 pos = {0.f, 0.f, 1.f};
+		DirectX::XMFLOAT3 pos = { 0.f, 0.f, 1.f };
 		if (const auto it = entry.find("position"); it != entry.end())
 		{
 			JsonToFloat3(*it, pos);
@@ -272,6 +299,30 @@ SceneLayout::Result SceneLayout::Load(Scene& scene, const std::string& sceneName
 		if (const auto it = entry.find("scale"); it != entry.end() && JsonToFloat3(*it, scale))
 		{
 			transform->SetScale(scale);
+		}
+
+		// コライダーの形（保存されているときだけ）
+		if (const auto colliderIt = entry.find("collider"); colliderIt != entry.end() && colliderIt->is_object())
+		{
+			if (BoxCollider2D* col = obj->GetComponent<BoxCollider2D>())
+			{
+				DirectX::XMFLOAT2 value;
+				if (const auto it = colliderIt->find("halfExtents"); it != colliderIt->end() && JsonToFloat2(*it, value))
+				{
+					col->SetHalfExtents(value);
+				}
+
+				if (const auto it = colliderIt->find("offset"); it != colliderIt->end() && JsonToFloat2(*it, value))
+				{
+					col->SetOffset(value);
+				}
+
+				// 慣性モーメントはコライダーの大きさから計算されるので更新しておく
+				if (auto* rb = obj->GetComponent<Rigidbody2DComponent>())
+				{
+					rb->SetInertia(col->ComputeInertia(rb->GetMass()));
+				}
+			}
 		}
 
 

@@ -1,5 +1,7 @@
 #include "Renderer.h"
 
+#include <algorithm>
+
 #pragma comment(lib, "d3d11.lib")
 
 Renderer::Renderer(HWND hWnd, int width, int height, int bufferWidth, int bufferHeight)
@@ -57,7 +59,7 @@ Renderer::Renderer(HWND hWnd, int width, int height, int bufferWidth, int buffer
 	pDevice->CreateDepthStencilState(&dsOn, &pDSStateOn);
 
 	// depth OFF for 2D
-	D3D11_DEPTH_STENCIL_DESC dsOff= {};
+	D3D11_DEPTH_STENCIL_DESC dsOff = {};
 	dsOff.DepthEnable = FALSE;
 	dsOff.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
 	pDevice->CreateDepthStencilState(&dsOff, &pDSStateOff);
@@ -132,9 +134,9 @@ Renderer::Renderer(HWND hWnd, int width, int height, int bufferWidth, int buffer
 	// view and proj / ortho matrices
 	viewMatrix = DirectX::XMMatrixLookAtLH(
 
-		{0, 0, -5}, // camera position
-		{0, 0, 0}, // look target
-		{0, 1, 0} // up
+		{ 0, 0, -5 }, // camera position
+		{ 0, 0, 0 }, // look target
+		{ 0, 1, 0 } // up
 
 	);
 
@@ -219,7 +221,7 @@ void Renderer::Set2DMode()
 
 void Renderer::BeginFrame(float r, float g, float b)
 {
-	const float color[] = {r, g, b, 1};
+	const float color[] = { r, g, b, 1 };
 	pContext->ClearRenderTargetView(pRTV.Get(), color);
 	pContext->ClearDepthStencilView(pDSV.Get(), D3D11_CLEAR_DEPTH, 1, 0);
 }
@@ -243,4 +245,27 @@ void Renderer::Set2DViewRange(float range)  //視野の拡大
 		0.1f,
 		100.0f
 	);
+}
+
+ViewRect2D Renderer::GetViewRect2D() const
+{
+	// ビュー × 正射影の逆行列で、画面の角（NDC の -1〜1）をワールド座標に戻す
+	// Set2DViewRange のズームとカメラ位置の両方がそのまま反映される
+	const DirectX::XMMATRIX invViewProj = DirectX::XMMatrixInverse(nullptr, viewMatrix * orthoMatrix);
+
+	const DirectX::XMVECTOR cornerA = DirectX::XMVector3TransformCoord(
+		DirectX::XMVectorSet(-1.f, -1.f, 0.f, 1.f), invViewProj);
+	const DirectX::XMVECTOR cornerB = DirectX::XMVector3TransformCoord(
+		DirectX::XMVectorSet(1.f, 1.f, 0.f, 1.f), invViewProj);
+
+	DirectX::XMFLOAT2 a;
+	DirectX::XMFLOAT2 b;
+	DirectX::XMStoreFloat2(&a, cornerA);
+	DirectX::XMStoreFloat2(&b, cornerB);
+
+	// 2D カメラは回転しないので、対角の 2 点だけで範囲が決まる
+	return {
+		{ std::min(a.x, b.x), std::min(a.y, b.y) },
+		{ std::max(a.x, b.x), std::max(a.y, b.y) }
+	};
 }
