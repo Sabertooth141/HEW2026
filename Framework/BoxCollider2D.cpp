@@ -2,11 +2,13 @@
 #include "TransformComponent.h"
 
 BoxCollider2D::BoxCollider2D(const DirectX::XMFLOAT2 inHalfExtents, const DirectX::XMFLOAT2 inOffset,
-                             const bool inIsTrigger,
-                             TransformComponent& inTransformComp) :
+	const bool inIsTrigger,
+	TransformComponent& inTransformComp) :
 	transformComp(&inTransformComp),
 	halfExtents(inHalfExtents),
-	offset(inOffset)
+	offset(inOffset),
+	defaultHalfExtents(inHalfExtents),
+	defaultOffset(inOffset)
 {
 	isTrigger = inIsTrigger;
 }
@@ -25,7 +27,7 @@ AABB BoxCollider2D::GetWorldAABB() const
 		max.y = std::max(max.y, corners[i].y);
 	}
 
-	return AABB{.min = min, .max = max};
+	return AABB{ .min = min, .max = max };
 }
 
 OBB BoxCollider2D::GetWorldOBB() const
@@ -47,8 +49,8 @@ OBB BoxCollider2D::GetWorldOBB() const
 
 	return OBB
 	{
-		.center = {position.x + rotatedOffset.x * scale.x, position.y + rotatedOffset.y * scale.y},
-		.halfExtents = {halfExtents.x * scale.x, halfExtents.y * scale.y},
+		.center = { position.x + rotatedOffset.x * scale.x, position.y + rotatedOffset.y * scale.y },
+		.halfExtents = { halfExtents.x * scale.x, halfExtents.y * scale.y },
 		.rotation = rotation.z
 	};
 }

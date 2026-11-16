@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <typeindex>
 #include <unordered_map>
 
@@ -25,11 +26,11 @@ class GameObject
 public:
 	// for 3d
 	GameObject(const MaterialData& matData, const ModelReader& modelReader, GameContext& context,
-	           const std::wstring& vsPath = L"VertexShader.cso", const std::wstring& psPath = L"PixelShader.cso");
+		const std::wstring& vsPath = L"VertexShader.cso", const std::wstring& psPath = L"PixelShader.cso");
 	// for 2d
 	GameObject(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, GameContext& context,
-	           const std::wstring& vsPath = L"SpriteVertexShader.cso",
-	           const std::wstring& psPath = L"SpritePixelShader.cso");
+		const std::wstring& vsPath = L"SpriteVertexShader.cso",
+		const std::wstring& psPath = L"SpritePixelShader.cso");
 	GameObject(Renderer& renderer);
 
 	void Update(float deltaTime);
@@ -91,9 +92,9 @@ public:
 	void NotifyColliderStay2D(const GameObject& other) const;
 	void NotifyColliderLeave2D(const GameObject& other) const;
 
-	void NotifyColliderEnter2D(const GameObject& other,const CollisionManifold& manifold) const;
+	void NotifyColliderEnter2D(const GameObject& other, const CollisionManifold& manifold) const;
 
-	void NotifyColliderStay2D(const GameObject& other,const CollisionManifold& manifold) const;
+	void NotifyColliderStay2D(const GameObject& other, const CollisionManifold& manifold) const;
 
 	Renderer& GetRenderer() const
 	{
@@ -143,6 +144,12 @@ public:
 		prefabName = inName;
 	}
 
+	// 生成ごとに一意な ID（再利用されない）。エディタの Undo/Redo でオブジェクトを指すのに使う
+	std::uint64_t GetInstanceId() const
+	{
+		return instanceId;
+	}
+
 	bool IsLayoutObject() const
 	{
 		return isLayoutObject;
@@ -168,4 +175,7 @@ private:
 	std::string objName = "GameObject";
 	std::string prefabName;
 	bool isLayoutObject = false;
+
+	inline static std::uint64_t nextInstanceId = 1;
+	std::uint64_t instanceId = nextInstanceId++;
 };

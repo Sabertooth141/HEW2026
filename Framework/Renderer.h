@@ -7,6 +7,13 @@
 
 class Bindable;
 
+// 2D カメラに映っているワールド座標の範囲
+struct ViewRect2D
+{
+	DirectX::XMFLOAT2 min;
+	DirectX::XMFLOAT2 max;
+};
+
 struct SpriteData
 {
 	int flipX;
@@ -61,6 +68,9 @@ public:
 	void Set3DMode();
 	void Set2DMode();
 	void Set2DViewRange(float range);
+
+	// 現在のビュー行列と 2D 用の正射影から、画面に映っている範囲を求める
+	ViewRect2D GetViewRect2D() const;
 
 
 	void SetEnableScreenSpace(const bool enabled)
