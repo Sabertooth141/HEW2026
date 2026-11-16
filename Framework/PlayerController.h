@@ -44,10 +44,16 @@ public:
 	float maxHP = 100.f;
 	float invulnerabilityDuration = 1.f;
 
+	//横方向の慣性
+	float horizontalInertia = 0.f;
+
 	void OnCollisionStay2D(const GameObject& other) override;
 	void OnCollisionExit2D(const GameObject& other) override;
 
 	float jumpPower = 500.f;
+
+	// プレイヤーをゲーム開始位置へ戻す。
+	void RespawnAtInitialPosition();
 private:
 
 	enum class MovementMode
@@ -65,7 +71,7 @@ private:
 	void HandleJump(float deltaTime);      // ジャンプ処理
 	void Respawn();
 
-	void HandleNormalMovement();
+	void HandleNormalMovement(float deltaTime);
 
 	void HandleDive();
 
@@ -77,7 +83,7 @@ private:
 	bool isFacingRight = true;
 
 	// コヨーテタイム
-	float coyoteTime = 0.1f;
+	float coyoteTime = 0.5f;
 	float coyoteTimer = 0.f;
 
 
@@ -98,6 +104,9 @@ private:
 	DirectX::XMFLOAT3 lastCheckpointPosition = {};
 	// 最後に触れたチェックポイントのオブジェクト。
 	GameObject* lastCheckpointObject = nullptr;
+
+	// ゲーム開始時のプレイヤー位置。
+	DirectX::XMFLOAT3 initialPosition = {};
 
 	DirectX::XMFLOAT2 SelectSurfaceNormal() const;
 
@@ -137,4 +146,6 @@ private:
 	float wallTopDirection = 0.f;
 	bool hasWallTop = false;
 	SpeedBoostComponent* speedBoost = nullptr;
+
+	bool hasUsedAirRunJump = false;
 };

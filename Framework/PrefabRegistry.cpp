@@ -31,7 +31,7 @@ void RegisterPrefabs()
 		playerRb.SetFreezeRotation(true);
 		playerRb.SetGravity(800.f);
 		object.AddComponent<BoxCollider2D>(
-			DirectX::XMFLOAT2(0.5f, 0.5f), DirectX::XMFLOAT2(0.f, 0.f), false, *object.GetTransform());
+			DirectX::XMFLOAT2(0.3f, 0.4f), DirectX::XMFLOAT2(0.f, 0.f), false, *object.GetTransform());
 
 		// animation
 		auto& anim = object.AddComponent<AnimatorComponent>(object.GetRenderer());
@@ -68,7 +68,7 @@ void RegisterPrefabs()
 
 		// AddAnimation() が画像のフレーム寸法をScaleへ設定するため、
 		// 全アニメーションの登録後にプレイヤーの表示サイズを設定する。
-		object.GetTransform()->SetScale({ 64.0f, 64.0f, 1.0f });
+		object.GetTransform()->SetScale({ 80.0f, 80.0f, 1.0f });
 
 		//加速
 		object.AddComponent<SpeedBoostComponent>();

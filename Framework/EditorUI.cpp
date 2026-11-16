@@ -444,6 +444,14 @@ void EditorUI::DrawInspector(Scene& scene)
 			player->jumpPower = jumpPower;
 		}
 
+		// 横慣性
+		float horizontalInertia = player->horizontalInertia;
+
+		if (ImGui::DragFloat("横慣性",&horizontalInertia,0.01f,0.f,1.f))
+		{
+			player->horizontalInertia = horizontalInertia;
+		}
+
 		// スタック数ごとの能力設定
 		if (auto* speedBoost = selectedObjRef.GetComponent<SpeedBoostComponent>())
 		{

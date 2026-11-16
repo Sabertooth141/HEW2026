@@ -33,8 +33,11 @@ void PlayerController::Awake()
 	hp = maxHP;
 	playTimer = owner->GetContext().globalContext.playTime;
 
-	//最後に触れたチェックポイントを取得
-	lastCheckpointPosition = owner->GetTransform()->GetPosition();
+	// シーンデータから読み込まれた開始位置を保存する。
+	initialPosition = owner->GetTransform()->GetPosition();
+
+	// チェックポイントに触れるまでは、開始位置を復帰地点にする。
+	lastCheckpointPosition = initialPosition;
 
 	auto* playerCollider = owner->GetComponent<BoxCollider2D>();//プレイヤーの当たり判定の取得
 	if (playerCollider != nullptr)
@@ -67,6 +70,18 @@ void PlayerController::Update(float deltaTime)
 	invulnerabilityTimer = std::max(0.f, invulnerabilityTimer - deltaTime);
 	auto* retryTransition =
 		owner->GetComponent<RetryTransitionComponent>();//リトライ演出を管理するコンポーネントを取得
+
+	// StageBackground8の下端を越えたら、開始位置へ戻す。
+// StageBackground8の中心Yが-1080、高さが1080なので下端は-1620。
+	constexpr float stageBackground8BottomY = -1620.0f;
+
+	if (!IsDead() &&
+		playerCollider != nullptr &&
+		playerCollider->GetWorldAABB().max.y < stageBackground8BottomY)
+	{
+		RespawnAtInitialPosition();
+		return;
+	}
 
 	//トランジションが終わったタイミングで復帰
 	if (retryTransition != nullptr && retryTransition->ConsumeRespawnRequest())
@@ -319,6 +334,10 @@ void PlayerController::HandleMovement(float deltaTime)
 	{
 		isCeilingKnockback = true;
 
+		// 天井に当たったら猶予走行を解除して、重力を戻す。
+		isLedgeGraceRunning = false;
+		rb->SetGravity(normalGravity);
+
 		rb->SetVelocity({
 			wallNormal.x * 250.f,
 			0.f
@@ -414,7 +433,7 @@ void PlayerController::HandleMovement(float deltaTime)
 	switch (movementMode)
 	{
 	case MovementMode::Normal://通常移動
-		HandleNormalMovement();
+		HandleNormalMovement(deltaTime);
 		break;
 
 	case MovementMode::Loop://地形に沿った移動
@@ -583,7 +602,7 @@ DirectX::XMFLOAT2 PlayerController::SelectSurfaceNormal() const
 	return bestNormal;
 }
 
-void PlayerController::HandleNormalMovement()
+void PlayerController::HandleNormalMovement(float deltaTime)
 {
 	if (rb == nullptr)
 	{
@@ -605,8 +624,27 @@ void PlayerController::HandleNormalMovement()
 		? speedBoost->GetMoveSpeed(moveSpeed)
 		: moveSpeed;
 
+	// 入力から目標となる横速度を計算
+	const float targetVelocityX = dirX * currentMoveSpeed;
+
+	// 慣性が0なら従来どおり即座に速度を変更
+	float newVelocityX = targetVelocityX;
+
+	if (horizontalInertia > 0.f)
+	{
+		// 慣性の値が大きいほど、目標速度にゆっくり近づく
+		const float rate =
+			1.f - std::exp(-deltaTime / horizontalInertia);
+
+		const float currentVelocityX = rb->GetVelocity().x;
+
+		newVelocityX = currentVelocityX
+			+ (targetVelocityX - currentVelocityX) * rate;
+	}
+
+	// 横速度だけ変更し、ジャンプや落下の速度は維持する
 	rb->SetVelocity({
-		dirX * currentMoveSpeed,
+		newVelocityX,
 		rb->GetVelocity().y
 		});
 }
@@ -835,6 +873,69 @@ void PlayerController::RespawnAtCheckPoint()
 	invulnerabilityTimer = invulnerabilityDuration;
 }
 
+void PlayerController::RespawnAtInitialPosition()
+{
+	// プレイヤーをゲーム開始位置へ戻す。
+	owner->GetTransform()->SetPosition(initialPosition);
+
+	// 落下中の速度や猶予移動の重力設定をリセットする。
+	if (rb != nullptr)
+	{
+		rb->SetGravity(normalGravity);
+		rb->SetVelocity({ 0.0f, 0.0f });
+		rb->SetAngularVel(0.0f);
+		rb->Wake();
+	}
+
+	// 落下前の接触状態や特殊移動状態を解除する。
+	groundContacts.clear();
+	isGrounded = false;
+	isTouchingGround = false;
+	isLedgeGraceRunning = false;
+	ledgeGraceDistanceTravelled = 0.0f;
+	isDiving = false;
+	isCeilingKnockback = false;
+	wasTouchingCeiling = false;
+	isWallTopTransitioning = false;
+	hasWallTop = false;
+	coyoteTimer = 0.0f;
+	collisionNormal = { 0.0f, 0.0f };
+	movementMode = MovementMode::Normal;
+
+	// 落下によって加速が残らないようにする。
+	if (speedBoost != nullptr)
+	{
+		speedBoost->ResetBoost();
+	}
+
+	// プレイヤー状態を通常に戻す。
+	isDead = false;
+	hp = maxHP;
+	invulnerabilityTimer = invulnerabilityDuration;
+
+	// 復帰先へカメラを合わせる。
+	CameraController* cameraController =
+		owner->GetComponent<CameraController>();
+
+	if (cameraController != nullptr)
+	{
+		cameraController->SnapToTarget();
+	}
+
+	// 次の衝突判定で使う前フレームの位置情報も更新する。
+	BoxCollider2D* playerCollider =
+		owner->GetComponent<BoxCollider2D>();
+
+	if (playerCollider != nullptr)
+	{
+		const AABB playerAABB = playerCollider->GetWorldAABB();
+
+		previousPlayerBottom = playerAABB.min.y;
+		previousPlayerLeft = playerAABB.min.x;
+		previousPlayerRight = playerAABB.max.x;
+	}
+}
+
 void PlayerController::HandleJump(float deltaTime)
 {
 	if (rb == nullptr || keyboard == nullptr)
@@ -854,29 +955,52 @@ void PlayerController::HandleJump(float deltaTime)
 	}
 
 	// 猶予時間内ならジャンプできる
-	if (coyoteTimer > 0.f && keyboard->KeyIsTriggered(' '))
+	const bool canAirRunJump =
+		isLedgeGraceRunning &&
+		speedBoost != nullptr &&
+		speedBoost->HasAbility(
+			SpeedBoostComponent::BoostAbility::AirRun) &&
+		!hasUsedAirRunJump;
+
+	// 通常のジャンプ、または空中走行中の追加ジャンプ
+	if ((coyoteTimer > 0.f || canAirRunJump) &&
+		keyboard->KeyIsTriggered(' '))
 	{
 		DirectX::XMFLOAT2 velocity = rb->GetVelocity();
 		velocity.y = jumpPower;
 
 		rb->SetVelocity(velocity);
-
-		//ジャンプ時にジャンプ音を鳴らす
-		if (playerAudio != nullptr)
 		{
-			playerAudio->PlayJump();
+			DirectX::XMFLOAT2 velocity = rb->GetVelocity();
+			velocity.y = jumpPower;
+
+			rb->SetVelocity(velocity);
+
+			//ジャンプ時にジャンプ音を鳴らす
+			if (playerAudio != nullptr)
+			{
+				playerAudio->PlayJump();
+			}
+
+			if (canAirRunJump)
+			{
+				hasUsedAirRunJump = true;
+				isLedgeGraceRunning = false;
+				rb->SetGravity(normalGravity);
+			}
+
+			isGrounded = false;
+			coyoteTimer = 0.f;
 		}
 
-		isGrounded = false;
-		coyoteTimer = 0.f;
 	}
 }
-
 
 void PlayerController::OnCollisionStay2D(const GameObject& other)
 {
 	MonoBehavior::OnCollisionStay2D(other);
 }
+
 void PlayerController::OnCollisionStay2D(
 	const GameObject& other,
 	const CollisionManifold& manifold)
@@ -967,6 +1091,7 @@ void PlayerController::OnCollisionExit2D(const GameObject& other)
 
 				isLedgeGraceRunning = true;
 				coyoteTimer = 0.f;
+				hasUsedAirRunJump = false;
 			}
 		}
 	}

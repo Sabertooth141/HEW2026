@@ -103,6 +103,9 @@ SceneLayout::Result SceneLayout::Save(const Scene& scene, const std::string& sce
 			// ジャンプ力を保存
 			playerSettings["jumpPower"] = Round3(player->jumpPower);
 
+			// 横慣性を保存
+			playerSettings["horizontalInertia"] = Round3(player->horizontalInertia);
+
 			// 加速能力の設定を保存
 			if (const SpeedBoostComponent* speedBoost =
 				obj.GetComponent<SpeedBoostComponent>())
@@ -401,6 +404,17 @@ SceneLayout::Result SceneLayout::Load(Scene& scene, const std::string& sceneName
 							}
 						}
 					}
+
+				}
+				// 横慣性を復元
+				const auto inertiaIt =
+					playerSettingsIt->find("horizontalInertia");
+
+				if (inertiaIt != playerSettingsIt->end() &&
+					inertiaIt->is_number())
+				{
+					player->horizontalInertia =
+						inertiaIt->get<float>();
 				}
 			}
 		}
