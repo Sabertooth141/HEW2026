@@ -39,7 +39,7 @@ void GameScene::OnEnter()
 
 	Scene::OnEnter();
 
-	// 各ステージ背景の画像と配置位置。
+	// 各ステージ配置位置。
 	struct StageBackgroundData
 	{
 		const wchar_t* texturePath;
@@ -49,17 +49,38 @@ void GameScene::OnEnter()
 
 	const StageBackgroundData stageBackgroundDataList[] =
 	{
-		{ L"../../assets/mapdesign/1.png", "StageBackground1",{ 0.0f,     0.0f, 10.0f } },
-		{ L"../../assets/mapdesign/2.png", "StageBackground2",{ 1920.0f,     0.0f, 10.0f } },
-		{ L"../../assets/mapdesign/3.png", "StageBackground3",{ 3840.0f,     0.0f, 10.0f } },
-		{ L"../../assets/mapdesign/4.png", "StageBackground4",{ 3840.0f, -1080.0f, 10.0f } },
-		{ L"../../assets/mapdesign/5.png", "StageBackground5",{ 5760.0f, -1080.0f, 10.0f } },
-		{ L"../../assets/mapdesign/6.png", "StageBackground6",{ 5760.0f,     0.0f, 10.0f } },
-		{ L"../../assets/mapdesign/7.png", "StageBackground7",{ 7680.0f,     0.0f, 10.0f } },
-		{ L"../../assets/mapdesign/8.png", "StageBackground8",{ 7680.0f, -1080.0f, 10.0f } }
-	};
+		{ L"../../assets/mapdesign_s/1_s.png", "StageBackground1",{ 0.0f,     0.0f, 1.0f } },
+		{ L"../../assets/mapdesign_s/2_s.png", "StageBackground2",{ 1920.0f,     0.0f, 1.0f } },
+		{ L"../../assets/mapdesign_s/3_s.png", "StageBackground3",{ 3840.0f,     0.0f, 1.0f } },
+		{ L"../../assets/mapdesign_s/4_s.png", "StageBackground4",{ 3840.0f, -1080.0f, 1.0f } },
+		{ L"../../assets/mapdesign_s/5_s.png", "StageBackground5",{ 5760.0f, -1080.0f, 1.0f } },
+		{ L"../../assets/mapdesign_s/6_s.png", "StageBackground6",{ 5760.0f,     0.0f, 1.0f } },
+		{ L"../../assets/mapdesign_s/7_s.png", "StageBackground7",{ 7680.0f,     0.0f, 1.0f } },
+		{ L"../../assets/mapdesign_s/8_s.png", "StageBackground8",{ 7680.0f, -1080.0f, 1.0f } }
+	};								  
 
-	// データに従って背景オブジェクトを1枚ずつ生成する。
+
+	// ステージ全体の背景画像を生成する。
+	//背景なので、当たり判定やRigidbodyは付けない。
+	GameObject* back = Add2DObject();
+
+	if (back != nullptr)
+	{
+		back->SetName("StageBackground");
+
+		auto& animator =
+			back->AddComponent<AnimatorComponent>(back->GetRenderer());
+
+		animator.SetRenderLayer(RenderLayer::BackGround);
+		animator.SetSortOrder(0);
+		animator.SetStatic(L"../../assets/haikei.png");
+
+		// 5画面分の幅、2画面分の高さに合わせて配置する。
+		// ステージ1の画面中心が (0, 0) の場合の座標。
+		back->GetTransform()->SetPosition({ 3840.0f, -540.0f, 50.0f });
+		back->GetTransform()->SetScale({ 9600.0f, 2160.0f, 1.0f });
+	}
+	// データに従ってステージオブジェクトを1枚ずつ生成する。
 	for (const StageBackgroundData& stageData : stageBackgroundDataList)
 	{
 		GameObject* background = Add2DObject();
