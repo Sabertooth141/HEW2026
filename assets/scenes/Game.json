@@ -2,10 +2,7 @@
  "version": 1,
  "scene": "Game",
  "objects": [
-  {"prefab":"player","name":"player","position":[-168.791,-133.197,1.0],"playerSettings":{"moveSpeed":300.0,"jumpPower":500.0,"horizontalInertia":0.0,"abilities":[[true,false,false,true],[true,true,false,true],[true,true,true,false],[true,true,true,true]]},"rotation":0.0,"scale":[64.0,64.0,1.0]},
-  {"prefab":"checkpoint","name":"checkpoint","position":[257.629,36.629,1.0],"rotation":0.0,"scale":[72.0,72.0,1.0]},
-  {"prefab":"platform","name":"platform","position":[-326.478,-224.114,1.0],"rotation":0.0,"scale":[4000.0,60.0,1.0]},
-  {"prefab":"platform","name":"platform","position":[1724.719,209.674,1.0],"rotation":90.0,"scale":[924.0,100.0,1.0]},
+  {"prefab":"player","name":"player","position":[-168.791,391.803,1.0],"playerSettings":{"moveSpeed":300.0,"jumpPower":500.0,"horizontalInertia":0.0,"abilities":[[true,false,false,true],[true,true,false,true],[true,true,true,false],[true,true,true,true]]},"rotation":0.0,"scale":[64.0,64.0,1.0]},
   {"prefab":"platform","name":"platform","position":[1554.354,709.777,1.0],"rotation":0.0,"scale":[439.5,78.5,1.0]},
   {"prefab":"platform","name":"platform","position":[-2359.547,133.938,1.0],"rotation":90.0,"scale":[778.5,63.5,1.0]},
   {"prefab":"platform","name":"platform","position":[-2698.285,496.371,1.0],"rotation":0.0,"scale":[734.5,51.5,1.0]},
