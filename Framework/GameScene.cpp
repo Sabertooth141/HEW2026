@@ -20,7 +20,7 @@
 
 void GameScene::OnEnter()
 {
-	// ゲーム用BGMを読み込む
+	// ゲーム用BGMを読み込む。
 	auto gameBgm = std::make_shared<WaveData>();
 	std::string errorMessage;
 
@@ -38,46 +38,55 @@ void GameScene::OnEnter()
 	}
 
 	Scene::OnEnter();
-	// プレハブを指定位置・サイズで生成する共通処理
-	const auto createObject =
-		[this](
-			const std::string& prefabName,
-			const std::string& objectName,
-			const DirectX::XMFLOAT3& position,
-			const DirectX::XMFLOAT3& scale)
-		{
-			GameObject* object = Instantiate(prefabName, position);
-			if (object == nullptr)
-			{
-				return;
-			}
 
-			object->SetName(objectName);
-			object->GetTransform()->SetScale(scale);
-		};
-
-	// ステージ全体の背景画像を生成する。
-	// 背景なので、当たり判定やRigidbodyは付けない。
-	GameObject* background = Add2DObject();
-
-	if (background != nullptr)
+	// 各ステージ背景の画像と配置位置。
+	struct StageBackgroundData
 	{
-		background->SetName("StageBackground");
+		const wchar_t* texturePath;
+		const char* objectName;
+		DirectX::XMFLOAT3 position;
+	};
+
+	const StageBackgroundData stageBackgroundDataList[] =
+	{
+		{ L"../../assets/mapdesign/1.png", "StageBackground1",{ 0.0f,     0.0f, 10.0f } },
+		{ L"../../assets/mapdesign/2.png", "StageBackground2",{ 1920.0f,     0.0f, 10.0f } },
+		{ L"../../assets/mapdesign/3.png", "StageBackground3",{ 3840.0f,     0.0f, 10.0f } },
+		{ L"../../assets/mapdesign/4.png", "StageBackground4",{ 3840.0f, -1080.0f, 10.0f } },
+		{ L"../../assets/mapdesign/5.png", "StageBackground5",{ 5760.0f, -1080.0f, 10.0f } },
+		{ L"../../assets/mapdesign/6.png", "StageBackground6",{ 5760.0f,     0.0f, 10.0f } },
+		{ L"../../assets/mapdesign/7.png", "StageBackground7",{ 7680.0f,     0.0f, 10.0f } },
+		{ L"../../assets/mapdesign/8.png", "StageBackground8",{ 7680.0f, -1080.0f, 10.0f } }
+	};
+
+	// データに従って背景オブジェクトを1枚ずつ生成する。
+	for (const StageBackgroundData& stageData : stageBackgroundDataList)
+	{
+		GameObject* background = Add2DObject();
+
+		if (background == nullptr)
+		{
+			continue;
+		}
+
+		background->SetName(stageData.objectName);
+		background->GetTransform()->SetPosition(stageData.position);
 
 		auto& animator =
-			background->AddComponent<AnimatorComponent>(background->GetRenderer());
+			background->AddComponent<AnimatorComponent>(
+				background->GetRenderer());
 
 		animator.SetRenderLayer(RenderLayer::BackGround);
 		animator.SetSortOrder(0);
-		animator.SetStatic(L"../../assets/haikei.png");
 
-		// 5画面分の幅、2画面分の高さに合わせて配置する。
-		// ステージ1の画面中心が (0, 0) の場合の座標。
-		background->GetTransform()->SetPosition({ 3840.0f, -540.0f, 1.0f });
-		background->GetTransform()->SetScale({ 9600.0f, 2160.0f, 1.0f });
+		// ステージごとに対応する画像を読み込む。
+		animator.SetStatic(stageData.texturePath);
+
+		// 1枚の背景画像を画面サイズに合わせる。
+		background->GetTransform()->SetScale(
+			{ 1920.0f, 1080.0f, 1.0f });
 	}
 }
-
 void GameScene::OnUpdate(float deltaTime)
 {
 }

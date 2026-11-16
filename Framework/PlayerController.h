@@ -51,6 +51,9 @@ public:
 	void OnCollisionExit2D(const GameObject& other) override;
 
 	float jumpPower = 500.f;
+
+	// プレイヤーをゲーム開始位置へ戻す。
+	void RespawnAtInitialPosition();
 private:
 
 	enum class MovementMode
@@ -80,7 +83,7 @@ private:
 	bool isFacingRight = true;
 
 	// コヨーテタイム
-	float coyoteTime = 0.1f;
+	float coyoteTime = 0.5f;
 	float coyoteTimer = 0.f;
 
 
@@ -101,6 +104,9 @@ private:
 	DirectX::XMFLOAT3 lastCheckpointPosition = {};
 	// 最後に触れたチェックポイントのオブジェクト。
 	GameObject* lastCheckpointObject = nullptr;
+
+	// ゲーム開始時のプレイヤー位置。
+	DirectX::XMFLOAT3 initialPosition = {};
 
 	DirectX::XMFLOAT2 SelectSurfaceNormal() const;
 
