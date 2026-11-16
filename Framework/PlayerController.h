@@ -28,7 +28,7 @@ public:
 		const CollisionManifold& manifold) override;
 
 	//チェックポイント
-	void SetCheckpoint(const DirectX::XMFLOAT3& position, const GameObject* checkpoint);
+	void SetCheckpoint(const DirectX::XMFLOAT3& position, GameObject* checkpoint);
 	DirectX::XMFLOAT3 GetCheckpointPosition() const
 	{
 		return lastCheckpointPosition;
@@ -76,6 +76,9 @@ private:
 
 	bool isGrounded = false;
 
+	// 入力がないときも最後に向いていた方向を保つ。
+	bool isFacingRight = true;
+
 	// コヨーテタイム
 	float coyoteTime = 0.1f;
 	float coyoteTimer = 0.f;
@@ -96,6 +99,8 @@ private:
 	float previousPlayerRight = 0.f;
 
 	DirectX::XMFLOAT3 lastCheckpointPosition = {};
+	// 最後に触れたチェックポイントのオブジェクト。
+	GameObject* lastCheckpointObject = nullptr;
 
 	DirectX::XMFLOAT2 SelectSurfaceNormal() const;
 

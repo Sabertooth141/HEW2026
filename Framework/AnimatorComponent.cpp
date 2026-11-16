@@ -66,15 +66,24 @@ std::string& AnimatorComponent::GetCurrAnimName() const
 bool AnimatorComponent::SetCurrAnimation(const std::string& animName)
 {
 	auto it = animations.find(animName);
-
 	if (it == animations.end())
 	{
 		return false;
 	}
-	currAnimation = &it->second;
+
+	// 別のアニメーションに切り替わったときは、先頭から再生する。
+	if (currAnimation != &it->second)
+	{
+		currAnimation = &it->second;
+
+		if (currAnimation->spriteAnimator != nullptr)
+		{
+			currAnimation->spriteAnimator->Restart();
+		}
+	}
+
 	return true;
 }
-
 void AnimatorComponent::Update(float deltaTime)
 {
 	currAnimation->spriteRenderer->Update(deltaTime);
@@ -145,4 +154,27 @@ void AnimatorComponent::SetEnableScreenSpace(const bool enabled)
 	{
 		entry.spriteRenderer->isInScreenSpace = isInScreenSpace;
 	}
+}
+
+
+bool AnimatorComponent::SetAnimationRange(
+	const std::string& animName,
+	int startFrame,
+	int endFrame,
+	float fps,
+	bool loop)
+{
+	auto it = animations.find(animName);
+	if (it == animations.end() || it->second.spriteAnimator == nullptr)
+	{
+		return false;
+	}
+
+	it->second.spriteAnimator->SetAnimation(
+		startFrame,
+		endFrame,
+		fps,
+		loop);
+
+	return true;
 }
