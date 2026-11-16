@@ -44,6 +44,9 @@ public:
 	float maxHP = 100.f;
 	float invulnerabilityDuration = 1.f;
 
+	//横方向の慣性
+	float horizontalInertia = 0.f;
+
 	void OnCollisionStay2D(const GameObject& other) override;
 	void OnCollisionExit2D(const GameObject& other) override;
 
@@ -65,7 +68,7 @@ private:
 	void HandleJump(float deltaTime);      // ジャンプ処理
 	void Respawn();
 
-	void HandleNormalMovement();
+	void HandleNormalMovement(float deltaTime);
 
 	void HandleDive();
 
@@ -137,4 +140,6 @@ private:
 	float wallTopDirection = 0.f;
 	bool hasWallTop = false;
 	SpeedBoostComponent* speedBoost = nullptr;
+
+	bool hasUsedAirRunJump = false;
 };

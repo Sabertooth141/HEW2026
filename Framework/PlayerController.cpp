@@ -414,7 +414,7 @@ void PlayerController::HandleMovement(float deltaTime)
 	switch (movementMode)
 	{
 	case MovementMode::Normal://通常移動
-		HandleNormalMovement();
+		HandleNormalMovement(deltaTime);
 		break;
 
 	case MovementMode::Loop://地形に沿った移動
@@ -583,7 +583,7 @@ DirectX::XMFLOAT2 PlayerController::SelectSurfaceNormal() const
 	return bestNormal;
 }
 
-void PlayerController::HandleNormalMovement()
+void PlayerController::HandleNormalMovement(float deltaTime)
 {
 	if (rb == nullptr)
 	{
@@ -605,8 +605,27 @@ void PlayerController::HandleNormalMovement()
 		? speedBoost->GetMoveSpeed(moveSpeed)
 		: moveSpeed;
 
+	// 入力から目標となる横速度を計算
+	const float targetVelocityX = dirX * currentMoveSpeed;
+
+	// 慣性が0なら従来どおり即座に速度を変更
+	float newVelocityX = targetVelocityX;
+
+	if (horizontalInertia > 0.f)
+	{
+		// 慣性の値が大きいほど、目標速度にゆっくり近づく
+		const float rate =
+			1.f - std::exp(-deltaTime / horizontalInertia);
+
+		const float currentVelocityX = rb->GetVelocity().x;
+
+		newVelocityX = currentVelocityX
+			+ (targetVelocityX - currentVelocityX) * rate;
+	}
+
+	// 横速度だけ変更し、ジャンプや落下の速度は維持する
 	rb->SetVelocity({
-		dirX * currentMoveSpeed,
+		newVelocityX,
 		rb->GetVelocity().y
 		});
 }
@@ -854,24 +873,46 @@ void PlayerController::HandleJump(float deltaTime)
 	}
 
 	// 猶予時間内ならジャンプできる
-	if (coyoteTimer > 0.f && keyboard->KeyIsTriggered(' '))
+	const bool canAirRunJump =
+		isLedgeGraceRunning &&
+		speedBoost != nullptr &&
+		speedBoost->HasAbility(
+			SpeedBoostComponent::BoostAbility::AirRun) &&
+		!hasUsedAirRunJump;
+
+	// 通常のジャンプ、または空中走行中の追加ジャンプ
+	if ((coyoteTimer > 0.f || canAirRunJump) &&
+		keyboard->KeyIsTriggered(' '))
 	{
 		DirectX::XMFLOAT2 velocity = rb->GetVelocity();
 		velocity.y = jumpPower;
 
 		rb->SetVelocity(velocity);
-
-		//ジャンプ時にジャンプ音を鳴らす
-		if (playerAudio != nullptr)
 		{
-			playerAudio->PlayJump();
+			DirectX::XMFLOAT2 velocity = rb->GetVelocity();
+			velocity.y = jumpPower;
+
+			rb->SetVelocity(velocity);
+
+			//ジャンプ時にジャンプ音を鳴らす
+			if (playerAudio != nullptr)
+			{
+				playerAudio->PlayJump();
+			}
+
+			if (canAirRunJump)
+			{
+				hasUsedAirRunJump = true;
+				isLedgeGraceRunning = false;
+				rb->SetGravity(normalGravity);
+			}
+
+			isGrounded = false;
+			coyoteTimer = 0.f;
 		}
 
-		isGrounded = false;
-		coyoteTimer = 0.f;
 	}
 }
-
 
 void PlayerController::OnCollisionStay2D(const GameObject& other)
 {
@@ -967,6 +1008,7 @@ void PlayerController::OnCollisionExit2D(const GameObject& other)
 
 				isLedgeGraceRunning = true;
 				coyoteTimer = 0.f;
+				hasUsedAirRunJump = false;
 			}
 		}
 	}

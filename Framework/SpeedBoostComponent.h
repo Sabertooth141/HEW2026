@@ -19,7 +19,7 @@ public:
 		AirRun      // 空中走行
 	};
 
-	static constexpr int MaxAbilityStack = 3;
+	static constexpr int MaxAbilityStack = 4;
 
 	void Update(float deltaTime) override
 	{
@@ -161,12 +161,14 @@ private:
 	std::unordered_set<const GameObject*> usedCheckpoints;
 
 	// 各スタック数で使用できる能力を保存する
-	// 行：スタック数（1～3）
-	// 列：壁のぼり、壁破壊、急降下、空中走行
-		std::array<std::array<bool, 4>, 3> abilitySettings =
+	// 行がスタック数
+	// 列は壁のぼり、壁破壊、急降下、空中走行
+		std::array<std::array<bool, 4>, 4> abilitySettings =
 	{ {
 		{ true,  false, false, false }, // 1スタック
 		{ true,  true,  false, false }, // 2スタック
-		{ true,  true,  true,  false }  // 3スタック
+		{ true,  true,  true,  false },
+		{ true,  true,  true,  false }// 3スタック
+
 	} };
 };
