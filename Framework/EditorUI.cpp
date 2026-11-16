@@ -1017,16 +1017,6 @@ GameObject* EditorUI::Pick(Scene& scene, const Camera2D& camera, const DirectX::
 	std::vector<GameObject*> candidates;
 	for (auto& obj : scene.GetObjects())
 	{
-		// 背景はビューポート上のクリック選択から除外する。
-		// 背景の位置やサイズは、ヒエラルキーから選択して編集できる。
-		auto* animator = obj->GetComponent<AnimatorComponent>();
-
-		if (animator != nullptr &&
-			animator->GetRenderLayer() == RenderLayer::BackGround)
-		{
-			continue;
-		}
-
 		candidates.push_back(obj.get());
 	}
 
