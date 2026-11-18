@@ -12,10 +12,17 @@ void CameraController::Awake()
 	MonoBehavior::Awake();
 	camera = &owner->GetContext().camera;
 
-	viewWidth = static_cast<float>(WIN_WIDTH);
-	viewHeight = static_cast<float>(WIN_HEIGHT);
+	//viewWidth = static_cast<float>(WIN_WIDTH);
+	//viewHeight = static_cast<float>(WIN_HEIGHT);
 
-	//開始時はプレイヤーを含む固定カメラ位置に合わせる
+	// ズーム後に画面へ映るワールドサイズを計算する。
+	viewWidth =
+		static_cast<float>(WIN_WIDTH) * gameplayViewRange;
+
+	viewHeight =
+		static_cast<float>(WIN_HEIGHT) * gameplayViewRange;
+
+	//開始時はカメラをプレイヤーに合わせる
 	SnapToTarget();
 }
 
@@ -26,81 +33,124 @@ void CameraController::LateUpdate(float deltaTime)//プレイヤーを追って�
 		return;
 	}
 
-	if (!isTransitioning)
-	{
-		const DirectX::XMFLOAT2 cameraPosition = camera->GetPosition();
-		const DirectX::XMFLOAT3 playerPosition = owner->GetTransform()->GetPosition();
+	const DirectX::XMFLOAT2 currentPosition =
+		camera->GetPosition();
 
-		float moveX = 0.0f;
-		float moveY = 0.0f;
+	const DirectX::XMFLOAT3 playerPosition =
+		owner->GetTransform()->GetPosition();
 
-		const float halfWidth = viewWidth * 0.5f;
-		const float halfHeight = viewHeight * 0.5f;
+	// カメラがステージ端より外を映さないように、
+	// プレイヤー位置をカメラの目標位置として使える範囲に制限する。
+	const float minCameraX =
+		mapMinX + viewWidth * 0.5f;
+	const float maxCameraX =
+		mapMaxX - viewWidth * 0.5f;
 
-		if (playerPosition.x > cameraPosition.x + halfWidth)
+	const float minCameraY =
+		mapMinY + viewHeight * 0.5f;
+	const float maxCameraY =
+		mapMaxY - viewHeight * 0.5f;
+
+	const float targetX =
+		std::clamp(playerPosition.x, minCameraX, maxCameraX);
+
+	const float targetY =
+		std::clamp(playerPosition.y, minCameraY, maxCameraY);
+
+	// deltaTimeに応じて、カメラを目標位置へなめらかに近づける。
+	const float followAmount =
+		1.0f - std::exp(-followSharpness * deltaTime);
+
+	const float nextX =
+		currentPosition.x +
+		(targetX - currentPosition.x) * followAmount;
+
+	const float nextY =
+		currentPosition.y +
+		(targetY - currentPosition.y) * followAmount;
+
+	// 補間後にもステージ範囲を越えないよう、もう一度制限する。
+	camera->SetPosition(
 		{
-			moveX = 1.0f;
-		}
-		else if (playerPosition.x < cameraPosition.x - halfWidth)
-		{
-			moveX = -1.0f;
-		}
+			std::clamp(nextX, minCameraX, maxCameraX),
+			std::clamp(nextY, minCameraY, maxCameraY)
+		});
 
-		if (playerPosition.y > cameraPosition.y + halfHeight)
-		{
-			moveY = 1.0f;
-		}
-		else if (playerPosition.y < cameraPosition.y - halfHeight)
-		{
-			moveY = -1.0f;
-		}
+	//if (!isTransitioning)
+	//{
+	//	const DirectX::XMFLOAT2 cameraPosition = camera->GetPosition();
+	//	const DirectX::XMFLOAT3 playerPosition = owner->GetTransform()->GetPosition();
 
-		//どの端も越えていなければ、カメラはそのまま
-		if (moveX == 0.0f && moveY == 0.0f)
-		{
-			return;
-		}
+	//	float moveX = 0.0f;
+	//	float moveY = 0.0f;
 
-		transitionStart = cameraPosition;
+	//	const float halfWidth = viewWidth * 0.5f;
+	//	const float halfHeight = viewHeight * 0.5f;
 
-		//次の固定カメラ位置を決める
-		transitionTarget =
-		{
-			cameraPosition.x + moveX * viewWidth,
-			cameraPosition.y + moveY * viewHeight
-		};
+	//	if (playerPosition.x > cameraPosition.x + halfWidth)
+	//	{
+	//		moveX = 1.0f;
+	//	}
+	//	else if (playerPosition.x < cameraPosition.x - halfWidth)
+	//	{
+	//		moveX = -1.0f;
+	//	}
 
-		transitionTimer = 0.0f;
-		isTransitioning = true;
-	}
+	//	if (playerPosition.y > cameraPosition.y + halfHeight)
+	//	{
+	//		moveY = 1.0f;
+	//	}
+	//	else if (playerPosition.y < cameraPosition.y - halfHeight)
+	//	{
+	//		moveY = -1.0f;
+	//	}
 
-	if (transitionDuration <= 0.0f)
-	{
-		camera->SetPosition(transitionTarget);
-		isTransitioning = false;
-		return;
-	}
+	//	//どの端も越えていなければ、カメラはそのまま
+	//	if (moveX == 0.0f && moveY == 0.0f)
+	//	{
+	//		return;
+	//	}
 
-	transitionTimer = std::min(transitionTimer + deltaTime, transitionDuration);
+	//	transitionStart = cameraPosition;
 
-	float progress = transitionTimer / transitionDuration;
+	//	//次の固定カメラ位置を決める
+	//	transitionTarget =
+	//	{
+	//		cameraPosition.x + moveX * viewWidth,
+	//		cameraPosition.y + moveY * viewHeight
+	//	};
 
-	//開始と終了をなめらかにする
-	progress = progress * progress * (3.0f - 2.0f * progress);
+	//	transitionTimer = 0.0f;
+	//	isTransitioning = true;
+	//}
 
-	const DirectX::XMFLOAT2 cameraPosition =
-	{
-		transitionStart.x + (transitionTarget.x - transitionStart.x) * progress,
-		transitionStart.y + (transitionTarget.y - transitionStart.y) * progress
-	};
+	//if (transitionDuration <= 0.0f)
+	//{
+	//	camera->SetPosition(transitionTarget);
+	//	isTransitioning = false;
+	//	return;
+	//}
 
-	camera->SetPosition(cameraPosition);
+	//transitionTimer = std::min(transitionTimer + deltaTime, transitionDuration);
 
-	if (transitionTimer >= transitionDuration)
-	{
-		camera->SetPosition(transitionTarget);
-		isTransitioning = false;
-	}
+	//float progress = transitionTimer / transitionDuration;
+
+	////開始と終了をなめらかにする
+	//progress = progress * progress * (3.0f - 2.0f * progress);
+
+	//const DirectX::XMFLOAT2 cameraPosition =
+	//{
+	//	transitionStart.x + (transitionTarget.x - transitionStart.x) * progress,
+	//	transitionStart.y + (transitionTarget.y - transitionStart.y) * progress
+	//};
+
+	//camera->SetPosition(cameraPosition);
+
+	//if (transitionTimer >= transitionDuration)
+	//{
+	//	camera->SetPosition(transitionTarget);
+	//	isTransitioning = false;
+	//}
 }
 
 void CameraController::SnapToTarget()
@@ -112,22 +162,39 @@ void CameraController::SnapToTarget()
 
 	const DirectX::XMFLOAT3 playerPosition = owner->GetTransform()->GetPosition();
 
-	//プレイヤーを含む固定画面の場所の番号
-	const float cameraCellX = std::floor((playerPosition.x + viewWidth * 0.5f) / viewWidth);
+	const float minCameraX =
+		mapMinX + viewWidth * 0.5f;
+	const float maxCameraX =
+		mapMaxX - viewWidth * 0.5f;
 
-	const float cameraCellY = std::floor((playerPosition.y + viewHeight * 0.5f) / viewHeight);
+	const float minCameraY =
+		mapMinY + viewHeight * 0.5f;
+	const float maxCameraY =
+		mapMaxY - viewHeight * 0.5f;
 
-	//固定画面の番号から固定カメラ位置を計算する
-	const DirectX::XMFLOAT2 cameraPosition =
-	{
-		cameraCellX * viewWidth,
-		cameraCellY * viewHeight
-	};
+	// プレイヤー位置を中心にしつつ、ステージ端ではカメラを止める。
+	camera->SetPosition(
+		{
+			std::clamp(playerPosition.x, minCameraX, maxCameraX),
+			std::clamp(playerPosition.y, minCameraY, maxCameraY)
+		});
 
-	camera->SetPosition(cameraPosition);
+	////プレイヤーを含む固定画面の場所の番号
+	//const float cameraCellX = std::floor((playerPosition.x + viewWidth * 0.5f) / viewWidth);
 
-	transitionStart = cameraPosition;
-	transitionTarget = cameraPosition;
-	transitionTimer = 0.0f;
-	isTransitioning = false;
+	//const float cameraCellY = std::floor((playerPosition.y + viewHeight * 0.5f) / viewHeight);
+
+	////固定画面の番号から固定カメラ位置を計算する
+	//const DirectX::XMFLOAT2 cameraPosition =
+	//{
+	//	cameraCellX * viewWidth,
+	//	cameraCellY * viewHeight
+	//};
+
+	//camera->SetPosition(cameraPosition);
+
+	//transitionStart = cameraPosition;
+	//transitionTarget = cameraPosition;
+	//transitionTimer = 0.0f;
+	//isTransitioning = false;
 }
