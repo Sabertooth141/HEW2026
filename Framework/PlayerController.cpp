@@ -45,11 +45,15 @@ void PlayerController::Awake()
 		auto aabb = playerCollider->GetWorldAABB();//プレイヤーの当たり判定の四隅の位置
 
 		previousPlayerBottom = aabb.min.y;//プレイヤーの足元のY座標
+		previousPlayerTop = aabb.max.y;
 		previousPlayerLeft = aabb.min.x;//プレイヤーの左端のX座標
 		previousPlayerRight = aabb.max.x;//プレイヤーの右端のX座標
 	}
+
+
 	//加速
 	speedBoost = owner->GetComponent<SpeedBoostComponent>();
+
 }
 
 void PlayerController::Update(float deltaTime)
@@ -64,6 +68,7 @@ void PlayerController::Update(float deltaTime)
 		auto aabb = playerCollider->GetWorldAABB();
 
 		previousPlayerBottom = aabb.min.y;
+		previousPlayerTop = aabb.max.y;
 		previousPlayerLeft = aabb.min.x;
 		previousPlayerRight = aabb.max.x;
 	}
@@ -124,7 +129,20 @@ void PlayerController::Update(float deltaTime)
 		return;
 	}
 
+	// 通常の天井衝突後の滞空時間を減らす
+	if (ceilingHangTimer > 0.f)
+	{
+		ceilingHangTimer = std::max(
+			0.f,
+			ceilingHangTimer - deltaTime
+		);
 
+		// 滞空時間が終わったら重力を戻して落下させる
+		if (ceilingHangTimer <= 0.f && rb != nullptr)
+		{
+			rb->SetGravity(normalGravity);
+		}
+	}
 	// 天井にぶつかった後、地面に着地するまで操作を禁止する
 	if (isCeilingKnockback)
 	{
@@ -149,7 +167,13 @@ void PlayerController::Update(float deltaTime)
 	}
 
 	HandleInput();//キー入力取得
-	HandleDive();
+
+	// 天井にぶつかって滞空している間は急降下できない
+	if (ceilingHangTimer <= 0.f)
+	{
+		HandleDive();
+	}
+
 	HandleMovement(deltaTime);//地面や壁の状態で移動方法を決める
 
 	// 今のフレームで天井にぶつかった場合も、ジャンプを処理しない
@@ -166,7 +190,11 @@ void PlayerController::Update(float deltaTime)
 		return;
 	}
 
-	HandleJump(deltaTime);
+	// 滞空中はジャンプ入力を受け付けない
+	if (ceilingHangTimer <= 0.f)
+	{
+		HandleJump(deltaTime);
+	}
 	HandleAnimation();
 
 
@@ -329,30 +357,66 @@ void PlayerController::HandleMovement(float deltaTime)
 		isWallTopTransitioning = true;
 	}
 
-	// 天井に接触した瞬間だけノックバック
+	// 壁から離れる方向に入力しているか
+	const bool isMovingAwayFromWall =
+		isTouchingWall &&
+		inputX != 0.f &&
+		inputX * wallNormal.x > 0.f;
+
+	// 壁走り能力を持っているか
+	const bool hasWallClimbAbility =
+		speedBoost != nullptr &&
+		speedBoost->HasAbility(
+			SpeedBoostComponent::BoostAbility::WallClimb
+		);
+
+	// 実際に壁を登っている最中か
+	const bool isWallRunning =
+		hasWallClimbAbility &&
+		isTouchingWall &&
+		inputX != 0.f &&
+		!isMovingAwayFromWall;
+
+	// 天井に接触した瞬間だけ処理する
 	if (isTouchingCeiling && !wasTouchingCeiling)
 	{
-		isCeilingKnockback = true;
-
-		// 天井に当たったら猶予走行を解除して、重力を戻す。
+		// 猶予走行を解除
 		isLedgeGraceRunning = false;
-		rb->SetGravity(normalGravity);
 
-		rb->SetVelocity({
-			wallNormal.x * 250.f,
-			0.f
-			});//壁の法線方向にノックバック
+		if (isWallRunning)
+		{
+			// 壁走り中に天井へぶつかった場合
+			// 従来どおり操作不能にして強制落下
+			isCeilingKnockback = true;
+
+			rb->SetGravity(normalGravity);
+
+			rb->SetVelocity({
+				wallNormal.x * 250.f,
+				0.f
+				});
+		}
+		else
+		{
+			// 通常ジャンプなどで天井にぶつかった場合
+			// 少しだけその高さにとどまる
+			ceilingHangTimer = ceilingHangDuration;
+
+			// 重力を一時停止
+			rb->SetGravity(0.f);
+
+			// 上昇速度を止める
+			auto velocity = rb->GetVelocity();
+			velocity.y = 0.f;
+			rb->SetVelocity(velocity);
+		}
 	}
 
 	wasTouchingCeiling = isTouchingCeiling;
 
 	
 
-	// 壁から離れる方向に入力しているか
-	const bool isMovingAwayFromWall =
-		isTouchingWall &&
-		inputX != 0.f &&
-		inputX * wallNormal.x > 0.f;
+
 
 	const bool useSurfaceMovement =//壁のぼりができる状態で地面か壁にぶつかると地形に沿ったいどうができる
 		speedBoost != nullptr &&
@@ -703,24 +767,48 @@ void PlayerController::OnCollisionEnter2D(const GameObject& other)
 			const auto spikeAABB = spikeCollider->GetWorldAABB();
 			const auto playerAABB = playerCollider->GetWorldAABB();
 
-			const float spikeTop = spikeAABB.max.y; // 針の一番上のY座標を取得
 
-			const float playerBottom = playerAABB.min.y;//プレイヤーの足元のY座標の取得
+			const auto* spikeTransform = other.GetTransform();
+			const float spikeRotation =
+				spikeTransform->GetRotation().z;
 
+			// 180度回転しているか
+	// GetRotation() はラジアンなので、そのままcosで判定する
+			const bool upsideDown = std::cos(spikeRotation) < 0.f;
+
+			const float spikeTop = spikeAABB.max.y;
+			const float spikeBottom = spikeAABB.min.y;
+
+			const float playerBottom = playerAABB.min.y;
+			const float playerTop = playerAABB.max.y;
+
+			// プレイヤーとトゲが横方向に重なっているか
 			const bool horizontalOverlap =
 				previousPlayerRight > spikeAABB.min.x &&
 				previousPlayerLeft < spikeAABB.max.x;
-			// 上から落下して接触したか
+
+			// 通常向き：上から落ちてトゲに接触したか
 			const bool landedOnSpike =
-				rb->GetVelocity().y < 0.f &&//下方向の落下
-				previousPlayerBottom >= spikeTop - 1.f &&//前フレームでは針より上にいたか
+				rb->GetVelocity().y < 0.f &&
+				previousPlayerBottom >= spikeTop - 1.f &&
 				playerBottom < spikeTop;
 
-			if (horizontalOverlap && landedOnSpike)
+			// 上下逆：下から上昇してトゲに接触したか
+			const bool hitUpsideDownSpike =
+				rb->GetVelocity().y > 0.f &&
+				previousPlayerTop <= spikeBottom + 1.f &&
+				playerTop > spikeBottom;
+
+			// 向きに応じて死亡判定を切り替える
+			const bool hitSpike =
+				upsideDown ? hitUpsideDownSpike : landedOnSpike;
+
+			if (horizontalOverlap && hitSpike)
 			{
 				isDead = true;
 				rb->SetVelocity({ 0.f, 0.f });
 			}
+
 		}
 		return;
 	}
@@ -861,16 +949,39 @@ void PlayerController::RespawnAtCheckPoint()
 
 	if (rb != nullptr)
 	{
+		rb->SetGravity(normalGravity);
 		rb->SetVelocity({ 0.0f, 0.0f });
 		rb->SetAngularVel(0.f);
 		rb->Wake();
 	}
+
+	// 特殊移動や天井衝突の状態を解除
+	groundContacts.clear();
+	isTouchingGround = false;
+	isCeilingKnockback = false;
+	ceilingHangTimer = 0.f;
+	wasTouchingCeiling = false;
+	isLedgeGraceRunning = false;
+	movementMode = MovementMode::Normal;
 
 	isDead = false;
 	isGrounded = false;
 
 	hp = maxHP;
 	invulnerabilityTimer = invulnerabilityDuration;
+
+	// 復帰後のプレイヤーの位置情報を更新する
+	auto* playerCollider = owner->GetComponent<BoxCollider2D>();
+
+	if (playerCollider != nullptr)
+	{
+		const AABB playerAABB = playerCollider->GetWorldAABB();
+
+		previousPlayerBottom = playerAABB.min.y;
+		previousPlayerTop = playerAABB.max.y;
+		previousPlayerLeft = playerAABB.min.x;
+		previousPlayerRight = playerAABB.max.x;
+	}
 }
 
 void PlayerController::RespawnAtInitialPosition()
@@ -895,6 +1006,7 @@ void PlayerController::RespawnAtInitialPosition()
 	ledgeGraceDistanceTravelled = 0.0f;
 	isDiving = false;
 	isCeilingKnockback = false;
+	ceilingHangTimer = 0.f;
 	wasTouchingCeiling = false;
 	isWallTopTransitioning = false;
 	hasWallTop = false;
@@ -931,6 +1043,7 @@ void PlayerController::RespawnAtInitialPosition()
 		const AABB playerAABB = playerCollider->GetWorldAABB();
 
 		previousPlayerBottom = playerAABB.min.y;
+		previousPlayerTop = playerAABB.max.y;
 		previousPlayerLeft = playerAABB.min.x;
 		previousPlayerRight = playerAABB.max.x;
 	}
@@ -966,10 +1079,6 @@ void PlayerController::HandleJump(float deltaTime)
 	if ((coyoteTimer > 0.f || canAirRunJump) &&
 		keyboard->KeyIsTriggered(' '))
 	{
-		DirectX::XMFLOAT2 velocity = rb->GetVelocity();
-		velocity.y = jumpPower;
-
-		rb->SetVelocity(velocity);
 		{
 			DirectX::XMFLOAT2 velocity = rb->GetVelocity();
 			velocity.y = jumpPower;
@@ -1005,6 +1114,13 @@ void PlayerController::OnCollisionStay2D(
 	const GameObject& other,
 	const CollisionManifold& manifold)
 {
+	// 針との接触が続いている間も、死亡判定を行う
+	if (other.GetTag() == ObjectTag::SPIKE)
+	{
+		OnCollisionEnter2D(other);
+		return;
+	}
+
 	if (other.GetTag() != ObjectTag::GROUND &&
 		other.GetTag() != ObjectTag::ONE_WAY_PLATFORM)
 	{
@@ -1118,6 +1234,7 @@ void PlayerController::Respawn()
 		auto aabb = playerCollider->GetWorldAABB();
 
 		previousPlayerBottom = aabb.min.y;
+		previousPlayerTop = aabb.max.y;
 		previousPlayerLeft = aabb.min.x;
 		previousPlayerRight = aabb.max.x;
 	}

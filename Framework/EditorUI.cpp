@@ -401,6 +401,20 @@ void EditorUI::DrawInspector(Scene& scene)
 			player->horizontalInertia = horizontalInertia;
 		}
 
+		
+
+		if (auto* speedBoost = selectedObjRef.GetComponent<SpeedBoostComponent>())
+		{
+			float acceleration = speedBoost->GetSpeedIncreasePerStack();
+
+			if (ImGui::DragFloat("加速率", &acceleration, 0.01f, 0.f, 2.f))
+			{
+				speedBoost->SetSpeedIncreasePerStack(acceleration);
+			}
+		}
+
+
+
 		// スタック数ごとの能力設定
 		if (auto* speedBoost = selectedObjRef.GetComponent<SpeedBoostComponent>())
 		{
