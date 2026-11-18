@@ -2,7 +2,9 @@
  "version": 1,
  "scene": "Game",
  "objects": [
-  {"prefab":"player","name":"player","position":[160.0,-288.0,1.0],"playerSettings":{"moveSpeed":300.0,"jumpPower":500.0,"horizontalInertia":0.0,"abilities":[[true,false,false,true],[true,true,false,true],[true,true,true,false],[true,true,true,true]]},"rotation":0.0,"scale":[64.0,64.0,1.0]},
+{"prefab":"player","name":"player","position":[-168.791,391.803,1.0],"playerSettings":{"moveSpeed":300.0,"jumpPower":500.0,"horizontalInertia":0.0,"abilities":[[true,false,false,false],[true,true,false,false],[true,true,true,false],[true,true,true,false],[true,true,true,false],[true,true,true,false],[true,true,true,false],[true,true,true,false],[true,true,true,false],[true,true,true,false]]},"rotation":0.0,"scale":[64.0,64.0,1.0]},
+  {"prefab":"platform","name":"platform","position":[1554.354,709.777,1.0],"rotation":0.0,"scale":[439.5,78.5,1.0]},
+  
   {"prefab":"platform","name":"platform","position":[-2359.547,133.938,1.0],"rotation":90.0,"scale":[778.5,63.5,1.0]},
   {"prefab":"platform","name":"platform","position":[-2698.285,496.371,1.0],"rotation":0.0,"scale":[734.5,51.5,1.0]},
   {"prefab":"checkpoint","name":"checkpoint","position":[-1901.921,-157.248,1.0],"rotation":0.0,"scale":[72.0,72.0,1.0]},
@@ -129,13 +131,7 @@
   {"prefab":"spike","name":"spike","position":[5473.0,-101.0,1.0],"rotation":0.0,"scale":[1079.0,46.0,1.0]},
   {"prefab":"checkpoint","name":"checkpoint","position":[5068.0,193.0,1.0],"rotation":0.0,"scale":[72.0,72.0,1.0]},
   {"prefab":"spike","name":"spike","position":[5342.0,-1301.0,1.0],"rotation":180.0,"scale":[52.0,51.0,1.0]},
-  {"prefab":"spike","name":"spike","position":[5471.0,-1300.0,1.0],"rotation":0.0,"scale":[47.5,49.5,1.0]},
-  {"prefab":"spike","name":"spike","position":[5599.0,-1299.0,1.0],"rotation":0.0,"scale":[46.0,48.5,1.0]},
-  {"prefab":"spike","name":"spike","position":[5727.0,-1300.0,1.0],"rotation":0.0,"scale":[44.5,47.5,1.0]},
-  {"prefab":"spike","name":"spike","position":[5855.0,-1300.0,1.0],"rotation":0.0,"scale":[46.5,49.0,1.0]},
-  {"prefab":"spike","name":"spike","position":[5983.0,-1299.0,1.0],"rotation":0.0,"scale":[49.0,47.5,1.0]},
-  {"prefab":"spike","name":"spike","position":[6112.0,-1298.0,1.0],"rotation":0.0,"scale":[46.5,48.5,1.0]},
-  {"prefab":"spike","name":"spike","position":[6240.0,-1299.0,1.0],"rotation":0.0,"scale":[47.0,48.0,1.0]},
+  
   {"prefab":"platform","name":"platform","position":[4960.0,416.0,1.0],"rotation":0.0,"scale":[64.0,64.0,1.0]},
   {"prefab":"platform","name":"platform","position":[5984.0,448.0,1.0],"rotation":0.0,"scale":[1984.0,128.0,1.0]},
   {"prefab":"platform","name":"platform","position":[4288.0,352.0,1.0],"rotation":0.0,"scale":[384.0,64.0,1.0]},
