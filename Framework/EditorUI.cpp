@@ -1,5 +1,9 @@
 #include "EditorUI.h"
 
+#include <algorithm>
+#include <cmath>
+#include <string>
+
 #include <imgui.h>
 
 #include "Camera2D.h"
@@ -24,10 +28,10 @@ namespace
 		const ImVec2 display = ImGui::GetIO().DisplaySize;
 		if (display.x <= 0.f || display.y <= 0.f)
 		{
-			return {1.f, 1.f};
+			return { 1.f, 1.f };
 		}
 
-		return {static_cast<float>(WIN_WIDTH) / display.x, static_cast<float>(WIN_HEIGHT) / display.y};
+		return { static_cast<float>(WIN_WIDTH) / display.x, static_cast<float>(WIN_HEIGHT) / display.y };
 	}
 
 	// スクリーン座標（左上原点・+Y 下）→ ワールド座標（画面中央原点・+Y 上）
@@ -41,10 +45,10 @@ namespace
 		const float y = static_cast<float>(WIN_HEIGHT) * 0.5f - screen.y;
 		if (screenSpace)
 		{
-			return {x, y};
+			return { x, y };
 		}
 
-		return {x + cam.x, y + cam.y};
+		return { x + cam.x, y + cam.y };
 	}
 
 	ImVec2 WorldToScreen(DirectX::XMFLOAT2 world, DirectX::XMFLOAT2 cam, bool screenSpace)
@@ -56,7 +60,7 @@ namespace
 		}
 
 		const DirectX::XMFLOAT2 ratio = LogicPerClientPixel();
-		return {(world.x + WIN_WIDTH * 0.5f) / ratio.x, (WIN_HEIGHT * 0.5f - world.y) / ratio.y};
+		return { (world.x + WIN_WIDTH * 0.5f) / ratio.x, (WIN_HEIGHT * 0.5f - world.y) / ratio.y };
 	}
 
 	// スプライトは -0.5〜0.5 の四角形を Transform でスケール・回転したもの
@@ -72,12 +76,12 @@ namespace
 		const float rotCos = std::cos(objRot.z);
 		const float rotSin = std::sin(objRot.z);
 
-		const DirectX::XMFLOAT2 local[4] = {{-halfX, -halfY}, {halfX, -halfY}, {halfX, halfY}, {-halfX, halfY}};
+		const DirectX::XMFLOAT2 local[4] = { { -halfX, -halfY },{ halfX, -halfY },{ halfX, halfY },{ -halfX, halfY } };
 		for (int i = 0; i < 4; ++i)
 			outCorners[i] = {
 				objPos.x + local[i].x * rotCos - local[i].y * rotSin,
 				objPos.y + local[i].x * rotSin + local[i].y * rotCos
-			};
+		};
 	}
 
 	bool ObjHitTest(GameObject& obj, DirectX::XMFLOAT2 cursorPos)
@@ -105,12 +109,37 @@ namespace
 		{
 			if (stop)
 			{
-				rb->SetVelocity({0.f, 0.f});
+				rb->SetVelocity({ 0.f, 0.f });
 				rb->SetAngularVel(0.f);
 			}
 
 			rb->Wake();
 		}
+	}
+
+	// 見た目がない（Animator なし・非表示）オブジェクト。コライダーだけの地形など
+	bool IsEmptyObject(GameObject& obj)
+	{
+		const auto* anim = obj.GetComponent<AnimatorComponent>();
+		return !anim || !anim->IsEnabled();
+	}
+
+	struct GridRect
+	{
+		DirectX::XMFLOAT2 min;
+		DirectX::XMFLOAT2 max;
+	};
+
+	// 2 点が含まれるマスをすべて覆う矩形（クリックだけなら 1 マス）
+	GridRect GetGridRect(const DirectX::XMFLOAT2 a, const DirectX::XMFLOAT2 b, const float cellSize)
+	{
+		// floor で切り捨てるので負の座標でも正しいマスになる
+		const float minX = std::floor(std::min(a.x, b.x) / cellSize) * cellSize;
+		const float minY = std::floor(std::min(a.y, b.y) / cellSize) * cellSize;
+		const float maxX = (std::floor(std::max(a.x, b.x) / cellSize) + 1.f) * cellSize;
+		const float maxY = (std::floor(std::max(a.y, b.y) / cellSize) + 1.f) * cellSize;
+
+		return { { minX, minY },{ maxX, maxY } };
 	}
 }
 
@@ -132,10 +161,17 @@ void EditorUI::Draw(SceneManager& sceneManager, Camera2D& camera)
 	ValidateSelection(*scene);
 
 	const bool isTransitioning = sceneManager.IsTransitioning();
+	if (isTransitioning)
+	{
+		// シーンが作り直されるので履歴の対象はすべて無効になる
+		ClearHistory();
+		CancelRectTool();
+	}
+
 	ImGui::BeginDisabled(isTransitioning);
 	DrawHierarchy(*scene);
 	DrawInspector(*scene);
-	DrawPhysicsDebug(scene->GetPhysics());
+	DrawDebug(scene->GetPhysics(), scene->GetRender());
 
 	DrawPrefabPalette(*scene, camera);
 	ImGui::EndDisabled();
@@ -144,8 +180,13 @@ void EditorUI::Draw(SceneManager& sceneManager, Camera2D& camera)
 
 	if (!isTransitioning)
 	{
+		HandleHistoryShortcuts(*scene);
 		HandleCamPan(camera);
 		HandleViewportMouse(*scene, camera);
+
+		DrawGrid(camera);
+		DrawColliderOutlines(*scene, camera);
+		DrawRectPreview(camera);
 	}
 
 	if (selectedObject)
@@ -163,6 +204,7 @@ void EditorUI::ToggleVisible()
 		isDragging = false;
 		stepRequested = false;
 		isPanning = false;
+		CancelRectTool();
 		return;
 	}
 	isPaused = true;
@@ -198,6 +240,8 @@ void EditorUI::ValidateSelection(Scene& scene)
 		selectedObject = nullptr;
 		isDragging = false;
 		isPanning = false;
+		ClearHistory();
+		CancelRectTool();
 		return;
 	}
 
@@ -208,9 +252,9 @@ void EditorUI::ValidateSelection(Scene& scene)
 
 	const auto& objInScene = scene.GetObjects();
 	const bool isObjAlive = std::ranges::any_of(objInScene, [this](const auto& obj)
-	{
-		return obj.get() == selectedObject;
-	});
+		{
+			return obj.get() == selectedObject;
+		});
 
 	if (!isObjAlive)
 	{
@@ -221,8 +265,8 @@ void EditorUI::ValidateSelection(Scene& scene)
 
 void EditorUI::DrawHierarchy(Scene& scene)
 {
-	ImGui::SetNextWindowPos({10, 110.f}, ImGuiCond_FirstUseEver);
-	ImGui::SetNextWindowSize({200.f, 300.f}, ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowPos({ 10, 110.f }, ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize({ 200.f, 300.f }, ImGuiCond_FirstUseEver);
 	if (ImGui::Begin("ヒエラルキー"))
 	{
 		ImGui::TextDisabled("%zu objects", scene.GetObjects().size());
@@ -246,8 +290,8 @@ void EditorUI::DrawHierarchy(Scene& scene)
 
 void EditorUI::DrawInspector(Scene& scene)
 {
-	ImGui::SetNextWindowPos({540.f, 170.f}, ImGuiCond_FirstUseEver);
-	ImGui::SetNextWindowSize({250.f, 420.f}, ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowPos({ 540.f, 170.f }, ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize({ 250.f, 420.f }, ImGuiCond_FirstUseEver);
 	if (!ImGui::Begin("インスペクター"))
 	{
 		ImGui::End();
@@ -264,6 +308,9 @@ void EditorUI::DrawInspector(Scene& scene)
 	GameObject& selectedObjRef = *selectedObject;
 	ImGui::PushItemWidth(-90.f);
 
+	// このフレームで変更される前の状態（Undo 用）
+	const ObjectSnapshot frameStart = TakeSnapshot(selectedObjRef);
+
 	// name & tag
 	char nameBuffer[128];
 	strncpy_s(nameBuffer, selectedObjRef.GetName().c_str(), _TRUNCATE);
@@ -271,6 +318,7 @@ void EditorUI::DrawInspector(Scene& scene)
 	{
 		selectedObjRef.SetName(nameBuffer);
 	}
+	TrackInspectorEdit(selectedObjRef, frameStart);
 
 	int tag = static_cast<int>(selectedObjRef.GetTag());
 	if (ImGui::Combo("タグ", &tag, objectTagNames, IM_ARRAYSIZE(objectTagNames)))
@@ -289,6 +337,7 @@ void EditorUI::DrawInspector(Scene& scene)
 			transform->SetPosition(pos);
 			WakeObjRb(selectedObjRef, false);
 		}
+		TrackInspectorEdit(selectedObjRef, frameStart);
 
 		DirectX::XMFLOAT3 rot = transform->GetRotation();
 		float deg = DirectX::XMConvertToDegrees(rot.z);
@@ -298,6 +347,7 @@ void EditorUI::DrawInspector(Scene& scene)
 			transform->SetRotation(rot);
 			WakeObjRb(selectedObjRef, false);
 		}
+		TrackInspectorEdit(selectedObjRef, frameStart);
 
 		DirectX::XMFLOAT3 scale = transform->GetScale();
 		if (ImGui::DragFloat2("スケール", &scale.x, 0.5f))
@@ -305,6 +355,7 @@ void EditorUI::DrawInspector(Scene& scene)
 			transform->SetScale(scale);
 			WakeObjRb(selectedObjRef, false);
 		}
+		TrackInspectorEdit(selectedObjRef, frameStart);
 	}
 
 	// rigidbody
@@ -372,7 +423,7 @@ void EditorUI::DrawInspector(Scene& scene)
 			}
 		}
 
-	
+
 	}
 
 	// PlayerController
@@ -480,6 +531,46 @@ void EditorUI::DrawInspector(Scene& scene)
 			{
 				col->SetColliderActive(active);
 			}
+
+			// サイズ・オフセットはスケールに対する比率（サイズ 1 = オブジェクトと同じ大きさ）
+			bool isShapeChanged = false;
+
+			const DirectX::XMFLOAT2 halfExtents = col->GetHalfExtents();
+			DirectX::XMFLOAT2 size = { halfExtents.x * 2.f, halfExtents.y * 2.f };
+			if (ImGui::DragFloat2("サイズ", &size.x, 0.01f, 0.01f, 100.f))
+			{
+				size.x = std::max(size.x, 0.01f);
+				size.y = std::max(size.y, 0.01f);
+				col->SetHalfExtents({ size.x * 0.5f, size.y * 0.5f });
+				isShapeChanged = true;
+			}
+
+			DirectX::XMFLOAT2 offset = col->GetOffset();
+			if (ImGui::DragFloat2("オフセット", &offset.x, 0.01f))
+			{
+				col->SetOffset(offset);
+				isShapeChanged = true;
+			}
+
+			if (ImGui::SmallButton("リセット"))
+			{
+				col->ResetShape();
+				isShapeChanged = true;
+			}
+
+			// 実際の大きさ（ピクセル）
+			const OBB obb = col->GetWorldOBB();
+			ImGui::TextDisabled("実サイズ: %.1f x %.1f", obb.halfExtents.x * 2.f, obb.halfExtents.y * 2.f);
+
+			if (isShapeChanged)
+			{
+				// 慣性モーメントはコライダーの大きさから計算されるので更新しておく
+				if (auto* rb = selectedObjRef.GetComponent<Rigidbody2DComponent>())
+				{
+					rb->SetInertia(col->ComputeInertia(rb->GetMass()));
+					rb->Wake();
+				}
+			}
 		}
 	}
 
@@ -502,6 +593,7 @@ void EditorUI::DrawInspector(Scene& scene)
 	ImGui::Separator();
 	if (ImGui::Button("削除"))
 	{
+		RecordDestroy(*selectedObject);
 		scene.Destroy(selectedObject); // FlushPending で実際に削除される
 		selectedObject = nullptr;
 		isDragging = false;
@@ -512,8 +604,8 @@ void EditorUI::DrawInspector(Scene& scene)
 
 void EditorUI::DrawToolbar(SceneManager& sceneManager)
 {
-	ImGui::SetNextWindowPos({540.f, 10.f}, ImGuiCond_FirstUseEver);
-	ImGui::SetNextWindowSize({250.f, 150.f}, ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowPos({ 540.f, 10.f }, ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize({ 250.f, 150.f }, ImGuiCond_FirstUseEver);
 	if (ImGui::Begin("エディター"))
 	{
 		ImGui::Text("%.1f fps", ImGui::GetIO().Framerate);
@@ -523,11 +615,11 @@ void EditorUI::DrawToolbar(SceneManager& sceneManager)
 		ImGui::BeginDisabled(isTransitioning);
 		if (mode == Mode::EDIT)
 		{
-			ImGui::PushStyleColor(ImGuiCol_Button, {0.2f, 0.55f, 0.25f, 1.f});
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, {0.2f, 0.65f, 0.3f, 1.f});
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive, {0.15f, 0.45f, 0.2f, 1.f});
+			ImGui::PushStyleColor(ImGuiCol_Button, { 0.2f, 0.55f, 0.25f, 1.f });
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.2f, 0.65f, 0.3f, 1.f });
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.15f, 0.45f, 0.2f, 1.f });
 
-			const bool isPlayPressed = ImGui::Button("プレイ", {90.f, 0.f});
+			const bool isPlayPressed = ImGui::Button("プレイ", { 90.f, 0.f });
 			ImGui::PopStyleColor(3);
 
 			if (isPlayPressed)
@@ -536,15 +628,15 @@ void EditorUI::DrawToolbar(SceneManager& sceneManager)
 			}
 
 			ImGui::SameLine();
-			ImGui::TextColored({0.6f, 0.85f, 1.f, 1.f}, "編集モード中");
+			ImGui::TextColored({ 0.6f, 0.85f, 1.f, 1.f }, "編集モード中");
 		}
 		else
 		{
-			ImGui::PushStyleColor(ImGuiCol_Button, {0.6f, 0.25f, 0.2f, 1.f});
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, {0.7f, 0.3f, 0.25f, 1.f});
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive, {0.5f, 0.2f, 0.15f, 1.f});
+			ImGui::PushStyleColor(ImGuiCol_Button, { 0.6f, 0.25f, 0.2f, 1.f });
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.7f, 0.3f, 0.25f, 1.f });
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.5f, 0.2f, 0.15f, 1.f });
 
-			const bool isStopPressed = ImGui::Button("編集モード", {90.f, 0.f});
+			const bool isStopPressed = ImGui::Button("編集モード", { 90.f, 0.f });
 			ImGui::PopStyleColor(3);
 
 			if (isStopPressed)
@@ -555,17 +647,17 @@ void EditorUI::DrawToolbar(SceneManager& sceneManager)
 			ImGui::SameLine();
 			if (isPaused)
 			{
-				ImGui::TextColored({1.f, 0.7f, 0.3f, 1.f}, "プレイ中（一時停止）");
+				ImGui::TextColored({ 1.f, 0.7f, 0.3f, 1.f }, "プレイ中（一時停止）");
 			}
 			else
 			{
-				ImGui::TextColored({1.f, 0.7f, 0.3f, 1.f}, "プレイ中");
+				ImGui::TextColored({ 1.f, 0.7f, 0.3f, 1.f }, "プレイ中");
 			}
 		}
 		ImGui::EndDisabled();
 
 		ImGui::BeginDisabled(mode != Mode::PLAY);
-		if (ImGui::Button(isPaused ? "再開" : "一時停止", {90.f, 0.f,}))
+		if (ImGui::Button(isPaused ? "再開" : "一時停止", { 90.f, 0.f, }))
 		{
 			isPaused = !isPaused;
 			isDragging = false;
@@ -580,6 +672,27 @@ void EditorUI::DrawToolbar(SceneManager& sceneManager)
 		ImGui::EndDisabled();
 		ImGui::EndDisabled();
 
+		// Undo/Redo（編集モードのみ）
+		Scene* scene = sceneManager.GetCurrScene();
+		ImGui::BeginDisabled(isTransitioning || !scene || mode != Mode::EDIT);
+
+		ImGui::BeginDisabled(undoHistory.empty());
+		if (ImGui::Button("元に戻す", { 90.f, 0.f }))
+		{
+			Undo(*scene);
+		}
+		ImGui::EndDisabled();
+
+		ImGui::SameLine();
+		ImGui::BeginDisabled(redoHistory.empty());
+		if (ImGui::Button("やり直す", { 90.f, 0.f }))
+		{
+			Redo(*scene);
+		}
+		ImGui::EndDisabled();
+
+		ImGui::EndDisabled();
+
 		ImGui::BeginDisabled(isTransitioning);
 		const std::string currScene = sceneManager.GetCurrSceneName();
 		if (ImGui::BeginCombo("シーン", currScene.c_str()))
@@ -588,6 +701,8 @@ void EditorUI::DrawToolbar(SceneManager& sceneManager)
 			{
 				if (ImGui::Selectable(sceneName.c_str(), sceneName == currScene))
 				{
+					ClearHistory();
+					CancelRectTool();
 					sceneManager.RequestChange(sceneName);
 				}
 			}
@@ -596,6 +711,8 @@ void EditorUI::DrawToolbar(SceneManager& sceneManager)
 
 		if (ImGui::Button("リロード"))
 		{
+			ClearHistory();
+			CancelRectTool();
 			sceneManager.RequestChange(currScene);
 		}
 
@@ -610,7 +727,10 @@ void EditorUI::DrawToolbar(SceneManager& sceneManager)
 		if (mode == Mode::EDIT)
 		{
 			ImGui::TextDisabled("クリックで選択／ドラッグで移動");
+			ImGui::TextDisabled("Alt+ドラッグでスナップなし");
 			ImGui::TextDisabled("右ドラッグでカメラ移動");
+			ImGui::TextDisabled("Ctrl+Z：元に戻す");
+			ImGui::TextDisabled("Ctrl+Y / Ctrl+Shift+Z：やり直す");
 		}
 		else if (isPaused)
 		{
@@ -627,11 +747,22 @@ void EditorUI::HandleViewportMouse(Scene& scene, Camera2D& camera)
 	if (!CanEditViewport())
 	{
 		isDragging = false;
+		isRectDragging = false;
 		return;
 	}
 
+	// 矩形ツール選択中は、選択・ドラッグの代わりに範囲を指定して配置する
+	if (IsRectToolActive())
+	{
+		isDragging = false;
+		HandleRectTool(scene, camera);
+		return;
+	}
+
+	isRectDragging = false;
+
 	const ImGuiIO& io = ImGui::GetIO();
-	const DirectX::XMFLOAT2 mouse = {io.MousePos.x, io.MousePos.y};
+	const DirectX::XMFLOAT2 mouse = { io.MousePos.x, io.MousePos.y };
 	const DirectX::XMFLOAT2 cam = camera.GetPosition();
 
 	if (!io.WantCaptureMouse && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
@@ -642,7 +773,8 @@ void EditorUI::HandleViewportMouse(Scene& scene, Camera2D& camera)
 		{
 			const DirectX::XMFLOAT3 pos = selectedObject->GetTransform()->GetPosition();
 			const DirectX::XMFLOAT2 worldPos = ScreenToWorld(mouse, cam, IsObjectScreenSpace(*selectedObject));
-			objDragOffset = {pos.x - worldPos.x, pos.y - worldPos.y};
+			objDragOffset = { pos.x - worldPos.x, pos.y - worldPos.y };
+			dragStartSnapshot = TakeSnapshot(*selectedObject);
 		}
 	}
 
@@ -653,14 +785,30 @@ void EditorUI::HandleViewportMouse(Scene& scene, Camera2D& camera)
 
 	if (!selectedObject || !ImGui::IsMouseDown(ImGuiMouseButton_Left))
 	{
+		// ドラッグ終了時に 1 回だけ履歴に積む（動いていなければ積まない）
+		if (selectedObject)
+		{
+			RecordModify(*selectedObject, dragStartSnapshot);
+		}
+
 		isDragging = false;
 		return;
 	}
 
 	TransformComponent* transform = selectedObject->GetTransform();
 	const DirectX::XMFLOAT3 pos = transform->GetPosition();
-	const DirectX::XMFLOAT2 worldPos = ScreenToWorld(mouse, cam, IsObjectScreenSpace(*selectedObject));
-	transform->SetPosition({worldPos.x + objDragOffset.x, worldPos.y + objDragOffset.y, pos.z});
+	const bool isScreenSpace = IsObjectScreenSpace(*selectedObject);
+	const DirectX::XMFLOAT2 worldPos = ScreenToWorld(mouse, cam, isScreenSpace);
+
+	DirectX::XMFLOAT2 newPos = { worldPos.x + objDragOffset.x, worldPos.y + objDragOffset.y };
+
+	// Alt を押している間はスナップしない
+	if (isGridEnabled && !io.KeyAlt && !isScreenSpace)
+	{
+		newPos = SnapToGrid(newPos, transform->GetScale());
+	}
+
+	transform->SetPosition({ newPos.x, newPos.y, pos.z });
 	WakeObjRb(*selectedObject, true);
 }
 
@@ -674,8 +822,8 @@ void EditorUI::DrawSelectionOutline(Camera2D& camera)
 
 	ImDrawList* drawList = ImGui::GetForegroundDrawList();
 	drawList->AddQuad(WorldToScreen(corners[0], cam, isScreenSpace), WorldToScreen(corners[1], cam, isScreenSpace),
-	                  WorldToScreen(corners[2], cam, isScreenSpace), WorldToScreen(corners[3], cam, isScreenSpace),
-	                  IM_COL32(255, 200, 0, 255), 2.f);
+		WorldToScreen(corners[2], cam, isScreenSpace), WorldToScreen(corners[3], cam, isScreenSpace),
+		IM_COL32(255, 200, 0, 255), 2.f);
 }
 
 void EditorUI::DrawLayoutSave(SceneManager& sceneManager)
@@ -700,25 +848,25 @@ void EditorUI::DrawLayoutSave(SceneManager& sceneManager)
 	}
 
 	const auto drawStatus = [](bool isValid, const std::string& logMessage, bool highlight = false)
-	{
-		ImVec4 color = {1.f, 0.4f, 0.4f, 1.f};
-
-		if (isValid)
 		{
-			if (highlight)
-			{
-				color = {0.4f, 0.9f, 0.4f, 1.f};
-			}
-			else
-			{
-				color = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
-			}
-		}
+			ImVec4 color = { 1.f, 0.4f, 0.4f, 1.f };
 
-		ImGui::PushStyleColor(ImGuiCol_Text, color);
-		ImGui::TextWrapped("%s", logMessage.c_str());
-		ImGui::PopStyleColor();
-	};
+			if (isValid)
+			{
+				if (highlight)
+				{
+					color = { 0.4f, 0.9f, 0.4f, 1.f };
+				}
+				else
+				{
+					color = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
+				}
+			}
+
+			ImGui::PushStyleColor(ImGuiCol_Text, color);
+			ImGui::TextWrapped("%s", logMessage.c_str());
+			ImGui::PopStyleColor();
+		};
 
 	const SceneLayout::Result& load = sceneManager.GetLastLayoutLoad();
 	if (!load.message.empty())
@@ -736,19 +884,32 @@ void EditorUI::DrawLayoutSave(SceneManager& sceneManager)
 
 void EditorUI::DrawPrefabPalette(Scene& scene, const Camera2D& camera)
 {
-	ImGui::SetNextWindowSize({200.f, 250.f}, ImGuiCond_FirstUseEver);
-	ImGui::SetNextWindowPos({10.f, 420.f}, ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize({ 200.f, 300.f }, ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowPos({ 10.f, 420.f }, ImGuiCond_FirstUseEver);
 
 	if (ImGui::Begin("プレハブ"))
 	{
 		const bool canPlace = mode == Mode::EDIT;
-		if (canPlace)
+
+		ImGui::Checkbox("グリッドスナップ", &isGridEnabled);
+		ImGui::SameLine();
+		ImGui::TextDisabled("%.0fpx", gridSize);
+
+		ImGui::Separator();
+
+		if (!canPlace)
 		{
-			ImGui::TextDisabled("クリックで画面中央に配置");
+			ImGui::TextDisabled("編集モードのみ配置できます");
+		}
+		else if (IsRectToolActive())
+		{
+			ImGui::TextDisabled("ドラッグで範囲を指定して配置");
+			ImGui::TextDisabled("Esc で解除");
 		}
 		else
 		{
-			ImGui::TextDisabled("編集モードのみ配置できます");
+			ImGui::TextDisabled("クリックで画面中央に配置");
+			ImGui::TextDisabled("[矩形] はドラッグで範囲配置");
 		}
 
 		ImGui::Separator();
@@ -756,15 +917,41 @@ void EditorUI::DrawPrefabPalette(Scene& scene, const Camera2D& camera)
 		ImGui::BeginDisabled(!canPlace);
 		for (const std::string& prefabName : PrefabRegistry::Instance().GetPrefabNames())
 		{
+			// 地形用：選ぶと矩形ツールになる（もう一度クリックで解除）
+			if (IsRectPrefab(prefabName))
+			{
+				const std::string label = "[矩形] " + prefabName;
+				const bool isSelected = rectPrefab == prefabName;
+
+				if (ImGui::Selectable(label.c_str(), isSelected))
+				{
+					rectPrefab = isSelected ? std::string{} : prefabName;
+					isRectDragging = false;
+				}
+
+				continue;
+			}
+
 			if (ImGui::Selectable(prefabName.c_str()))
 			{
+				CancelRectTool();
+
 				const DirectX::XMFLOAT2 cam = camera.GetPosition();
 
 				// 次フレームの FlushPending でシーンに追加される（一時停止中も Flush は行われる）
-				if (GameObject* obj = scene.InstantiateAsLayout(prefabName, {cam.x, cam.y, 1.f}))
+				if (GameObject* obj = scene.InstantiateAsLayout(prefabName, { cam.x, cam.y, 1.f }))
 				{
+					if (isGridEnabled)
+					{
+						TransformComponent* transform = obj->GetTransform();
+						const DirectX::XMFLOAT3 pos = transform->GetPosition();
+						const DirectX::XMFLOAT2 snapped = SnapToGrid({ pos.x, pos.y }, transform->GetScale());
+						transform->SetPosition({ snapped.x, snapped.y, pos.z });
+					}
+
 					selectedObject = obj;
 					isDragging = false;
+					RecordCreate(*obj);
 				}
 			}
 		}
@@ -774,7 +961,7 @@ void EditorUI::DrawPrefabPalette(Scene& scene, const Camera2D& camera)
 	ImGui::End();
 }
 
-void EditorUI::DrawPhysicsDebug(PhysicsSystem& physics)
+void EditorUI::DrawDebug(PhysicsSystem& physics, RenderSystem& render)
 {
 	const PhysicsSystem::DebugStats& s = physics.GetDebugStats();
 	const int steps = physics.ConsumeStepCount();
@@ -801,6 +988,10 @@ void EditorUI::DrawPhysicsDebug(PhysicsSystem& physics)
 	ImGui::Text("Positions:       %.3f", s.positionMs);
 	ImGui::Text("Sleep + events:  %.3f", s.sleepAndEventsMs);
 	ImGui::Text("Total:           %.3f", s.totalMs);
+
+	ImGui::SeparatorText("Culling");
+	ImGui::Text("Drawn: %d", render.GetDrawnSpriteCount());
+	ImGui::Text("Culled: %d", render.GetCulledSpriteCount());
 
 	ImGui::End();
 }
@@ -831,7 +1022,7 @@ void EditorUI::HandleCamPan(Camera2D& camera)
 		return;
 	}
 
-	camera.Move({-io.MouseDelta.x, io.MouseDelta.y});
+	camera.Move({ -io.MouseDelta.x, io.MouseDelta.y });
 }
 
 GameObject* EditorUI::Pick(Scene& scene, const Camera2D& camera, const DirectX::XMFLOAT2 mousePosScreen)
@@ -843,24 +1034,41 @@ GameObject* EditorUI::Pick(Scene& scene, const Camera2D& camera, const DirectX::
 		candidates.push_back(obj.get());
 	}
 
-	// topmost first: higher layer first, then higher sort order
+	// 見た目のないオブジェクト（コライダーだけの地形など）は常に最優先。
+	// その中では小さいものを優先して、大きいコライダーの中にある小さいものも選べるようにする
+	// それ以外は手前のもの優先：レイヤーが上 → ソート順が上
 	std::ranges::stable_sort(candidates, [](GameObject* a, GameObject* b)
-	{
-		auto* animA = a->GetComponent<AnimatorComponent>();
-		auto* animB = b->GetComponent<AnimatorComponent>();
-
-		const int layerA = animA ? static_cast<int>(animA->GetRenderLayer()) : 0;
-		const int layerB = animB ? static_cast<int>(animB->GetRenderLayer()) : 0;
-
-		if (layerA != layerB)
 		{
-			return layerA > layerB;
-		}
+			const bool isEmptyA = IsEmptyObject(*a);
+			const bool isEmptyB = IsEmptyObject(*b);
 
-		const int orderA = animA ? animA->GetSortOrder() : 0;
-		const int orderB = animB ? animB->GetSortOrder() : 0;
-		return orderA > orderB;
-	});
+			if (isEmptyA != isEmptyB)
+			{
+				return isEmptyA;
+			}
+
+			if (isEmptyA)
+			{
+				const DirectX::XMFLOAT3 scaleA = a->GetTransform()->GetScale();
+				const DirectX::XMFLOAT3 scaleB = b->GetTransform()->GetScale();
+				return std::abs(scaleA.x * scaleA.y) < std::abs(scaleB.x * scaleB.y);
+			}
+
+			auto* animA = a->GetComponent<AnimatorComponent>();
+			auto* animB = b->GetComponent<AnimatorComponent>();
+
+			const int layerA = animA ? static_cast<int>(animA->GetRenderLayer()) : 0;
+			const int layerB = animB ? static_cast<int>(animB->GetRenderLayer()) : 0;
+
+			if (layerA != layerB)
+			{
+				return layerA > layerB;
+			}
+
+			const int orderA = animA ? animA->GetSortOrder() : 0;
+			const int orderB = animB ? animB->GetSortOrder() : 0;
+			return orderA > orderB;
+		});
 
 	for (int pass = 0; pass < 2; pass++)
 	{
@@ -896,9 +1104,9 @@ void EditorUI::EnterPlayMode(SceneManager& sceneManager)
 	const SceneLayout::Result& load = sceneManager.GetLastLayoutLoad();
 
 	const bool hasLayoutObj = std::ranges::any_of(scene->GetObjects(), [scene](const auto& obj)
-	{
-		return obj->IsLayoutObject() && !scene->IsPendingDestroy(obj.get());
-	});
+		{
+			return obj->IsLayoutObject() && !scene->IsPendingDestroy(obj.get());
+		});
 
 	if (!load.valid || load.skippedCount > 0)
 	{
@@ -917,6 +1125,9 @@ void EditorUI::EnterPlayMode(SceneManager& sceneManager)
 		}
 	}
 
+	ClearHistory();
+	CancelRectTool();
+
 	playModeStartScene = sceneName;
 	mode = Mode::PLAY;
 	isPaused = false;
@@ -934,6 +1145,9 @@ void EditorUI::EnterEditMode(SceneManager& sceneManager)
 	{
 		return;
 	}
+
+	ClearHistory();
+	CancelRectTool();
 
 	mode = Mode::EDIT;
 	isPaused = false;
@@ -954,4 +1168,491 @@ void EditorUI::EnterEditMode(SceneManager& sceneManager)
 	}
 
 	sceneManager.RequestChange(tgtScene);
+}
+
+// ===== グリッド・矩形ツール =====
+
+bool EditorUI::IsRectPrefab(const std::string& prefabName) const
+{
+	return std::ranges::find(rectPrefabNames, prefabName) != rectPrefabNames.end();
+}
+
+void EditorUI::HandleRectTool(Scene& scene, const Camera2D& camera)
+{
+	const ImGuiIO& io = ImGui::GetIO();
+
+	// Esc：ドラッグ中ならキャンセル、そうでなければツール解除
+	if (!io.WantTextInput && ImGui::IsKeyPressed(ImGuiKey_Escape, false))
+	{
+		if (isRectDragging)
+		{
+			isRectDragging = false;
+		}
+		else
+		{
+			rectPrefab.clear();
+		}
+
+		return;
+	}
+
+	const DirectX::XMFLOAT2 mouseWorld = ScreenToWorld({ io.MousePos.x, io.MousePos.y }, camera.GetPosition(), false);
+
+	if (!io.WantCaptureMouse && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+	{
+		isRectDragging = true;
+		rectDragStart = mouseWorld;
+		return;
+	}
+
+	if (!isRectDragging || ImGui::IsMouseDown(ImGuiMouseButton_Left))
+	{
+		return;
+	}
+
+	// ボタンを離したら、ドラッグした範囲に 1 つだけ生成してスケールで大きさを合わせる
+	isRectDragging = false;
+
+	const GridRect rect = GetGridRect(rectDragStart, mouseWorld, gridSize);
+	const DirectX::XMFLOAT2 center = { (rect.min.x + rect.max.x) * 0.5f, (rect.min.y + rect.max.y) * 0.5f };
+	const DirectX::XMFLOAT2 size = { rect.max.x - rect.min.x, rect.max.y - rect.min.y };
+
+	GameObject* obj = scene.InstantiateAsLayout(rectPrefab, { center.x, center.y, 1.f });
+	if (!obj)
+	{
+		return;
+	}
+
+	TransformComponent* transform = obj->GetTransform();
+	const DirectX::XMFLOAT3 scale = transform->GetScale();
+	transform->SetScale({ size.x, size.y, scale.z });
+	WakeObjRb(*obj, true);
+
+	selectedObject = obj;
+	RecordCreate(*obj);
+}
+
+void EditorUI::CancelRectTool()
+{
+	rectPrefab.clear();
+	isRectDragging = false;
+}
+
+void EditorUI::DrawGrid(const Camera2D& camera)
+{
+	if (!IsEditMode() || (!isGridEnabled && !IsRectToolActive()))
+	{
+		return;
+	}
+
+	const ImGuiIO& io = ImGui::GetIO();
+	const DirectX::XMFLOAT2 cam = camera.GetPosition();
+
+	// 画面の四隅をワールドに変換して、見えている範囲だけ線を引く
+	const DirectX::XMFLOAT2 topLeft = ScreenToWorld({ 0.f, 0.f }, cam, false);
+	const DirectX::XMFLOAT2 bottomRight = ScreenToWorld({ io.DisplaySize.x, io.DisplaySize.y }, cam, false);
+
+	const int firstX = static_cast<int>(std::floor(topLeft.x / gridSize));
+	const int lastX = static_cast<int>(std::ceil(bottomRight.x / gridSize));
+	const int firstY = static_cast<int>(std::floor(bottomRight.y / gridSize));
+	const int lastY = static_cast<int>(std::ceil(topLeft.y / gridSize));
+
+	// 線が多すぎるとき（gridSize を小さくした・将来ズームアウトした場合）は描かない
+	if ((lastX - firstX) + (lastY - firstY) > 600)
+	{
+		return;
+	}
+
+	// 背景描画リスト：ゲーム画面の上、ImGui ウィンドウの下に描かれる
+	ImDrawList* drawList = ImGui::GetBackgroundDrawList();
+	const ImU32 lineColor = IM_COL32(255, 255, 255, 35);
+	const ImU32 axisColor = IM_COL32(255, 255, 255, 100);
+
+	for (int x = firstX; x <= lastX; ++x)
+	{
+		const float worldX = static_cast<float>(x) * gridSize;
+		drawList->AddLine(WorldToScreen({ worldX, topLeft.y }, cam, false),
+			WorldToScreen({ worldX, bottomRight.y }, cam, false),
+			x == 0 ? axisColor : lineColor);
+	}
+
+	for (int y = firstY; y <= lastY; ++y)
+	{
+		const float worldY = static_cast<float>(y) * gridSize;
+		drawList->AddLine(WorldToScreen({ topLeft.x, worldY }, cam, false),
+			WorldToScreen({ bottomRight.x, worldY }, cam, false),
+			y == 0 ? axisColor : lineColor);
+	}
+}
+
+void EditorUI::DrawRectPreview(const Camera2D& camera)
+{
+	if (!IsRectToolActive())
+	{
+		return;
+	}
+
+	const ImGuiIO& io = ImGui::GetIO();
+	if (io.WantCaptureMouse && !isRectDragging)
+	{
+		return;
+	}
+
+	const DirectX::XMFLOAT2 cam = camera.GetPosition();
+	const DirectX::XMFLOAT2 mouseWorld = ScreenToWorld({ io.MousePos.x, io.MousePos.y }, cam, false);
+
+	// ドラッグ前はカーソル位置の 1 マスを表示
+	const GridRect rect = GetGridRect(isRectDragging ? rectDragStart : mouseWorld, mouseWorld, gridSize);
+
+	// 画面上では +Y が下なので、左上 = (min.x, max.y)、右下 = (max.x, min.y)
+	const ImVec2 screenMin = WorldToScreen({ rect.min.x, rect.max.y }, cam, false);
+	const ImVec2 screenMax = WorldToScreen({ rect.max.x, rect.min.y }, cam, false);
+
+	ImDrawList* drawList = ImGui::GetForegroundDrawList();
+	drawList->AddRectFilled(screenMin, screenMax, IM_COL32(80, 200, 255, isRectDragging ? 60 : 30));
+	drawList->AddRect(screenMin, screenMax, IM_COL32(80, 200, 255, 230), 0.f, 0, 2.f);
+
+	const int cellsX = static_cast<int>(std::lround((rect.max.x - rect.min.x) / gridSize));
+	const int cellsY = static_cast<int>(std::lround((rect.max.y - rect.min.y) / gridSize));
+	const std::string label = rectPrefab + "  " + std::to_string(cellsX) + " x " + std::to_string(cellsY);
+	drawList->AddText({ screenMin.x, screenMin.y - ImGui::GetTextLineHeight() - 2.f }, IM_COL32(80, 200, 255, 255),
+		label.c_str());
+}
+
+void EditorUI::DrawColliderOutlines(Scene& scene, const Camera2D& camera)
+{
+	// 見た目のない地形（platform など）も見えるように、編集モードでは全コライダーの枠を描く
+	if (!IsEditMode())
+	{
+		return;
+	}
+
+	const DirectX::XMFLOAT2 cam = camera.GetPosition();
+	ImDrawList* drawList = ImGui::GetBackgroundDrawList();
+
+	for (const auto& objPtr : scene.GetObjects())
+	{
+		GameObject& obj = *objPtr;
+		const BoxCollider2D* col = obj.GetComponent<BoxCollider2D>();
+		if (!col || IsObjectScreenSpace(obj) || scene.IsPendingDestroy(&obj))
+		{
+			continue;
+		}
+
+		ImU32 color = IM_COL32(90, 255, 120, 200); // 通常
+		if (!col->IsColliderActive())
+		{
+			color = IM_COL32(150, 150, 150, 150); // 無効
+		}
+		else if (col->IsTrigger())
+		{
+			color = IM_COL32(255, 220, 80, 200); // トリガー
+		}
+
+		const std::array<DirectX::XMFLOAT2, 4> corners = col->GetWorldOBB().GetCorners();
+		drawList->AddQuad(WorldToScreen(corners[0], cam, false), WorldToScreen(corners[1], cam, false),
+			WorldToScreen(corners[2], cam, false), WorldToScreen(corners[3], cam, false),
+			color, 1.5f);
+	}
+}
+
+DirectX::XMFLOAT2 EditorUI::SnapToGrid(const DirectX::XMFLOAT2 pos, const DirectX::XMFLOAT3& scale) const
+{
+	// オブジェクトが何マス分か（1 マスより小さいものは 1 マス扱い＝マスの中央に置く）
+	const float cellsX = std::max(1.f, std::round(std::abs(scale.x) / gridSize));
+	const float cellsY = std::max(1.f, std::round(std::abs(scale.y) / gridSize));
+	const float halfX = cellsX * gridSize * 0.5f;
+	const float halfY = cellsY * gridSize * 0.5f;
+
+	// 左下の角をいちばん近いグリッド線に合わせる
+	return {
+		std::round((pos.x - halfX) / gridSize) * gridSize + halfX,
+		std::round((pos.y - halfY) / gridSize) * gridSize + halfY
+	};
+}
+
+// ===== Undo/Redo =====
+
+EditorUI::ObjectSnapshot EditorUI::TakeSnapshot(GameObject& obj)
+{
+	const TransformComponent* transform = obj.GetTransform();
+
+	ObjectSnapshot snapshot;
+	snapshot.prefabName = obj.GetPrefabName();
+	snapshot.name = obj.GetName();
+	snapshot.isLayoutObject = obj.IsLayoutObject();
+	snapshot.position = transform->GetPosition();
+	snapshot.rotation = transform->GetRotation();
+	snapshot.scale = transform->GetScale();
+	return snapshot;
+}
+
+void EditorUI::ApplySnapshot(GameObject& obj, const ObjectSnapshot& snapshot)
+{
+	TransformComponent* transform = obj.GetTransform();
+
+	obj.SetName(snapshot.name);
+	transform->SetPosition(snapshot.position);
+	transform->SetRotation(snapshot.rotation);
+	transform->SetScale(snapshot.scale);
+	WakeObjRb(obj, true);
+}
+
+bool EditorUI::IsSameState(const ObjectSnapshot& a, const ObjectSnapshot& b)
+{
+	const auto isSameFloat3 = [](const DirectX::XMFLOAT3& l, const DirectX::XMFLOAT3& r)
+		{
+			return l.x == r.x && l.y == r.y && l.z == r.z;
+		};
+
+	return a.name == b.name &&
+		isSameFloat3(a.position, b.position) &&
+		isSameFloat3(a.rotation, b.rotation) &&
+		isSameFloat3(a.scale, b.scale);
+}
+
+GameObject* EditorUI::Respawn(Scene& scene, const ObjectSnapshot& snapshot)
+{
+	if (snapshot.prefabName.empty() || !PrefabRegistry::Instance().Find(snapshot.prefabName))
+	{
+		return nullptr;
+	}
+
+	GameObject* obj = snapshot.isLayoutObject
+		? scene.InstantiateAsLayout(snapshot.prefabName, snapshot.position)
+		: scene.Instantiate(snapshot.prefabName, snapshot.position);
+
+	if (!obj)
+	{
+		return nullptr;
+	}
+
+	ApplySnapshot(*obj, snapshot);
+	return obj;
+}
+
+void EditorUI::RemapInstanceId(const std::uint64_t oldId, const std::uint64_t newId)
+{
+	// 作り直したオブジェクトは ID が変わるので、履歴の中の古い ID を差し替える
+	for (HistoryEntry& entry : undoHistory)
+	{
+		if (entry.instanceId == oldId)
+		{
+			entry.instanceId = newId;
+		}
+	}
+
+	for (HistoryEntry& entry : redoHistory)
+	{
+		if (entry.instanceId == oldId)
+		{
+			entry.instanceId = newId;
+		}
+	}
+}
+
+void EditorUI::PushHistory(HistoryEntry entry)
+{
+	// 新しい操作をしたら、やり直しの履歴は捨てる
+	redoHistory.clear();
+	undoHistory.push_back(std::move(entry));
+
+	if (undoHistory.size() > historyLimit)
+	{
+		undoHistory.erase(undoHistory.begin());
+	}
+}
+
+void EditorUI::RecordModify(GameObject& obj, const ObjectSnapshot& before)
+{
+	if (!IsEditMode())
+	{
+		return;
+	}
+
+	ObjectSnapshot after = TakeSnapshot(obj);
+	if (IsSameState(before, after))
+	{
+		return;
+	}
+
+	HistoryEntry entry;
+	entry.type = HistoryEntry::Type::MODIFY;
+	entry.instanceId = obj.GetInstanceId();
+	entry.before = before;
+	entry.after = std::move(after);
+	PushHistory(std::move(entry));
+}
+
+void EditorUI::RecordCreate(GameObject& obj)
+{
+	if (!IsEditMode())
+	{
+		return;
+	}
+
+	HistoryEntry entry;
+	entry.type = HistoryEntry::Type::CREATE;
+	entry.instanceId = obj.GetInstanceId();
+	entry.after = TakeSnapshot(obj);
+	PushHistory(std::move(entry));
+}
+
+void EditorUI::RecordDestroy(GameObject& obj)
+{
+	// プレハブ名がないもの（コードで直接作ったもの）は作り直せないので記録しない
+	if (!IsEditMode() || obj.GetPrefabName().empty())
+	{
+		return;
+	}
+
+	HistoryEntry entry;
+	entry.type = HistoryEntry::Type::DESTROY;
+	entry.instanceId = obj.GetInstanceId();
+	entry.before = TakeSnapshot(obj);
+	PushHistory(std::move(entry));
+}
+
+void EditorUI::TrackInspectorEdit(GameObject& obj, const ObjectSnapshot& frameStart)
+{
+	// 直前のウィジェットの操作開始〜終了を 1 回の変更として記録する
+	if (ImGui::IsItemActivated())
+	{
+		inspectorEditStart = frameStart;
+	}
+
+	if (ImGui::IsItemDeactivatedAfterEdit())
+	{
+		RecordModify(obj, inspectorEditStart);
+	}
+}
+
+void EditorUI::Undo(Scene& scene)
+{
+	if (undoHistory.empty())
+	{
+		return;
+	}
+
+	HistoryEntry entry = std::move(undoHistory.back());
+	undoHistory.pop_back();
+	isDragging = false;
+
+	switch (entry.type)
+	{
+	case HistoryEntry::Type::MODIFY:
+		if (GameObject* obj = scene.FindByInstanceId(entry.instanceId))
+		{
+			ApplySnapshot(*obj, entry.before);
+			selectedObject = obj;
+		}
+		break;
+
+	case HistoryEntry::Type::CREATE:
+		if (GameObject* obj = scene.FindByInstanceId(entry.instanceId))
+		{
+			if (obj == selectedObject)
+			{
+				selectedObject = nullptr;
+			}
+			scene.Destroy(obj);
+		}
+		break;
+
+	case HistoryEntry::Type::DESTROY:
+		if (GameObject* obj = Respawn(scene, entry.before))
+		{
+			RemapInstanceId(entry.instanceId, obj->GetInstanceId());
+			entry.instanceId = obj->GetInstanceId();
+			selectedObject = obj;
+		}
+		break;
+	}
+
+	redoHistory.push_back(std::move(entry));
+}
+
+void EditorUI::Redo(Scene& scene)
+{
+	if (redoHistory.empty())
+	{
+		return;
+	}
+
+	HistoryEntry entry = std::move(redoHistory.back());
+	redoHistory.pop_back();
+	isDragging = false;
+
+	switch (entry.type)
+	{
+	case HistoryEntry::Type::MODIFY:
+		if (GameObject* obj = scene.FindByInstanceId(entry.instanceId))
+		{
+			ApplySnapshot(*obj, entry.after);
+			selectedObject = obj;
+		}
+		break;
+
+	case HistoryEntry::Type::CREATE:
+		if (GameObject* obj = Respawn(scene, entry.after))
+		{
+			RemapInstanceId(entry.instanceId, obj->GetInstanceId());
+			entry.instanceId = obj->GetInstanceId();
+			selectedObject = obj;
+		}
+		break;
+
+	case HistoryEntry::Type::DESTROY:
+		if (GameObject* obj = scene.FindByInstanceId(entry.instanceId))
+		{
+			if (obj == selectedObject)
+			{
+				selectedObject = nullptr;
+			}
+			scene.Destroy(obj);
+		}
+		break;
+	}
+
+	// PushHistory は redo を消してしまうので、ここでは直接積む
+	undoHistory.push_back(std::move(entry));
+}
+
+void EditorUI::HandleHistoryShortcuts(Scene& scene)
+{
+	if (!IsEditMode() || isDragging || isRectDragging)
+	{
+		return;
+	}
+
+	const ImGuiIO& io = ImGui::GetIO();
+
+	// テキスト入力中・ウィジェット操作中は ImGui 側の操作を優先する
+	if (!io.KeyCtrl || io.WantTextInput || ImGui::IsAnyItemActive())
+	{
+		return;
+	}
+
+	if (ImGui::IsKeyPressed(ImGuiKey_Z))
+	{
+		// Ctrl+Shift+Z はやり直し
+		if (io.KeyShift)
+		{
+			Redo(scene);
+		}
+		else
+		{
+			Undo(scene);
+		}
+	}
+	else if (ImGui::IsKeyPressed(ImGuiKey_Y))
+	{
+		Redo(scene);
+	}
+}
+
+void EditorUI::ClearHistory()
+{
+	undoHistory.clear();
+	redoHistory.clear();
 }

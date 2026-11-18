@@ -720,12 +720,20 @@ void PlayerController::HandleAnimation()
 		return;
 	}
 
-	// 左右入力があるときだけ、向きを更新する。
-	if (inputX > 0.0f)
+	// 実際の横移動速度を取得する。
+	// Rigidbodyがない場合は、停止中として扱う。
+	const float velocityX =
+		rb != nullptr ? rb->GetVelocity().x : 0.0f;
+
+	// 微小な速度で向きが頻繁に切り替わらないようにする。
+	constexpr float moveThreshold = 0.1f;
+
+	// プレイヤーの移動している方向に向きを更新する。
+	if (velocityX > moveThreshold)
 	{
 		isFacingRight = true;
 	}
-	else if (inputX < 0.0f)
+	else if (velocityX < -moveThreshold)
 	{
 		isFacingRight = false;
 	}
@@ -736,7 +744,7 @@ void PlayerController::HandleAnimation()
 	{
 		nextAnimation = isFacingRight ? "JumpRight" : "JumpLeft";
 	}
-	else if (std::abs(inputX) > 0.01f)
+	else if (std::abs(velocityX) > moveThreshold)
 	{
 		nextAnimation = isFacingRight ? "WalkRight" : "WalkLeft";
 	}

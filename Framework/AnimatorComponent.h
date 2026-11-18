@@ -7,6 +7,7 @@
 #include "RenderLayer.h"
 #include "SpriteAnimatorComponent.h"
 class GameObject;
+struct ViewRect2D;
 
 struct AnimationEntry
 {
@@ -26,7 +27,10 @@ public:
 	bool SetCurrAnimation(const std::string& animName);
 	void Update(float deltaTime) override;
 	void Render();
-	
+
+	// カメラに映る範囲と重なっているか（スクリーン空間のものは常に true）
+	bool IsInView(const ViewRect2D& view) const;
+
 	bool IsEnabled() const { return enabled; }
 	void SetEnabled(bool inEnabled);
 
@@ -65,7 +69,7 @@ public:
 
 private:
 	Renderer& renderer;
-	
+
 	std::unordered_map<std::string, AnimationEntry> animations;
 	AnimationEntry* currAnimation;
 

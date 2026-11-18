@@ -24,12 +24,32 @@ public:
 		Render2DPass();
 	}
 
+	void SetCullingEnabled(const bool inEnabled)
+	{
+		spriteSystem.SetCullingEnabled(inEnabled);
+	}
+
+	bool IsCullingEnabled() const
+	{
+		return spriteSystem.IsCullingEnabled();
+	}
+
+	int GetDrawnSpriteCount() const
+	{
+		return spriteSystem.GetDrawnCount();
+	}
+
+	int GetCulledSpriteCount() const
+	{
+		return spriteSystem.GetCulledCount();
+	}
+
 private:
 	void Render2DPass()
 	{
 		renderer.Set2DMode();
 
-		spriteSystem.Render();
+		spriteSystem.Render(renderer.GetViewRect2D());
 	}
 
 private:

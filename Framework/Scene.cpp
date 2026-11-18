@@ -38,7 +38,7 @@ GameObject* Scene::InstantiateAsLayout(const std::string& prefab, const DirectX:
 	{
 		object->SetLayoutObject(true);
 	}
-	
+
 	return object;
 }
 
@@ -103,15 +103,15 @@ void Scene::FlushPending()
 	}
 
 	std::erase_if(objects, [this](const std::unique_ptr<GameObject>& p)
-	{
-		return std::ranges::find(pendingDestroy, p.get()) != pendingDestroy.end();
-	});
+		{
+			return std::ranges::find(pendingDestroy, p.get()) != pendingDestroy.end();
+		});
 
 	// A pickup can be collected on the same frame it was instantiated.
 	std::erase_if(pendingSpawn, [this](const std::unique_ptr<GameObject>& p)
-	{
-		return std::ranges::find(pendingDestroy, p.get()) != pendingDestroy.end();
-	});
+		{
+			return std::ranges::find(pendingDestroy, p.get()) != pendingDestroy.end();
+		});
 	pendingDestroy.clear();
 
 	for (auto& object : pendingSpawn)
@@ -124,6 +124,31 @@ void Scene::FlushPending()
 bool Scene::IsPendingDestroy(const GameObject* obj) const
 {
 	return std::ranges::find(pendingDestroy, obj) != pendingDestroy.end();
+}
+
+GameObject* Scene::FindByInstanceId(const std::uint64_t id) const
+{
+	const auto matches = [id](const std::unique_ptr<GameObject>& obj)
+		{
+			return obj->GetInstanceId() == id;
+		};
+
+	GameObject* found = nullptr;
+	if (const auto it = std::ranges::find_if(objects, matches); it != objects.end())
+	{
+		found = it->get();
+	}
+	else if (const auto spawnIt = std::ranges::find_if(pendingSpawn, matches); spawnIt != pendingSpawn.end())
+	{
+		found = spawnIt->get();
+	}
+
+	if (!found || IsPendingDestroy(found))
+	{
+		return nullptr;
+	}
+
+	return found;
 }
 
 void Scene::UnregisterFromSys(GameObject* object)

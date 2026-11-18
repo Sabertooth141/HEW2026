@@ -48,6 +48,9 @@ public:
 
 	bool IsPendingDestroy(const GameObject* obj) const;
 
+	// 生成待ち（pendingSpawn）も含めて探す。削除待ちのオブジェクトは nullptr
+	GameObject* FindByInstanceId(std::uint64_t id) const;
+
 	const std::vector<std::unique_ptr<GameObject>>& GetObjects() const
 	{
 		return objects;
@@ -58,9 +61,14 @@ public:
 		return objects;
 	}
 
-	PhysicsSystem& GetPhysics() const 
+	PhysicsSystem& GetPhysics() const
 	{
 		return context.physicsSys;
+	}
+
+	RenderSystem& GetRender() const
+	{
+		return context.renderSys;
 	}
 
 protected:
