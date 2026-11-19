@@ -177,7 +177,7 @@ private:
 	int stackCount = 0;
 	float remainingTime = 0.0f;
 
-	float boostDuration = 10.0f;
+	float boostDuration = 7.0f;
 
 	bool isPaused = false;
 
