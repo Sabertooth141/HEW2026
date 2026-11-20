@@ -7,100 +7,176 @@
 #include "GameObject.h"
 #include "WindowSettings.h"
 
+namespace
+{
+	struct Room
+	{
+		float minX;
+		float maxX;
+		float minY;
+		float maxY;
+	};
+
+	//背景画像の配置に対応する部屋の範囲
+	constexpr Room rooms[] =
+	{
+		{ -960.f,  960.f,  -540.f,  540.f }, // 部屋1
+		{ 960.f, 2880.f,  -540.f,  540.f }, // 部屋2
+		{ 2880.f, 4800.f,  -540.f,  540.f }, // 部屋3
+		{ 2880.f, 4800.f, -1620.f, -540.f }, // 部屋4
+		{ 4800.f, 6720.f, -1620.f, -540.f }, // 部屋5
+		{ 4800.f, 6720.f,  -540.f,  540.f }, // 部屋6
+		{ 6720.f, 8640.f,  -540.f,  540.f }, // 部屋7
+		{ 6720.f, 8640.f, -1620.f, -540.f }  // 部屋8
+	};
+
+	constexpr int roomCount = sizeof(rooms) / sizeof(rooms[0]);
+
+	float ClampAxis(float value, float minimum, float maximum, float viewSize)
+	{
+		//表示範囲より小さい部屋では中央に固定
+		if (maximum - minimum <= viewSize)
+		{
+			return (minimum + maximum) * 0.5f;
+		}
+
+		return std::clamp(
+			value,
+			minimum + viewSize * 0.5f,
+			maximum - viewSize * 0.5f
+		);
+	}
+}
+
 void CameraController::Awake()
 {
 	MonoBehavior::Awake();
 	camera = &owner->GetContext().camera;
 
-	viewWidth = static_cast<float>(WIN_WIDTH);
-	viewHeight = static_cast<float>(WIN_HEIGHT);
+	//viewWidth = static_cast<float>(WIN_WIDTH);
+	//viewHeight = static_cast<float>(WIN_HEIGHT);
 
-	//開始時はプレイヤーを含む固定カメラ位置に合わせる
+	// ズーム後に画面へ映るワールドサイズを計算する。
+	viewWidth =
+		static_cast<float>(WIN_WIDTH) * gameplayViewRange;
+
+	viewHeight =
+		static_cast<float>(WIN_HEIGHT) * gameplayViewRange;
+
+	//開始時はカメラをプレイヤーに合わせる
 	SnapToTarget();
 }
 
-void CameraController::LateUpdate(float deltaTime)//プレイヤーを追っているカメラ
+int CameraController::FindRoom(const DirectX::XMFLOAT3& position) const
+{
+	for (int i = 0;i < roomCount;++i)
+	{
+		const Room& room = rooms[i];
+
+		//共有する教会で所属する部屋が重ならないようにする
+		if (position.x >= room.minX && position.x < room.maxX && position.y >= room.minY && position.y < room.maxY)
+		{
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+DirectX::XMFLOAT2 CameraController::ClampToRoom(DirectX::XMFLOAT2 position, int roomIndex)const
+{
+	const Room& room = rooms[roomIndex];
+
+	return
+	{
+		ClampAxis(position.x,room.minX,room.maxX,viewWidth),
+		ClampAxis(position.y,room.minY,room.maxY,viewHeight)
+	};
+}
+
+void CameraController::LateUpdate(float deltaTime)
 {
 	if (camera == nullptr)
 	{
 		return;
 	}
 
-	if (!isTransitioning)
+	if (currentRoom < 0)
 	{
-		const DirectX::XMFLOAT2 cameraPosition = camera->GetPosition();
-		const DirectX::XMFLOAT3 playerPosition = owner->GetTransform()->GetPosition();
-
-		float moveX = 0.0f;
-		float moveY = 0.0f;
-
-		const float halfWidth = viewWidth * 0.5f;
-		const float halfHeight = viewHeight * 0.5f;
-
-		if (playerPosition.x > cameraPosition.x + halfWidth)
-		{
-			moveX = 1.0f;
-		}
-		else if (playerPosition.x < cameraPosition.x - halfWidth)
-		{
-			moveX = -1.0f;
-		}
-
-		if (playerPosition.y > cameraPosition.y + halfHeight)
-		{
-			moveY = 1.0f;
-		}
-		else if (playerPosition.y < cameraPosition.y - halfHeight)
-		{
-			moveY = -1.0f;
-		}
-
-		//どの端も越えていなければ、カメラはそのまま
-		if (moveX == 0.0f && moveY == 0.0f)
-		{
-			return;
-		}
-
-		transitionStart = cameraPosition;
-
-		//次の固定カメラ位置を決める
-		transitionTarget =
-		{
-			cameraPosition.x + moveX * viewWidth,
-			cameraPosition.y + moveY * viewHeight
-		};
-
-		transitionTimer = 0.0f;
-		isTransitioning = true;
-	}
-
-	if (transitionDuration <= 0.0f)
-	{
-		camera->SetPosition(transitionTarget);
-		isTransitioning = false;
+		SnapToTarget();
 		return;
 	}
 
-	transitionTimer = std::min(transitionTimer + deltaTime, transitionDuration);
+	const auto playerPosition = owner->GetTransform()->GetPosition();
+	const float dt = (std::max)(0.0f, deltaTime);
 
-	float progress = transitionTimer / transitionDuration;
-
-	//開始と終了をなめらかにする
-	progress = progress * progress * (3.0f - 2.0f * progress);
-
-	const DirectX::XMFLOAT2 cameraPosition =
+	if (!isTransitioning)
 	{
-		transitionStart.x + (transitionTarget.x - transitionStart.x) * progress,
-		transitionStart.y + (transitionTarget.y - transitionStart.y) * progress
-	};
+		const int nextRoom = FindRoom(playerPosition);
 
-	camera->SetPosition(cameraPosition);
+		// 未配置の領域に出た場合は現在の部屋を維持する。
+		if (nextRoom >= 0 && nextRoom != currentRoom)
+		{
+			transitionStart = camera->GetPosition();
+			currentRoom = nextRoom;
 
-	if (transitionTimer >= transitionDuration)
-	{
-		camera->SetPosition(transitionTarget);
-		isTransitioning = false;
+			transitionTarget = ClampToRoom(
+				{ playerPosition.x, playerPosition.y },
+				currentRoom);
+
+			transitionTimer = 0.0f;
+			isTransitioning = true;
+		}
 	}
+
+	if (isTransitioning)
+	{
+		// 切り替え中は通常の追従処理を実行しない。
+		if (transitionDuration <= 0.0f)
+		{
+			camera->SetPosition(transitionTarget);
+			isTransitioning = false;
+			return;
+		}
+
+		transitionTimer = (std::min)(
+			transitionTimer + dt, transitionDuration);
+
+		float progress = transitionTimer / transitionDuration;
+
+		// スクロール開始・終了を滑らかにする。
+		progress = progress * progress * (3.0f - 2.0f * progress);
+
+		camera->SetPosition(
+			{
+				transitionStart.x +
+					(transitionTarget.x - transitionStart.x) * progress,
+				transitionStart.y +
+					(transitionTarget.y - transitionStart.y) * progress
+			});
+
+		if (transitionTimer >= transitionDuration)
+		{
+			camera->SetPosition(transitionTarget);
+			isTransitioning = false;
+		}
+
+		return;
+	}
+
+	// 通常時は、現在の部屋の中だけでプレイヤーを追う。
+	const auto target = ClampToRoom(
+		{ playerPosition.x, playerPosition.y },
+		currentRoom);
+
+	const auto current = camera->GetPosition();
+	const float amount = 1.0f - std::exp(-followSharpness * dt);
+
+	camera->SetPosition(ClampToRoom(
+		{
+			current.x + (target.x - current.x) * amount,
+			current.y + (target.y - current.y) * amount
+		}, currentRoom));
 }
 
 void CameraController::SnapToTarget()
@@ -110,24 +186,38 @@ void CameraController::SnapToTarget()
 		return;
 	}
 
-	const DirectX::XMFLOAT3 playerPosition = owner->GetTransform()->GetPosition();
+	const auto position = owner->GetTransform()->GetPosition();
+	currentRoom = FindRoom(position);
 
-	//プレイヤーを含む固定画面の場所の番号
-	const float cameraCellX = std::floor((playerPosition.x + viewWidth * 0.5f) / viewWidth);
-
-	const float cameraCellY = std::floor((playerPosition.y + viewHeight * 0.5f) / viewHeight);
-
-	//固定画面の番号から固定カメラ位置を計算する
-	const DirectX::XMFLOAT2 cameraPosition =
+	//復帰位置が部屋の外なら、一番近い部屋へ
+	if (currentRoom < 0)
 	{
-		cameraCellX * viewWidth,
-		cameraCellY * viewHeight
-	};
+		float nearestDistance = (std::numeric_limits<float>::max)();
 
-	camera->SetPosition(cameraPosition);
+		for (int i = 0;i < roomCount;++i)
+		{
+			const Room& room = rooms[i];
+			
+			const float dx = position.x - std::clamp(position.x, room.minX, room.maxX);
 
-	transitionStart = cameraPosition;
-	transitionTarget = cameraPosition;
+			const float dy = position.y - std::clamp(position.y, room.minY, room.maxY);
+
+			const float distance = dx * dx + dy * dy;
+
+			if (distance < nearestDistance)
+			{
+				nearestDistance = distance;
+				currentRoom = i;
+			}
+		}
+	}
+
+	const auto target = ClampToRoom({ position.x,position.y }, currentRoom);
+
+	camera->SetPosition(target);
+
+	transitionStart = target;
+	transitionTarget = target;
 	transitionTimer = 0.0f;
 	isTransitioning = false;
 }

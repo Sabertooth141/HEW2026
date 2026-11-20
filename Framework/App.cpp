@@ -49,7 +49,14 @@ int App::Run()
 			return 0;
 		}
 
-		const float deltaTime = timer.Mark();
+		//const float deltaTime = timer.Mark();
+		// 毎フレームの実経過時間を測る。
+		const float measuredDeltaTime = timer.Mark();
+
+		// 1フレームで進めるゲーム時間に上限を設ける。
+		const float deltaTime =
+			std::min(measuredDeltaTime, 1.0f / 30.0f);
+
 		HandleInput(deltaTime);
 		Update(deltaTime);
 		Draw(deltaTime);
@@ -120,6 +127,19 @@ void App::Draw(float deltaTime)
 	textRenderer.Begin();
 
 	debugRenderer.Begin();
+
+	// ズームはゲームプレイ中だけにする。
+	// 編集モードや一時停止中は、エディターの座標操作がずれないよう通常倍率に戻す。
+	const bool useGameplayZoom =
+		sceneManager.GetCurrSceneName() == "Game" &&
+		!editor.IsEditMode() &&
+		!editor.IsPaused();
+
+	renderer.Set2DViewRange(
+		useGameplayZoom
+		? CameraController::gameplayViewRange
+		: 1.0f);
+
 	renderer.SetView(camera.GetView());
 	renderer.Set2DMode();
 	renderSystem.Render();

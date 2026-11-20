@@ -18,7 +18,7 @@ struct OBB
 		const float c = std::cos(rotation);
 		const float s = std::sin(rotation);
 
-		return {DirectX::XMFLOAT2{c, s}, DirectX::XMFLOAT2{-s, c}};
+		return { DirectX::XMFLOAT2{ c, s }, DirectX::XMFLOAT2{ -s, c } };
 	}
 
 	std::array<DirectX::XMFLOAT2, 4> GetCorners() const
@@ -28,10 +28,10 @@ struct OBB
 
 		const std::array<DirectX::XMFLOAT2, 4> localCorners =
 		{
-			DirectX::XMFLOAT2{-halfExtents.x, -halfExtents.y},
-			DirectX::XMFLOAT2{halfExtents.x, -halfExtents.y},
-			DirectX::XMFLOAT2{halfExtents.x, halfExtents.y},
-			DirectX::XMFLOAT2{-halfExtents.x, halfExtents.y}
+			DirectX::XMFLOAT2{ -halfExtents.x, -halfExtents.y },
+			DirectX::XMFLOAT2{ halfExtents.x, -halfExtents.y },
+			DirectX::XMFLOAT2{ halfExtents.x, halfExtents.y },
+			DirectX::XMFLOAT2{ -halfExtents.x, halfExtents.y }
 		};
 
 		std::array<DirectX::XMFLOAT2, 4> worldCorners;
@@ -52,7 +52,7 @@ class BoxCollider2D : public Collider2D
 {
 public:
 	BoxCollider2D(DirectX::XMFLOAT2 inHalfExtents, DirectX::XMFLOAT2 inOffset, bool inIsTrigger,
-	              TransformComponent& inTransformComp);
+		TransformComponent& inTransformComp);
 
 	ColliderType GetType() const override
 	{
@@ -63,9 +63,15 @@ public:
 	OBB GetWorldOBB() const;
 	float ComputeInertia(const float mass) const override;
 
+	// halfExtents・offset は Transform のスケールに対する比率（0.5 でスケールと同じ大きさ）
 	DirectX::XMFLOAT2 GetHalfExtents() const
 	{
 		return halfExtents;
+	}
+
+	void SetHalfExtents(const DirectX::XMFLOAT2 inHalfExtents)
+	{
+		halfExtents = inHalfExtents;
 	}
 
 	DirectX::XMFLOAT2 GetOffset() const
@@ -73,8 +79,29 @@ public:
 		return offset;
 	}
 
+	void SetOffset(const DirectX::XMFLOAT2 inOffset)
+	{
+		offset = inOffset;
+	}
+
+	// プレハブで作ったときの形から変更されているか（シーンJSONに保存するかの判定）
+	bool IsShapeModified() const
+	{
+		return halfExtents.x != defaultHalfExtents.x || halfExtents.y != defaultHalfExtents.y ||
+			offset.x != defaultOffset.x || offset.y != defaultOffset.y;
+	}
+
+	// プレハブで作ったときの形に戻す
+	void ResetShape()
+	{
+		halfExtents = defaultHalfExtents;
+		offset = defaultOffset;
+	}
+
 private:
 	TransformComponent* transformComp = nullptr;
 	DirectX::XMFLOAT2 halfExtents;
 	DirectX::XMFLOAT2 offset;
+	DirectX::XMFLOAT2 defaultHalfExtents;
+	DirectX::XMFLOAT2 defaultOffset;
 };

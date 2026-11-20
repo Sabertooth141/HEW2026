@@ -54,6 +54,28 @@ public:
 
 	// プレイヤーをゲーム開始位置へ戻す。
 	void RespawnAtInitialPosition();
+
+	// 通常ジャンプで天井にぶつかった後の滞空時間
+	float ceilingHangTimer = 0.f;
+
+	// 天井にぶつかってから落下を始めるまでの時間
+	float ceilingHangDuration = 0.2f;
+
+	//加速の残り時間表示
+	float GetBoostRemainingTime() const
+	{
+		return speedBoost != nullptr
+			? speedBoost->GetRemainingTime()
+			: 0.0f;
+	}
+
+	float GetBoostRemainingRatio() const
+	{
+		return speedBoost != nullptr
+			? speedBoost -> GetRemainingRatio()
+			:0.0f;
+	}
+
 private:
 
 	enum class MovementMode
@@ -98,6 +120,7 @@ private:
 
 	// プレイヤーの足元のY座標
 	float previousPlayerBottom = 0.f;
+	float previousPlayerTop = 0.f;
 	float previousPlayerLeft = 0.f;
 	float previousPlayerRight = 0.f;
 

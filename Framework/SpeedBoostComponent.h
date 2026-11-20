@@ -19,7 +19,7 @@ public:
 		AirRun      // 空中走行
 	};
 
-	static constexpr int MaxAbilityStack = 4;
+	static constexpr int MaxAbilityStack = 10;
 
 	void Update(float deltaTime) override
 	{
@@ -149,12 +149,35 @@ public:
 		remainingTime = 0.f;
 	}
 
+	// 1スタックあたりの加速率を取得
+	float GetSpeedIncreasePerStack() const
+	{
+		return speedIncreasePerStack;
+	}
+
+	// 1スタックあたりの加速率を変更
+	void SetSpeedIncreasePerStack(float value)
+	{
+		speedIncreasePerStack = std::max(0.f, value);
+	}
+
+	float speedIncreasePerStack = 0.15f;
+
+	float GetRemainingRatio() const
+	{
+		if (boostDuration <= 0.0f)
+		{
+			return 0.0f;
+		}
+
+		return std::clamp(remainingTime / boostDuration, 0.0f, 1.0f);
+	}
+
 private:
 	int stackCount = 0;
 	float remainingTime = 0.0f;
 
-	float boostDuration = 5.0f;
-	float speedIncreasePerStack = 0.15f;
+	float boostDuration = 7.0f;
 
 	bool isPaused = false;
 
@@ -163,12 +186,18 @@ private:
 	// 各スタック数で使用できる能力を保存する
 	// 行がスタック数
 	// 列は壁のぼり、壁破壊、急降下、空中走行
-		std::array<std::array<bool, 4>, 4> abilitySettings =
+		std::array<std::array<bool, 4>, 10> abilitySettings =
 	{ {
 		{ true,  false, false, false }, // 1スタック
 		{ true,  true,  false, false }, // 2スタック
 		{ true,  true,  true,  false },
-		{ true,  true,  true,  false }// 3スタック
+		{ true,  true,  true,  false },// 3スタック
+		{ true,  true,  true,  false },
+		{ true,  true,  true,  false },
+		{ true,  true,  true,  false },
+		{ true,  true,  true,  false },
+		{ true,  true,  true,  false },
+		{ true,  true,  true,  false }
 
 	} };
 };
