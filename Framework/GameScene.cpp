@@ -147,7 +147,7 @@ void GameScene::OnDrawUI(TextRenderer& text)
 
 	//UTF-8の「■」
 	constexpr char segment[] = "\xE2\x96\xA0";
-	constexpr float scale = 1.5f;
+	constexpr float scale = 2.0f;
 
 	const float segmentWidth = text.Measure(segment, scale).x;
 	const float spacing = 2.0f;
@@ -161,13 +161,14 @@ void GameScene::OnDrawUI(TextRenderer& text)
 
 		text.DrawScreen(
 			segment,
-			{ 250.0f+i*(segmentWidth+spacing),160.0f},
+			{ 350.0f+i*(segmentWidth+spacing),190.0f},
 			filled?TextColor::Green:emptyColor,
 			scale,
 			TextAlign::Left
 		);
 	}
 }
+
 void GameScene::OnExit()
 {
 	context.soundManager.StopBGM();

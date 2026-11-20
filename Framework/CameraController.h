@@ -9,7 +9,7 @@ class CameraController : public MonoBehavior
 public:
 	// 画面に映す範囲
 	// 通常範囲に対しての比率
-	static constexpr float gameplayViewRange = 0.75f;
+	static constexpr float gameplayViewRange = 0.65f;
 
 
 	void Awake() override;
