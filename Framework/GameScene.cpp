@@ -104,6 +104,44 @@ void GameScene::OnDrawUI(TextRenderer& text)
 			retryTransition->Draw();
 		}
 	}
+
+	float ratio = 0.0f;
+
+	for (const auto& object : GetObjects())
+	{
+		auto* player = object->GetComponent<PlayerController>();
+
+		if (player != nullptr)
+		{
+			ratio = player->GetBoostRemainingRatio();
+			break;
+		}
+	}
+
+	constexpr int segmentCount = 20;
+
+	//UTF-8の「■」
+	constexpr char segment[] = "\xE2\x96\xA0";
+	constexpr float scale = 2.0f;
+
+	const float segmentWidth = text.Measure(segment, scale).x;
+	const float spacing = 2.0f;
+
+	const DirectX::XMFLOAT4 emptyColor = { 0.2f,0.2f,0.2f,1.0f };
+
+	for (int i = 0;i < segmentCount;++i)
+	{
+		//残っている区間を点灯
+		const bool filled = ratio > static_cast<float>(i) / segmentCount;
+
+		text.DrawScreen(
+			segment,
+			{ 350.0f+i*(segmentWidth+spacing),190.0f},
+			filled?TextColor::Green:emptyColor,
+			scale,
+			TextAlign::Left
+		);
+	}
 }
 
 void GameScene::OnExit()

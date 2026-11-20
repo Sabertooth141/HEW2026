@@ -1019,8 +1019,15 @@ void PlayerController::OnCollisionStay2D(
 
 	groundContacts[&other] = normal;
 	collisionNormal = normal;
-	isTouchingGround = true;
-	isGrounded = normal.y > 0.5f;
+	isTouchingGround = !groundContacts.empty();
+	//接触中の地形で一つでも床があれば接地扱い
+	isGrounded = std::any_of(
+		groundContacts.begin(),
+		groundContacts.end(),
+		[](const auto& contact)
+		{
+			return contact.second.y > 0.5f;
+		});
 
 	if (isGrounded)
 	{
