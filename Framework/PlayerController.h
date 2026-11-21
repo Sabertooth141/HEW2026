@@ -6,6 +6,7 @@
 class Rigidbody2DComponent;
 class AnimatorComponent;
 class PlayerAudioComponent;
+class BoxCollider2D;
 
 // サンプル用の基本的なプレイヤー操作
 // WASDで上下左右に移動し、敵に触れるとHPが減る
@@ -44,14 +45,21 @@ public:
 	float maxHP = 100.f;
 	float invulnerabilityDuration = 1.f;
 
+	float dashSpeedMultiplier=1.5f; //ダッシュの倍率
+
 	//横方向の慣性
 	float horizontalInertia = 0.f;
 
 	void OnCollisionStay2D(const GameObject& other) override;
 	void OnCollisionExit2D(const GameObject& other) override;
 
-	float jumpPower = 500.f;
+	// ジャンプ設定
+float maxJumpHeight = 156.25f;  // 最大ジャンプ高度
+float jumpToApexTime = 0.625f;  // 最高地点に到達するまでの時間
 
+float jumpPower = 500.f;        // 計算によって決まるジャンプ速度
+
+void UpdateJumpSettings();
 	// プレイヤーをゲーム開始位置へ戻す。
 	void RespawnAtInitialPosition();
 
@@ -77,12 +85,44 @@ private:
 	void HandleAnimation();
 	void HandleJump(float deltaTime);      // ジャンプ処理
 	void Respawn();
+	void HandleDash();
+
+	// スライド
+	void HandleSlideInput();
+	void HandleSlideMovement(float deltaTime);
+	void EndSlide();
 
 	void HandleNormalMovement(float deltaTime);
 
 	void HandleDive();
 
 	bool isDiving = false;
+
+	bool isDashing = false;//ダッシュ中か調べる
+
+	// スライド中か
+	bool isSliding = false;
+
+	// スライドの残り時間
+	float slideTimer = 0.f;
+
+	// スライド継続時間
+	float slideDuration = 0.35f;
+
+	// スライド速度
+	float slideSpeed = 700.f;
+
+	// スライドする方向
+	float slideDirection = 1.f;
+
+	// 通常時の当たり判定を保存
+	DirectX::XMFLOAT2 normalColliderHalfExtents = {};
+	DirectX::XMFLOAT2 normalColliderOffset = {};
+
+
+	BoxCollider2D* playerCollider = nullptr;
+
+	float dashDirection = 1.f;
 
 	bool isGrounded = false;
 
@@ -99,6 +139,8 @@ private:
 	float ledgeGraceDistanceTravelled = 0.f;
 	float ledgeGraceLimit = 64.f;
 	float ledgeGraceDirection = 0.f;
+
+	
 
 	// トゲに触れて死亡しているか
 	bool isDead = false;

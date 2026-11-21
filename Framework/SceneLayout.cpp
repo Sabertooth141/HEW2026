@@ -101,7 +101,8 @@ SceneLayout::Result SceneLayout::Save(const Scene& scene, const std::string& sce
 			playerSettings["moveSpeed"] = Round3(player->moveSpeed);
 
 			// ジャンプ力を保存
-			playerSettings["jumpPower"] = Round3(player->jumpPower);
+			playerSettings["maxJumpHeight"] = Round3(player->maxJumpHeight);
+			playerSettings["jumpToApexTime"] = Round3(player->jumpToApexTime);
 
 			// 横慣性を保存
 			playerSettings["horizontalInertia"] = Round3(player->horizontalInertia);
@@ -345,15 +346,30 @@ SceneLayout::Result SceneLayout::Load(Scene& scene, const std::string& sceneName
 					player->moveSpeed = speedIt->get<float>();
 				}
 
-				// ジャンプ力を復元
-				const auto jumpPowerIt =
-					playerSettingsIt->find("jumpPower");
+				// 最大ジャンプ高度を復元
+				const auto maxJumpHeightIt =
+					playerSettingsIt->find("maxJumpHeight");
 
-				if (jumpPowerIt != playerSettingsIt->end() &&
-					jumpPowerIt->is_number())
+				if (maxJumpHeightIt != playerSettingsIt->end() &&
+					maxJumpHeightIt->is_number())
 				{
-					player->jumpPower = jumpPowerIt->get<float>();
+					player->maxJumpHeight =
+						maxJumpHeightIt->get<float>();
 				}
+
+				// 最高地点までの時間を復元
+				const auto jumpToApexTimeIt =
+					playerSettingsIt->find("jumpToApexTime");
+
+				if (jumpToApexTimeIt != playerSettingsIt->end() &&
+					jumpToApexTimeIt->is_number())
+				{
+					player->jumpToApexTime =
+						jumpToApexTimeIt->get<float>();
+				}
+
+				// 読み込んだ設定からジャンプ速度と重力を再計算
+				player->UpdateJumpSettings();
 
 				// 加速能力の設定を復元
 				if (SpeedBoostComponent* speedBoost =
