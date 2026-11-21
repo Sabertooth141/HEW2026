@@ -436,14 +436,29 @@ void EditorUI::DrawInspector(Scene& scene)
 			player->moveSpeed = speed;
 		}
 
-		// ジャンプ力
-		float jumpPower = player->jumpPower;
 
-		if (ImGui::DragFloat("ジャンプ力", &jumpPower, 1.f))
+		bool jumpSettingsChanged = false;
+
+		jumpSettingsChanged |= ImGui::DragFloat(
+			"最大ジャンプ高度",
+			&player->maxJumpHeight,
+			1.0f,
+			1.0f,
+			1000.0f
+		);
+
+		jumpSettingsChanged |= ImGui::DragFloat(
+			"最高地点までの時間",
+			&player->jumpToApexTime,
+			0.01f,
+			0.01f,
+			3.0f
+		);
+
+		if (jumpSettingsChanged)
 		{
-			player->jumpPower = jumpPower;
+			player->UpdateJumpSettings();
 		}
-
 		// 横慣性
 		float horizontalInertia = player->horizontalInertia;
 

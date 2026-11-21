@@ -28,7 +28,7 @@ void PlayerController::Awake()
 	playerAudio = owner->GetComponent<PlayerAudioComponent>();
 	if (rb != nullptr)
 	{
-		normalGravity = rb->GetGravity();
+		UpdateJumpSettings();
 	}
 	hp = maxHP;
 	playTimer = owner->GetContext().globalContext.playTime;
@@ -39,21 +39,54 @@ void PlayerController::Awake()
 	// チェックポイントに触れるまでは、開始位置を復帰地点にする。
 	lastCheckpointPosition = initialPosition;
 
-	auto* playerCollider = owner->GetComponent<BoxCollider2D>();//プレイヤーの当たり判定の取得
+	// プレイヤーの当たり判定を取得
+	playerCollider = owner->GetComponent<BoxCollider2D>();
+
 	if (playerCollider != nullptr)
 	{
-		auto aabb = playerCollider->GetWorldAABB();//プレイヤーの当たり判定の四隅の位置
+		// 通常時の当たり判定の大きさと位置を保存
+		normalColliderHalfExtents =
+			playerCollider->GetHalfExtents();
 
-		previousPlayerBottom = aabb.min.y;//プレイヤーの足元のY座標
+		normalColliderOffset =
+			playerCollider->GetOffset();
+
+		// プレイヤーの現在の当たり判定を取得
+		const AABB aabb = playerCollider->GetWorldAABB();
+
+		previousPlayerBottom = aabb.min.y;
 		previousPlayerTop = aabb.max.y;
-		previousPlayerLeft = aabb.min.x;//プレイヤーの左端のX座標
-		previousPlayerRight = aabb.max.x;//プレイヤーの右端のX座標
+		previousPlayerLeft = aabb.min.x;
+		previousPlayerRight = aabb.max.x;
 	}
 
 
 	//加速
 	speedBoost = owner->GetComponent<SpeedBoostComponent>();
 
+}
+
+
+
+void PlayerController::UpdateJumpSettings()
+{
+	if (rb == nullptr)
+	{
+		return;
+	}
+	// 0以下の設定値では計算しない
+	if (maxJumpHeight <= 0.f || jumpToApexTime <= 0.f)
+	{
+		return;
+	}
+	normalGravity =
+		(2.0f * maxJumpHeight) /
+		(jumpToApexTime * jumpToApexTime);
+	// 最大高度と到達時間からジャンプ速度を計算
+	jumpPower =
+		(2.0f * maxJumpHeight) /
+		jumpToApexTime;
+	rb->SetGravity(normalGravity);
 }
 
 void PlayerController::Update(float deltaTime)
@@ -166,7 +199,14 @@ void PlayerController::Update(float deltaTime)
 		}
 	}
 
+
+
+
 	HandleInput();//キー入力取得
+
+	HandleDash();//ダッシュの入力
+
+	HandleSlideInput();//スライドの入力
 
 	// 天井にぶつかって滞空している間は急降下できない
 	if (ceilingHangTimer <= 0.f)
@@ -219,10 +259,136 @@ void PlayerController::HandleInput()//キー入力
 {
 	inputX = 0.f;
 	inputY = 0.f;
+	if (keyboard->KeyIsPressed('D'))
+	{
+		inputX += 1.f;
+	}
 
-	if (keyboard->KeyIsPressed('D')) inputX += 1.f;
-	if (keyboard->KeyIsPressed('A')) inputX -= 1.f;
+	if (keyboard->KeyIsPressed('A'))
+	{
+		inputX -= 1.f;
+	}
 	
+}
+
+void PlayerController::HandleDash()//ダッシュの入力
+{
+	if (keyboard == nullptr || rb == nullptr)
+	{
+		return;
+	}
+	if (!isDashing && keyboard->KeyIsTriggered('Z'))
+	{
+		isDashing = true;
+
+		if (inputX > 0.f)
+		{
+			dashDirection = 1.f;
+		}
+		else if (inputX < 0.f)
+		{
+			dashDirection = -1.f;
+		}
+		else
+		{
+			if (isFacingRight)
+			{
+				dashDirection = 1.f;
+			}
+			else
+			{
+				dashDirection = -1.f;
+			}
+		}
+	}
+}
+
+// Xキーでスライドを開始する
+void PlayerController::HandleSlideInput()
+{
+	if (keyboard == nullptr || rb == nullptr || playerCollider == nullptr)
+	{
+		return;
+	}
+
+	// 接地していない・ダッシュ中・死亡中は開始しない
+	if (!keyboard->KeyIsTriggered('X') ||
+		isSliding || isDashing || !isGrounded || isDead)
+	{
+		return;
+	}
+
+	// スライド開始
+	isSliding = true;
+	slideTimer = slideDuration;
+
+	// 最後に向いていた方向へ進む
+	if (isFacingRight)
+	{
+		slideDirection = 1.f;
+	}
+	else
+	{
+		slideDirection = -1.f;
+	}
+
+	const float slideHalfHeight = normalColliderHalfExtents.y * 0.4f;
+
+	playerCollider->SetHalfExtents({
+		normalColliderHalfExtents.x,
+		slideHalfHeight
+		});
+
+	// 当たり判定の下端を維持する
+	playerCollider->SetOffset({
+		normalColliderOffset.x,
+		normalColliderOffset.y -
+			(normalColliderHalfExtents.y - slideHalfHeight)
+		});
+}
+
+// スライド中の移動
+void PlayerController::HandleSlideMovement(float deltaTime)
+{
+	if (rb == nullptr)
+	{
+		EndSlide();
+		return;
+	}
+
+	// スライド時間を減らす
+	slideTimer -= deltaTime;
+
+	// スライド時間が終了したら元に戻す
+	if (slideTimer <= 0.f)
+	{
+		EndSlide();
+		return;
+	}
+
+	// 向いている方向へ進む
+	DirectX::XMFLOAT2 velocity = rb->GetVelocity();
+
+	velocity.x = slideDirection * slideSpeed;
+
+	rb->SetVelocity(velocity);
+}
+
+
+// スライドを終了して当たり判定を元に戻す
+void PlayerController::EndSlide()
+{
+	if (playerCollider != nullptr)
+	{
+		// 元の当たり判定の大きさに戻す
+		playerCollider->SetHalfExtents(normalColliderHalfExtents);
+
+		// 元の当たり判定の位置に戻す
+		playerCollider->SetOffset(normalColliderOffset);
+	}
+
+	isSliding = false;
+	slideTimer = 0.f;
 }
 
 // 空中でSキーを押すと急降下する
@@ -278,8 +444,20 @@ void PlayerController::HandleMovement(float deltaTime)
 		return;
 	}
 
+	// スライド中はスライド専用の移動を行う
+	if (isSliding)
+	{
+		HandleSlideMovement(deltaTime);
+		return;
+	}
 	const AABB playerAABB = playerCollider->GetWorldAABB();
+	// 壁の上端を越えるときの移動方向
+	float wallTopMoveDirection = inputX;
 
+	if (isDashing)
+	{
+		wallTopMoveDirection = dashDirection;
+	}
 	// 壁上端への移動中に足場との接触がなくなったら通常移動に戻す
 	if (isWallTopTransitioning && !isTouchingGround)
 	{
@@ -315,10 +493,17 @@ void PlayerController::HandleMovement(float deltaTime)
 				hasWallTop = true;
 
 				// 壁の位置から、上端を越えるときの移動方向を記憶する
-				wallTopDirection = wallNormal.x > 0.f ? -1.f : 1.f;
+				if (wallNormal.x > 0.f)
+				{
+					wallTopDirection = -1.f;
+				}
+				else
+				{
+					wallTopDirection = 1.f;
+				}
 
 				// 壁の上端に到達したら横移動へ切り替える
-				if (inputX == wallTopDirection &&
+				if (wallTopMoveDirection == wallTopDirection &&
 					playerAABB.min.y >= wallTopY - 2.f)
 				{
 					isWallTopTransitioning = true;
@@ -351,17 +536,25 @@ void PlayerController::HandleMovement(float deltaTime)
 	}
 	// 壁との接触が切れても、記憶した上端位置で判定する
 	if (hasWallTop &&
-		inputX == wallTopDirection &&
+		wallTopMoveDirection == wallTopDirection &&
 		playerAABB.min.y >= wallTopY - 2.f)
 	{
 		isWallTopTransitioning = true;
 	}
 
-	// 壁から離れる方向に入力しているか
+	// ダッシュ中の進行方向を取得する
+	float wallClimbDirection = 0.f;
+
+	if (isDashing)
+	{
+		wallClimbDirection = dashDirection;
+	}
+
+	// 壁から離れる方向にダッシュしているか
 	const bool isMovingAwayFromWall =
 		isTouchingWall &&
-		inputX != 0.f &&
-		inputX * wallNormal.x > 0.f;
+		wallClimbDirection != 0.f &&
+		wallClimbDirection * wallNormal.x > 0.f;
 
 	// 壁走り能力を持っているか
 	const bool hasWallClimbAbility =
@@ -370,12 +563,17 @@ void PlayerController::HandleMovement(float deltaTime)
 			SpeedBoostComponent::BoostAbility::WallClimb
 		);
 
-	// 実際に壁を登っている最中か
-	const bool isWallRunning =
+	// Spaceキーを押しながら、壁に向かっているか確認する
+	const bool isWallClimbInput =//isWallClombInputで壁のぼり出来る条件が揃ってるかみてる
 		hasWallClimbAbility &&
+		keyboard != nullptr &&
+		keyboard->KeyIsPressed(' ') &&//KeyzIsPressedがキー入力され続けてるか確認してる
 		isTouchingWall &&
-		inputX != 0.f &&
+		wallClimbDirection != 0.f &&
 		!isMovingAwayFromWall;
+
+	// 実際に壁を登っている最中か
+	const bool isWallRunning = isWallClimbInput;
 
 	// 天井に接触した瞬間だけ処理する
 	if (isTouchingCeiling && !wasTouchingCeiling)
@@ -418,17 +616,15 @@ void PlayerController::HandleMovement(float deltaTime)
 
 
 
-	const bool useSurfaceMovement =//壁のぼりができる状態で地面か壁にぶつかると地形に沿ったいどうができる
-		speedBoost != nullptr &&
-		speedBoost->HasAbility(
-			SpeedBoostComponent::BoostAbility::WallClimb) &&
+	
+	// 地形に沿った移動へ切り替える
+	const bool useSurfaceMovement =
+		hasWallClimbAbility &&
 		(
 			isWallTopTransitioning ||
 			(
-				isTouchingGround &&
-				inputX != 0.f &&
-				!isTouchingCeiling &&
-				!isMovingAwayFromWall
+				isWallClimbInput &&
+				!isTouchingCeiling
 				)
 			);
 
@@ -468,13 +664,26 @@ void PlayerController::HandleMovement(float deltaTime)
 				// 猶予走行中は高さを維持して横に進む
 				rb->SetGravity(0.f);
 
-				const float currentSpeed =
-					speedBoost != nullptr
-					? speedBoost->GetMoveSpeed(moveSpeed)
-					: moveSpeed;
+				float currentSpeed = speedBoost->GetMoveSpeed(moveSpeed);
+				float moveDirection;
+
+				if (isDashing)
+				{
+					moveDirection = dashDirection;
+				}
+				else
+				{
+					moveDirection = inputX;
+				}
+
+				// ダッシュ中は速度倍率を適用する
+				if (isDashing)
+				{
+					currentSpeed *= dashSpeedMultiplier;
+				}
 
 				rb->SetVelocity({
-					inputX * currentSpeed,
+					moveDirection * currentSpeed,
 					0.f
 					});
 
@@ -490,9 +699,14 @@ void PlayerController::HandleMovement(float deltaTime)
 	}
 
 	// 壁のぼりが可能な状態なら地形に沿った移動に切り替える
-	movementMode = useSurfaceMovement
-		? MovementMode::Loop
-		: MovementMode::Normal;
+	if (useSurfaceMovement)
+	{
+		movementMode = MovementMode::Loop;
+	}
+	else
+	{
+		movementMode = MovementMode::Normal;
+	}
 
 	switch (movementMode)
 	{
@@ -512,15 +726,36 @@ void PlayerController::HandleLoopMovement(float deltaTime)
 	{
 		return;
 	}
+	// ダッシュ中に左右入力があれば、先に方向を更新する
+	if (isDashing && inputX != 0.f)
+	{
+		dashDirection = inputX;
+	}
 
+	// ダッシュ中は最後に設定した方向を維持する
+	float moveDirection;
+
+	if (isDashing)
+	{
+		moveDirection = dashDirection;
+	}
+	else
+	{
+		moveDirection = inputX;
+	}
 	// 壁の上端から足場へ移動中
 	if (isWallTopTransitioning)
 	{
-		const float currentSpeed =
-			speedBoost->GetMoveSpeed(moveSpeed);//加速スタックで上がった今の移動速度
+		float currentSpeed = speedBoost->GetMoveSpeed(moveSpeed);
+
+		// ダッシュ中は速度倍率を適用する
+		if (isDashing)
+		{
+			currentSpeed *= dashSpeedMultiplier;
+		}
 
 		rb->SetVelocity({
-			inputX * currentSpeed,
+			moveDirection * currentSpeed,
 			0.f
 			});
 
@@ -533,7 +768,7 @@ void PlayerController::HandleLoopMovement(float deltaTime)
 	}
 
 	// 入力がない場合は移動を停止する
-	if (inputX == 0.f)
+	if (moveDirection == 0.f)
 	{
 		rb->SetVelocity({ 0.f, 0.f });
 		return;
@@ -556,14 +791,19 @@ void PlayerController::HandleLoopMovement(float deltaTime)
 	};
 
 	// 左入力なら進行方向を反転
-	if (inputX < 0.f)
+	if (moveDirection < 0.f)
 	{
 		tangent.x = -tangent.x;
 		tangent.y = -tangent.y;
 	}
 
-	// 加速中の移動速度
-	const float currentSpeed = speedBoost->GetMoveSpeed(moveSpeed);
+	float currentSpeed = speedBoost->GetMoveSpeed(moveSpeed);
+
+	// ダッシュ中は速度倍率を適用する
+	if (isDashing)
+	{
+		currentSpeed *= dashSpeedMultiplier;
+	}
 
 	// 地形に沿って移動
 	rb->SetVelocity({
@@ -575,7 +815,19 @@ void PlayerController::HandleLoopMovement(float deltaTime)
 
 DirectX::XMFLOAT2 PlayerController::SelectSurfaceNormal() const
 {
-	if (groundContacts.empty() || inputX == 0.f)//接触中の地形がないか左右の入力もない場合は終了
+	// 地形を選ぶときに使う移動方向を決める
+	float moveDirection;
+
+	if (isDashing)
+	{
+		moveDirection = dashDirection;
+	}
+	else
+	{
+		moveDirection = inputX;
+	}
+
+	if (groundContacts.empty() || moveDirection == 0.f)
 	{
 		return { 0.f, 0.f };
 	}
@@ -602,7 +854,7 @@ DirectX::XMFLOAT2 PlayerController::SelectSurfaceNormal() const
 		}
 
 		// 壁から離れる方向の入力なら選ばない
-		if (normal.x * inputX >= 0.f)
+		if (normal.x * moveDirection >= 0.f)
 		{
 			continue;
 		}
@@ -684,12 +936,37 @@ void PlayerController::HandleNormalMovement(float deltaTime)
 		dirY /= length;
 	}
 
-	const float currentMoveSpeed = speedBoost != nullptr
-		? speedBoost->GetMoveSpeed(moveSpeed)
-		: moveSpeed;
+	float currentMoveSpeed;
 
-	// 入力から目標となる横速度を計算
-	const float targetVelocityX = dirX * currentMoveSpeed;
+	if (speedBoost != nullptr)
+	{
+		currentMoveSpeed = speedBoost->GetMoveSpeed(moveSpeed);
+	}
+	else
+	{
+		currentMoveSpeed = moveSpeed;
+	}
+
+	// ダッシュ中だけ速度を1.5倍にする
+	if (isDashing)
+	{
+		currentMoveSpeed *= dashSpeedMultiplier;
+	}
+
+	// ダッシュ中はキーを離しても進行方向を維持する
+	float moveDirection;
+
+	if (isDashing)
+	{
+		moveDirection = dashDirection;
+	}
+	else
+	{
+		moveDirection = dirX;
+	}
+
+	// 目標となる横速度を計算
+	const float targetVelocityX = moveDirection * currentMoveSpeed;
 
 	// 慣性が0なら従来どおり即座に速度を変更
 	float newVelocityX = targetVelocityX;
@@ -711,6 +988,12 @@ void PlayerController::HandleNormalMovement(float deltaTime)
 		newVelocityX,
 		rb->GetVelocity().y
 		});
+
+	// ダッシュ中に左右入力があれば方向を変更する
+	if (isDashing && inputX != 0.f)
+	{
+		dashDirection = inputX;
+	}
 }
 
 void PlayerController::HandleAnimation()
@@ -722,8 +1005,12 @@ void PlayerController::HandleAnimation()
 
 	// 実際の横移動速度を取得する。
 	// Rigidbodyがない場合は、停止中として扱う。
-	const float velocityX =
-		rb != nullptr ? rb->GetVelocity().x : 0.0f;
+	float velocityX = 0.0f;
+
+	if (rb != nullptr)
+	{
+		velocityX = rb->GetVelocity().x;
+	}
 
 	// 微小な速度で向きが頻繁に切り替わらないようにする。
 	constexpr float moveThreshold = 0.1f;
@@ -742,15 +1029,36 @@ void PlayerController::HandleAnimation()
 
 	if (!isGrounded)
 	{
-		nextAnimation = isFacingRight ? "JumpRight" : "JumpLeft";
+		if (isFacingRight)
+		{
+			nextAnimation = "JumpRight";
+		}
+		else
+		{
+			nextAnimation = "JumpLeft";
+		}
 	}
 	else if (std::abs(velocityX) > moveThreshold)
 	{
-		nextAnimation = isFacingRight ? "WalkRight" : "WalkLeft";
+		if (isFacingRight)
+		{
+			nextAnimation = "WalkRight";
+		}
+		else
+		{
+			nextAnimation = "WalkLeft";
+		}
 	}
 	else
 	{
-		nextAnimation = isFacingRight ? "StaticRight" : "StaticLeft";
+		if (isFacingRight)
+		{
+			nextAnimation = "StaticRight";
+		}
+		else
+		{
+			nextAnimation = "StaticLeft";
+		}
 	}
 
 	if (anim->GetCurrAnimName() != nextAnimation)
@@ -808,8 +1116,16 @@ void PlayerController::OnCollisionEnter2D(const GameObject& other)
 				playerTop > spikeBottom;
 
 			// 向きに応じて死亡判定を切り替える
-			const bool hitSpike =
-				upsideDown ? hitUpsideDownSpike : landedOnSpike;
+			bool hitSpike;
+
+			if (upsideDown)
+			{
+				hitSpike = hitUpsideDownSpike;
+			}
+			else
+			{
+				hitSpike = landedOnSpike;
+			}
 
 			if (horizontalOverlap && hitSpike)
 			{
@@ -841,6 +1157,65 @@ void PlayerController::OnCollisionEnter2D(
 		-manifold.normal.x,
 		-manifold.normal.y
 	};
+
+	// 壁との衝突か確認する
+	const bool isWallCollision = std::abs(normal.x) > 0.5f;
+
+	// スライド中に壁へぶつかったらスライドを終了する
+	if (isSliding && isWallCollision)
+	{
+		EndSlide();
+
+		if (rb != nullptr)
+		{
+			auto velocity = rb->GetVelocity();
+			velocity.x = 0.f;
+			rb->SetVelocity(velocity);
+		}
+	}
+
+	// 壁を壊す能力を持っているか記録する
+	const bool canBreakBoostWall =
+		speedBoost != nullptr &&
+		speedBoost->HasAbility(
+			SpeedBoostComponent::BoostAbility::BreakWall
+		);
+
+
+	// 壁登り能力を持っているか
+	bool canClimbThisWall = false;
+
+	if (isDashing &&
+		keyboard != nullptr &&
+		keyboard->KeyIsPressed(' ') &&
+		dashDirection * normal.x < 0.f &&
+		speedBoost != nullptr &&
+		speedBoost->HasAbility(
+			SpeedBoostComponent::BoostAbility::WallClimb))
+	{
+		canClimbThisWall = true;
+	}
+
+	// 壁登りをしない状態でダッシュ中に壁へぶつかった場合
+	if (isDashing && isWallCollision && !canClimbThisWall)
+	{
+		isDashing = false;
+
+		if (speedBoost != nullptr)
+		{
+			speedBoost->ResetBoost();
+		}
+
+		// 壁から押し戻す
+		if (rb != nullptr)
+		{
+			auto velocity = rb->GetVelocity();
+
+			velocity.x = normal.x * 180.f;
+
+			rb->SetVelocity(velocity);
+		}
+	}
 
 	const auto* breakable =
 		other.GetComponent<BreakableObjectComponent>();
@@ -939,7 +1314,7 @@ void PlayerController::SetCheckpoint(
 	lastCheckpointPosition = position;
 
 	// 既存の加速処理。今回の旗を加速判定へ渡す。
-	if (speedBoost != nullptr)
+	if (speedBoost != nullptr&&isDashing)
 	{
 		speedBoost->TryAddStack(checkpoint);
 	}
@@ -971,7 +1346,9 @@ void PlayerController::RespawnAtCheckPoint()
 	wasTouchingCeiling = false;
 	isLedgeGraceRunning = false;
 	movementMode = MovementMode::Normal;
-
+	// 復帰時にダッシュ状態を解除する
+	isDashing = false;
+	dashDirection = 0.f;
 	isDead = false;
 	isGrounded = false;
 
@@ -1008,6 +1385,9 @@ void PlayerController::RespawnAtInitialPosition()
 
 	// 落下前の接触状態や特殊移動状態を解除する。
 	groundContacts.clear();
+	// 復帰時にダッシュ状態を解除する
+	isDashing = false;
+	dashDirection = 0.f;
 	isGrounded = false;
 	isTouchingGround = false;
 	isLedgeGraceRunning = false;
@@ -1140,6 +1520,8 @@ void PlayerController::OnCollisionStay2D(
 		-manifold.normal.x,
 		-manifold.normal.y
 	};
+
+
 
 	groundContacts[&other] = normal;
 	collisionNormal = normal;
