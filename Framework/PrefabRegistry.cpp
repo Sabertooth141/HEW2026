@@ -116,7 +116,7 @@ void RegisterPrefabs()
 	//プラットフォーム
 	PrefabRegistry::Instance().Register("platform_layout", [](GameObject& object)
 		{
-			object.AddComponent<PlatformLayoutComponent>();
+			//object.AddComponent<PlatformLayoutComponent>();
 		});
 	//編集モードで個別配置する地面
 	PrefabRegistry::Instance().Register("platform", [](GameObject& object)
@@ -292,7 +292,7 @@ void RegisterPrefabs()
 	PrefabRegistry::Instance().Register("one_way_platform_layout",
 		[](GameObject& object)
 		{
-			object.AddComponent<OneWayPlatformLayoutComponent>();
+			//object.AddComponent<OneWayPlatformLayoutComponent>();
 		});
 }
 

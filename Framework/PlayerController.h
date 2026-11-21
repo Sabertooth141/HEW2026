@@ -69,6 +69,21 @@ void UpdateJumpSettings();
 	// 天井にぶつかってから落下を始めるまでの時間
 	float ceilingHangDuration = 0.2f;
 
+	//加速の残り時間表示
+	float GetBoostRemainingTime() const
+	{
+		return speedBoost != nullptr
+			? speedBoost->GetRemainingTime()
+			: 0.0f;
+	}
+
+	float GetBoostRemainingRatio() const
+	{
+		return speedBoost != nullptr
+			? speedBoost -> GetRemainingRatio()
+			:0.0f;
+	}
+
 private:
 
 	enum class MovementMode

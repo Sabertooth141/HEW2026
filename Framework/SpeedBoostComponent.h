@@ -163,11 +163,21 @@ public:
 
 	float speedIncreasePerStack = 0.15f;
 
+	float GetRemainingRatio() const
+	{
+		if (boostDuration <= 0.0f)
+		{
+			return 0.0f;
+		}
+
+		return std::clamp(remainingTime / boostDuration, 0.0f, 1.0f);
+	}
+
 private:
 	int stackCount = 0;
 	float remainingTime = 0.0f;
 
-	float boostDuration = 5.0f;
+	float boostDuration = 7.0f;
 
 	bool isPaused = false;
 
