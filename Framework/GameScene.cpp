@@ -20,6 +20,7 @@
 #include "RenderLayer.h"
 #include "SpeedBoostComponent.h"
 #include "PlayerController.h"
+#include "StageLayout.h"
 
 void GameScene::OnEnter()
 {
@@ -42,27 +43,6 @@ void GameScene::OnEnter()
 
 	Scene::OnEnter();
 
-	// 各ステージ配置位置。
-	struct StageBackgroundData
-	{
-		const wchar_t* texturePath;
-		const char* objectName;
-		DirectX::XMFLOAT3 position;
-	};
-
-	const StageBackgroundData stageBackgroundDataList[] =
-	{
-		{ L"../../assets/mapdesign_s/1_s.png", "StageBackground1",{ 0.0f,     0.0f, 1.0f } },
-		{ L"../../assets/mapdesign_s/2_s.png", "StageBackground2",{ 1920.0f,     0.0f, 1.0f } },
-		{ L"../../assets/mapdesign_s/3_s.png", "StageBackground3",{ 3840.0f,     0.0f, 1.0f } },
-		{ L"../../assets/mapdesign_s/4_s.png", "StageBackground4",{ 3840.0f, -1080.0f, 1.0f } },
-		{ L"../../assets/mapdesign_s/5_s.png", "StageBackground5",{ 5760.0f, -1080.0f, 1.0f } },
-		{ L"../../assets/mapdesign_s/6_s.png", "StageBackground6",{ 5760.0f,     0.0f, 1.0f } },
-		{ L"../../assets/mapdesign_s/7_s.png", "StageBackground7",{ 7680.0f,     0.0f, 1.0f } },
-		{ L"../../assets/mapdesign_s/8_s.png", "StageBackground8",{ 7680.0f, -1080.0f, 1.0f } }
-	};								  
-
-
 	// ステージ全体の背景画像を生成する。
 	//背景なので、当たり判定やRigidbodyは付けない。
 	GameObject* back = Add2DObject();
@@ -84,7 +64,8 @@ void GameScene::OnEnter()
 		back->GetTransform()->SetScale({ 9600.0f, 2160.0f, 1.0f });
 	}
 	// データに従ってステージオブジェクトを1枚ずつ生成する。
-	for (const StageBackgroundData& stageData : stageBackgroundDataList)
+		// StageLayoutの配置データから、既存ステージとmapdesign2を生成する。
+	for (const StageLayout::ImageData& stageData : StageLayout::images)
 	{
 		GameObject* background = Add2DObject();
 
@@ -94,7 +75,8 @@ void GameScene::OnEnter()
 		}
 
 		background->SetName(stageData.objectName);
-		background->GetTransform()->SetPosition(stageData.position);
+		background->GetTransform()->SetPosition(
+			{ stageData.centerX, stageData.centerY, 1.0f });
 
 		auto& animator =
 			background->AddComponent<AnimatorComponent>(
@@ -102,13 +84,18 @@ void GameScene::OnEnter()
 
 		animator.SetRenderLayer(RenderLayer::BackGround);
 		animator.SetSortOrder(0);
-
-		// ステージごとに対応する画像を読み込む。
 		animator.SetStatic(stageData.texturePath);
 
-		// 1枚の背景画像を画面サイズに合わせる。
+		// 隣り合う画像の描画端にできる細い隙間を埋めるため、
+		// 表示サイズだけ左右・上下に少し重ねる。
+		constexpr float seamOverlap = 8.1f;
+
 		background->GetTransform()->SetScale(
-			{ 1920.0f, 1080.0f, 1.0f });
+			{
+				stageData.width + seamOverlap,
+				stageData.height + seamOverlap,
+				1.0f
+			});
 	}
 }
 void GameScene::OnUpdate(float deltaTime)

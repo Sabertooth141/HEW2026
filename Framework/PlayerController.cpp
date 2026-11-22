@@ -18,6 +18,7 @@
 
 #include "PlayerAudioComponent.h"
 #include "CheckpointComponent.h"
+#include "WarpComponent.h"
 
 void PlayerController::Awake()
 {
@@ -1027,7 +1028,13 @@ void PlayerController::HandleAnimation()
 
 	const char* nextAnimation = nullptr;
 
-	if (!isGrounded)
+	if (isDashing)
+	{
+		//実際の移動中ではなく、ダッシュ開始時に向いていた方向
+		nextAnimation = dashDirection >= 0.0f ? "DashRight" : "DashLeft";
+	}
+
+	else if (!isGrounded)
 	{
 		if (isFacingRight)
 		{
@@ -1143,6 +1150,13 @@ void PlayerController::OnCollisionEnter2D(
 	const GameObject& other,
 	const CollisionManifold& manifold)
 {
+	// 相手がワープTriggerなら、指定位置へ移動する。
+	if (const auto* warp = other.GetComponent<WarpComponent>())
+	{
+		WarpToPosition(warp->GetTargetPosition());
+		return;
+	}
+
 	// 既存のトゲとの衝突処理
 	OnCollisionEnter2D(other);
 
@@ -1201,10 +1215,10 @@ void PlayerController::OnCollisionEnter2D(
 	{
 		isDashing = false;
 
-		if (speedBoost != nullptr)
-		{
-			speedBoost->ResetBoost();
-		}
+		//if (speedBoost != nullptr)
+		//{
+		//	speedBoost->ResetBoost();
+		//}
 
 		// 壁から押し戻す
 		if (rb != nullptr)
@@ -1637,3 +1651,56 @@ void PlayerController::Respawn()
 	}
 }
 
+void PlayerController::WarpToPosition(const DirectX::XMFLOAT3& position)
+{
+	//スライド中なら、当たり判定を通常状態に戻す
+	if (isSliding)
+	{
+		EndSlide();
+	}
+
+	owner->GetTransform()->SetPosition(position);
+
+	if (rb != nullptr)
+	{
+		rb->SetGravity(normalGravity);
+		rb->SetVelocity({ 0.0f,0.0f });
+		rb->SetAngularVel(0.0f);
+		rb->Wake();
+	}
+
+	//ワープ前の接触・特殊移動状態を解除する
+	// ワープ前の接触・特殊移動状態を解除する。
+	groundContacts.clear();
+	isGrounded = false;
+	isTouchingGround = false;
+	isDashing = false;
+	dashDirection = 0.0f;
+	isDiving = false;
+	isLedgeGraceRunning = false;
+	ledgeGraceDistanceTravelled = 0.0f;
+	isWallTopTransitioning = false;
+	hasWallTop = false;
+	isCeilingKnockback = false;
+	ceilingHangTimer = 0.0f;
+	wasTouchingCeiling = false;
+	hasPreviousSurfaceNormal = false;
+	movementMode = MovementMode::Normal;
+
+	//カメラを移動先へ即合わせる
+	if (auto* cameraController = owner->GetComponent<CameraController>())
+	{
+		cameraController->SnapToTarget();
+	}
+
+	//前フレームの当たり判定位置もワープ先に更新する
+	if (auto* playerCollider = owner->GetComponent<BoxCollider2D>())
+	{
+		const AABB aabb = playerCollider->GetWorldAABB();
+
+		previousPlayerBottom = aabb.min.y;
+		previousPlayerTop = aabb.max.y;
+		previousPlayerLeft = aabb.min.x;
+		previousPlayerRight = aabb.max.x;
+	}
+}

@@ -18,6 +18,7 @@
 #include "BreakableLayoutComponent.h"
 #include "OneWayPlatformLayoutComponent.h"
 #include "PlayerAudioComponent.h"
+#include "WarpComponent.h"
 
 void RegisterPrefabs()
 {
@@ -51,6 +52,13 @@ void RegisterPrefabs()
 
 		anim.AddAnimation("JumpLeft",L"../../assets/sprite_jump/sprite_jump/spritesheet (2)/spritesheet.png",L"../../assets/sprite_jump/sprite_jump/spritesheet (2)/spritesheet.json");
 
+		//ダッシュ。
+		anim.AddAnimation("DashRight", L"../../assets/sprite_dash/right_dash_spritesheet/spritesheet.png",
+			L"../../assets/sprite_dash/right_dash_spritesheet/spritesheet.json");
+
+		anim.AddAnimation("DashLeft",	L"../../assets/sprite_dash/left_dash_spritesheet/spritesheet.png",
+			L"../../assets/sprite_dash/left_dash_spritesheet/spritesheet.json");
+
 		// 静止絵は0番のまま止める。
 		anim.SetAnimationRange("StaticRight", 0, 0, 1.0f, false);
 		anim.SetAnimationRange("StaticLeft", 0, 0, 1.0f, false);
@@ -62,6 +70,10 @@ void RegisterPrefabs()
 		// ジャンプは0〜29番を15 FPSで一度再生し、最後の絵で止める。
 		anim.SetAnimationRange("JumpRight", 0, 29, 15.0f, false);
 		anim.SetAnimationRange("JumpLeft", 0, 29, 15.0f, false);
+
+		//ダッシュ中繰り返し再生
+		anim.SetAnimationRange("DashRight", 0, 24, 20.0f, true);
+		anim.SetAnimationRange("DashLeft", 0, 24, 20.0f, true);
 
 		// 最初に表示するアニメーションを決める。
 		anim.SetCurrAnimation("StaticRight");
@@ -293,6 +305,29 @@ void RegisterPrefabs()
 		[](GameObject& object)
 		{
 			//object.AddComponent<OneWayPlatformLayoutComponent>();
+		});
+
+	//共通ワープのトリガー。移動先はシーンごとにインスペクターで設定
+	PrefabRegistry::Instance().Register("warp", [](GameObject& object)
+		{
+			object.SetName("Warp");
+
+			//Triggerの大きさ。
+			object.GetTransform()->SetScale({ 80.0f,160.0f,1.0f });
+
+			auto& warpRb = object.AddComponent<Rigidbody2DComponent>(*object.GetTransform(), 1.0f);
+
+			warpRb.SetGravity(0.0f);
+			warpRb.SetIsStatic(true);
+
+			//Triggerなのでプレイヤーを押さず接触の検知のみ
+			object.AddComponent<BoxCollider2D>(
+				DirectX::XMFLOAT2(0.5f, 0.5f),
+				DirectX::XMFLOAT2(0.0f, 0.0f),
+				true,
+				*object.GetTransform());
+
+			object.AddComponent<WarpComponent>();
 		});
 }
 

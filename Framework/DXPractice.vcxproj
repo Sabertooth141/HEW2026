@@ -235,6 +235,8 @@
     <ClInclude Include="PlayerAudioComponent.h" />
     <ClInclude Include="RetryTransitionComponent.h" />
     <ClInclude Include="SoundManager.h" />
+    <ClInclude Include="StageLayout.h" />
+    <ClInclude Include="WarpComponent.h" />
     <ClInclude Include="TextLabel.h" />
     <ClInclude Include="IComponent.h" />
     <ClInclude Include="ConstantBuffer.h" />

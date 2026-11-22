@@ -213,4 +213,6 @@ private:
 	SpeedBoostComponent* speedBoost = nullptr;
 
 	bool hasUsedAirRunJump = false;
+
+	void WarpToPosition(const DirectX::XMFLOAT3& position);
 };

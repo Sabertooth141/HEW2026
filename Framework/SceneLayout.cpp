@@ -10,6 +10,7 @@
 #include "PlayerController.h"
 #include "SpeedBoostComponent.h"
 #include "Rigidbody2DComponent.h"
+#include "WarpComponent.h"
 
 namespace
 {
@@ -156,6 +157,17 @@ SceneLayout::Result SceneLayout::Save(const Scene& scene, const std::string& sce
 			collider["halfExtents"] = Float2ToJson(col->GetHalfExtents());
 			collider["offset"] = Float2ToJson(col->GetOffset());
 			entry["collider"] = std::move(collider);
+		}
+
+		// ワープ先をシーンデータへ保存する。
+		if (const WarpComponent* warp =
+			obj.GetComponent<WarpComponent>())
+		{
+			nlohmann::ordered_json warpSettings;
+			warpSettings["targetPosition"] =
+				Float3ToJson(warp->GetTargetPosition());
+
+			entry["warpSettings"] = std::move(warpSettings);
 		}
 
 		objects.push_back(std::move(entry));
@@ -435,6 +447,27 @@ SceneLayout::Result SceneLayout::Load(Scene& scene, const std::string& sceneName
 			}
 		}
 
+		// 保存されたワープ先を復元する。
+		const auto warpSettingsIt = entry.find("warpSettings");
+
+		if (warpSettingsIt != entry.end() &&
+			warpSettingsIt->is_object())
+		{
+			if (WarpComponent* warp =
+				obj->GetComponent<WarpComponent>())
+			{
+				const auto targetIt =
+					warpSettingsIt->find("targetPosition");
+
+				DirectX::XMFLOAT3 targetPosition;
+
+				if (targetIt != warpSettingsIt->end() &&
+					JsonToFloat3(*targetIt, targetPosition))
+				{
+					warp->SetTargetPosition(targetPosition);
+				}
+			}
+		}
 
 		result.objectCount += 1;
 	}

@@ -14,6 +14,7 @@
 #include "WindowSettings.h"
 #include "PlayerController.h"
 #include "SpeedBoostComponent.h"
+#include "WarpComponent.h"
 
 namespace
 {
@@ -424,6 +425,19 @@ void EditorUI::DrawInspector(Scene& scene)
 		}
 
 
+	}
+
+	if (auto* warp = selectedObjRef.GetComponent<WarpComponent>())
+	{
+		if (ImGui::CollapsingHeader("ワープ設定", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			DirectX::XMFLOAT3 target = warp->GetTargetPosition();
+
+			if (ImGui::DragFloat3("移動先", &target.x, 1.0f))
+			{
+				warp->SetTargetPosition(target);
+			}
+		}
 	}
 
 	// PlayerController
