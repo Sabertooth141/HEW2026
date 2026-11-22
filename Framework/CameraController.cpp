@@ -2,10 +2,12 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 #include "Camera2D.h"
 #include "GameObject.h"
 #include "WindowSettings.h"
+#include "StageLayout.h"
 
 namespace
 {
@@ -17,34 +19,40 @@ namespace
 		float maxY;
 	};
 
-	//背景画像の配置に対応する部屋の範囲
-	constexpr Room rooms[] =
+	// 画像の範囲から、そのステージのカメラ範囲を作る。
+	Room GetRoom(int roomIndex)
 	{
-		{ -960.f,  960.f,  -540.f,  540.f }, // 部屋1
-		{ 960.f, 2880.f,  -540.f,  540.f }, // 部屋2
-		{ 2880.f, 4800.f,  -540.f,  540.f }, // 部屋3
-		{ 2880.f, 4800.f, -1620.f, -540.f }, // 部屋4
-		{ 4800.f, 6720.f, -1620.f, -540.f }, // 部屋5
-		{ 4800.f, 6720.f,  -540.f,  540.f }, // 部屋6
-		{ 6720.f, 8640.f,  -540.f,  540.f }, // 部屋7
-		{ 6720.f, 8640.f, -1620.f, -540.f }  // 部屋8
-	};
+		const StageLayout::ImageData& image =
+			StageLayout::images[roomIndex];
 
-	constexpr int roomCount = sizeof(rooms) / sizeof(rooms[0]);
+		return
+		{
+			image.centerX - image.width * 0.5f - image.cameraLeftExtension,
+			image.centerX + image.width * 0.5f + image.cameraRightExtension,
+			image.centerY - image.height * 0.5f - image.cameraBottomExtension,
+			image.centerY + image.height * 0.5f + image.cameraTopExtension
+		};
+	}
 
-	float ClampAxis(float value, float minimum, float maximum, float viewSize)
+	constexpr int roomCount = StageLayout::imageCount;
+
+	float ClampAxis(
+		float value,
+		float minimum,
+		float maximum,
+		float viewSize)
 	{
-		//表示範囲より小さい部屋では中央に固定
+		// 部屋が画面より小さい場合は、その軸の中央に固定する。
 		if (maximum - minimum <= viewSize)
 		{
 			return (minimum + maximum) * 0.5f;
 		}
 
+		// 画面が部屋の外へはみ出さない範囲にカメラ位置を収める。
 		return std::clamp(
 			value,
 			minimum + viewSize * 0.5f,
-			maximum - viewSize * 0.5f
-		);
+			maximum - viewSize * 0.5f);
 	}
 }
 
@@ -71,7 +79,7 @@ int CameraController::FindRoom(const DirectX::XMFLOAT3& position) const
 {
 	for (int i = 0;i < roomCount;++i)
 	{
-		const Room& room = rooms[i];
+		const Room room = GetRoom(i);
 
 		//共有する教会で所属する部屋が重ならないようにする
 		if (position.x >= room.minX && position.x < room.maxX && position.y >= room.minY && position.y < room.maxY)
@@ -83,17 +91,18 @@ int CameraController::FindRoom(const DirectX::XMFLOAT3& position) const
 	return -1;
 }
 
-DirectX::XMFLOAT2 CameraController::ClampToRoom(DirectX::XMFLOAT2 position, int roomIndex)const
+DirectX::XMFLOAT2 CameraController::ClampToRoom(
+	DirectX::XMFLOAT2 position,
+	int roomIndex) const
 {
-	const Room& room = rooms[roomIndex];
+	const Room room = GetRoom(roomIndex);
 
 	return
 	{
-		ClampAxis(position.x,room.minX,room.maxX,viewWidth),
-		ClampAxis(position.y,room.minY,room.maxY,viewHeight)
+		ClampAxis(position.x, room.minX, room.maxX, viewWidth),
+		ClampAxis(position.y, room.minY, room.maxY, viewHeight)
 	};
 }
-
 void CameraController::LateUpdate(float deltaTime)
 {
 	if (camera == nullptr)
@@ -196,7 +205,7 @@ void CameraController::SnapToTarget()
 
 		for (int i = 0;i < roomCount;++i)
 		{
-			const Room& room = rooms[i];
+			const Room room = GetRoom(i);
 			
 			const float dx = position.x - std::clamp(position.x, room.minX, room.maxX);
 
