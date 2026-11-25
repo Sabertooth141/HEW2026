@@ -100,6 +100,17 @@ void GameScene::OnEnter()
 }
 void GameScene::OnUpdate(float deltaTime)
 {
+	//シーン遷移中に追加で出さない
+	if (context.sceneManager == nullptr || context.sceneManager->IsTransitioning())
+	{
+		return;
+	}
+
+	//プレイ中に１キーを押すとタイトル画面へ
+	if (context.keyboard.KeyIsTriggered('1'))
+	{
+		context.sceneManager->RequestChange("Title");
+	}
 }
 
 void GameScene::OnDrawUI(TextRenderer& text)

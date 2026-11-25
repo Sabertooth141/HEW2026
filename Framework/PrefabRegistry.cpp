@@ -19,6 +19,7 @@
 #include "OneWayPlatformLayoutComponent.h"
 #include "PlayerAudioComponent.h"
 #include "WarpComponent.h"
+#include "GoalComponent.h"
 
 void RegisterPrefabs()
 {
@@ -328,6 +329,28 @@ void RegisterPrefabs()
 				*object.GetTransform());
 
 			object.AddComponent<WarpComponent>();
+		});
+
+	PrefabRegistry::Instance().Register("goal", [](GameObject& object)
+		{
+			object.SetName("Goal");
+
+			//初期サイズ。編集モードで変更可
+			object.GetTransform()->SetScale({ 96.0f,160.0f,1.0f });
+
+			//Trigger
+			auto& goalRb = object.AddComponent<Rigidbody2DComponent>(*object.GetTransform(), 1.0f);
+
+			goalRb.SetGravity(0.0f);
+			goalRb.SetIsStatic(true);
+
+			object.AddComponent<BoxCollider2D>(
+				DirectX::XMFLOAT2(0.5f, 0.5f),
+				DirectX::XMFLOAT2(0.0f, 0.0f),
+				true,	//Triggerのみでプレイヤーを押さない
+				*object.GetTransform());
+
+			object.AddComponent<GoalComponent>();
 		});
 }
 
