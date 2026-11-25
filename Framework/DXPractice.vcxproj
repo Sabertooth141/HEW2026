@@ -231,6 +231,7 @@
     <ClInclude Include="EditorUI.h" />
     <ClInclude Include="GameContext.h" />
     <ClInclude Include="GameScene.h" />
+    <ClInclude Include="GoalComponent.h" />
     <ClInclude Include="PlatformLayoutComponent.h" />
     <ClInclude Include="PlayerAudioComponent.h" />
     <ClInclude Include="RetryTransitionComponent.h" />
