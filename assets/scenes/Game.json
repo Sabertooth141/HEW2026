@@ -276,6 +276,14 @@
   {"prefab":"platform","name":"platform","position":[21330.0,-544.0,1.0],"rotation":0.0,"scale":[1438.0,566.0,1.0]},
   {"prefab":"platform","name":"platform","position":[22400.0,-576.0,1.0],"rotation":0.0,"scale":[705.0,499.0,1.0]},
   {"prefab":"platform","name":"platform","position":[22870.0,-729.0,1.0],"rotation":0.0,"scale":[232.5,192.0,1.0]},
-  {"prefab":"goal","name":"Goal","position":[15990.0,-242.0,1.0],"rotation":0.0,"scale":[146.0,155.0,1.0]}
+  {"prefab":"goal","name":"Goal","position":[15990.0,-242.0,1.0],"rotation":0.0,"scale":[146.0,155.0,1.0]},
+  {"prefab":"acceleration_device","name":"AccelerationDevice","position":[12000.0,-1376.0,1.0],"rotation":0.0,"scale":[64.0,64.0,1.0]},
+  {"prefab":"acceleration_device","name":"AccelerationDevice","position":[13280.0,-788.0,1.0],"rotation":0.0,"scale":[64.0,64.0,1.0]},
+  {"prefab":"acceleration_device","name":"AccelerationDevice","position":[14560.0,-288.0,1.0],"rotation":0.0,"scale":[64.0,64.0,1.0]},
+  {"prefab":"acceleration_device","name":"AccelerationDevice","position":[14112.0,-855.0,1.0],"rotation":0.0,"scale":[64.0,64.0,1.0]},
+  {"prefab":"acceleration_device","name":"AccelerationDevice","position":[15328.0,-1365.0,1.0],"rotation":0.0,"scale":[64.0,64.0,1.0]},
+  {"prefab":"acceleration_device","name":"AccelerationDevice","position":[17312.0,-1504.0,1.0],"rotation":0.0,"scale":[64.0,64.0,1.0]},
+  {"prefab":"acceleration_device","name":"AccelerationDevice","position":[20640.0,-224.0,1.0],"rotation":0.0,"scale":[64.0,64.0,1.0]},
+  {"prefab":"acceleration_device","name":"AccelerationDevice","position":[10080.0,-1376.0,1.0],"rotation":0.0,"scale":[64.0,64.0,1.0]}
   ]
 }

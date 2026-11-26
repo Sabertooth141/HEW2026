@@ -19,6 +19,7 @@
 #include "PlayerAudioComponent.h"
 #include "CheckpointComponent.h"
 #include "WarpComponent.h"
+#include "StaminaComponent.h"
 
 void PlayerController::Awake()
 {
@@ -64,7 +65,8 @@ void PlayerController::Awake()
 
 	//加速
 	speedBoost = owner->GetComponent<SpeedBoostComponent>();
-
+	//スタミナ
+	stamina = owner->GetComponent<StaminaComponent>();
 }
 
 
@@ -161,6 +163,13 @@ void PlayerController::Update(float deltaTime)
 		}
 
 		return;
+	}
+
+	// 一時テスト：Jキーを押すたびにスタミナを25消費する。
+	if (keyboard != nullptr && stamina != nullptr &&
+		keyboard->KeyIsTriggered('J'))
+	{
+		stamina->Drain(25.0f);
 	}
 
 	// 通常の天井衝突後の滞空時間を減らす
@@ -281,6 +290,9 @@ void PlayerController::HandleDash()//ダッシュの入力
 	if (!isDashing && keyboard->KeyIsTriggered('Z'))
 	{
 		isDashing = true;
+
+		//新しいダッシュだから各装置を再使用可能にリセっと
+		usedAccelerationDevice.clear();
 
 		if (inputX > 0.f)
 		{
@@ -1326,12 +1338,6 @@ void PlayerController::SetCheckpoint(
 
 	// 復帰時に使う座標を保存する。
 	lastCheckpointPosition = position;
-
-	// 既存の加速処理。今回の旗を加速判定へ渡す。
-	if (speedBoost != nullptr&&isDashing)
-	{
-		speedBoost->TryAddStack(checkpoint);
-	}
 }
 void PlayerController::RespawnAtCheckPoint()
 {
@@ -1703,4 +1709,53 @@ void PlayerController::WarpToPosition(const DirectX::XMFLOAT3& position)
 		previousPlayerLeft = aabb.min.x;
 		previousPlayerRight = aabb.max.x;
 	}
+}
+
+//チェックポイントや加速装置に触れたとき
+void PlayerController::RecoverStamina()
+{
+	if (stamina != nullptr)
+	{
+		stamina->Recover(stamina->GetMaxStamina());
+	}
+}
+
+//スタミナ残量を、最大値に対しての割合で
+float PlayerController::GetStaminaRatio() const
+{
+	if (stamina == nullptr)
+	{
+		return 0.0f;
+	}
+
+	return stamina->GetRatio();
+}
+
+//最小発動量を下回っていないかどうか
+bool PlayerController::CanStartStaminaAction() const
+{
+	return stamina != nullptr && stamina->CanStartAction();
+}
+
+bool PlayerController::TryActivateAccelerationDevice(const GameObject* device)
+{
+	//ダッシュ中でないなら何も起こらない
+	if (!isDashing || IsDead() || device == nullptr || speedBoost == nullptr || stamina == nullptr)
+	{
+		return false;
+	}
+
+	//同じ奪取中なら何も起こさない
+	if (!usedAccelerationDevice.insert(device).second)
+	{
+		return false;
+	}
+
+	//既存の加速処理でスタックを増やす
+	speedBoost->AddStack();
+
+	//加速と同時に一度だけスタミナ回復
+	RecoverStamina();
+
+	return true;
 }

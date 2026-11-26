@@ -20,6 +20,8 @@
 #include "PlayerAudioComponent.h"
 #include "WarpComponent.h"
 #include "GoalComponent.h"
+#include "StaminaComponent.h"
+#include "AccelerationDeviceComponent.h"
 
 void RegisterPrefabs()
 {
@@ -85,6 +87,9 @@ void RegisterPrefabs()
 
 		//加速
 		object.AddComponent<SpeedBoostComponent>();
+
+		//スタミナ（試用なので消して差し替えてね）
+		object.AddComponent<StaminaComponent>();
 
 		//プレイヤーのSE管理
 		object.AddComponent<PlayerAudioComponent>();
@@ -351,6 +356,27 @@ void RegisterPrefabs()
 				*object.GetTransform());
 
 			object.AddComponent<GoalComponent>();
+		});
+
+
+	//加速装置
+	PrefabRegistry::Instance().Register("acceleration_device", [](GameObject& object)
+		{
+			object.SetName("AccelerationDevice");
+			object.GetTransform()->SetScale({ 64.0f,64.0f,1.0f });
+
+			auto& deviceRb = object.AddComponent<Rigidbody2DComponent>(*object.GetTransform(), 1.0f);
+
+			deviceRb.SetGravity(0.0f);
+			deviceRb.SetIsStatic(true);
+
+			object.AddComponent<BoxCollider2D>(
+				DirectX::XMFLOAT2(0.5f, 0.5f),
+				DirectX::XMFLOAT2(0.0f, 0.0f),
+				true,	//Trigger
+				*object.GetTransform());
+
+			object.AddComponent<AccelerationDeviceComponent>();
 		});
 }
 
