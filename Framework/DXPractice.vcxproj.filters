@@ -526,6 +526,15 @@
     <ClInclude Include="WarpComponent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="GoalComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="StaminaComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AccelerationDeviceComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="PixelShader.hlsl">

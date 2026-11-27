@@ -63,6 +63,9 @@ public:
 			owner->GetTransform()->GetPosition();
 
 		playerController->SetCheckpoint(checkpointPosition, owner);
+
+		//触れたときのスタミナ回復
+		playerController->RecoverStamina();
 	}
 
 private:

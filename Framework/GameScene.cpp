@@ -128,7 +128,8 @@ void GameScene::OnDrawUI(TextRenderer& text)
 		}
 	}
 
-	float ratio = 0.0f;
+	float staminaRatio = 0.0f;
+	bool isBelowMinimum = false;
 
 	for (const auto& object : GetObjects())
 	{
@@ -136,7 +137,8 @@ void GameScene::OnDrawUI(TextRenderer& text)
 
 		if (player != nullptr)
 		{
-			ratio = player->GetBoostRemainingRatio();
+			staminaRatio = player->GetStaminaRatio();
+			isBelowMinimum = !player->CanStartStaminaAction();
 			break;
 		}
 	}
@@ -152,15 +154,20 @@ void GameScene::OnDrawUI(TextRenderer& text)
 
 	const DirectX::XMFLOAT4 emptyColor = { 0.2f,0.2f,0.2f,1.0f };
 
+	//最小発動量を下回ると赤、それ以上なら緑で表示
+	const DirectX::XMFLOAT4 staminaColor = isBelowMinimum ? TextColor::Red : TextColor::Green;
+
+
+	//ゲージは毎フレーム描画　残量に応じて点灯する区間が変化
 	for (int i = 0;i < segmentCount;++i)
 	{
 		//残っている区間を点灯
-		const bool filled = ratio > static_cast<float>(i) / segmentCount;
+		const bool filled = staminaRatio > static_cast<float>(i) / segmentCount;
 
 		text.DrawScreen(
 			segment,
 			{ 350.0f+i*(segmentWidth+spacing),190.0f},
-			filled?TextColor::Green:emptyColor,
+			filled?staminaColor:emptyColor,
 			scale,
 			TextAlign::Left
 		);

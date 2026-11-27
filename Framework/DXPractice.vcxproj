@@ -214,6 +214,7 @@
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AccelerationDeviceComponent.h" />
     <ClInclude Include="AnimationSystem.h" />
     <ClInclude Include="AnimatorComponent.h" />
     <ClInclude Include="App.h" />
@@ -237,6 +238,7 @@
     <ClInclude Include="RetryTransitionComponent.h" />
     <ClInclude Include="SoundManager.h" />
     <ClInclude Include="StageLayout.h" />
+    <ClInclude Include="StaminaComponent.h" />
     <ClInclude Include="WarpComponent.h" />
     <ClInclude Include="TextLabel.h" />
     <ClInclude Include="IComponent.h" />

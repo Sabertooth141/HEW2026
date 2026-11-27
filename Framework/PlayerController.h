@@ -1,5 +1,6 @@
 #pragma once
 #include <unordered_map>
+#include <unordered_set>
 #include "MonoBehavior.h"
 #include "SpeedBoostComponent.h"
 
@@ -7,6 +8,7 @@ class Rigidbody2DComponent;
 class AnimatorComponent;
 class PlayerAudioComponent;
 class BoxCollider2D;
+class StaminaComponent;
 
 // サンプル用の基本的なプレイヤー操作
 // WASDで上下左右に移動し、敵に触れるとHPが減る
@@ -83,6 +85,16 @@ void UpdateJumpSettings();
 			? speedBoost -> GetRemainingRatio()
 			:0.0f;
 	}
+
+	//スタミナ残量の割合取得
+	float GetStaminaRatio() const;
+
+	//最小発動量以上のスタミナがあるかどうか
+	bool CanStartStaminaAction() const;
+
+	//試用のスタミナ関連の関数など（不都合ならけして）
+	void RecoverStamina();
+	bool TryActivateAccelerationDevice(const GameObject* device);
 
 private:
 
@@ -215,4 +227,10 @@ private:
 	bool hasUsedAirRunJump = false;
 
 	void WarpToPosition(const DirectX::XMFLOAT3& position);
+
+	//スタミナ用
+	StaminaComponent* stamina = nullptr;
+
+	//現在のダッシュ中に使った加速装置を記録
+	std::unordered_set<const GameObject*> usedAccelerationDevice;
 };
